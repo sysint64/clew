@@ -3,8 +3,9 @@ use crate::{
     AlignX, AlignY, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, impl_position_methods,
     impl_width_methods,
     layout::{ContainerKind, LayoutCommand},
+    state::WidgetState,
 };
-use std::hash::Hash;
+use std::{any::Any, hash::Hash};
 
 pub struct ButtonBuilder<'a> {
     id: WidgetId,
@@ -30,6 +31,18 @@ impl ButtonResponse {
 pub(crate) struct ButtonState {
     // pub(crate) text: StringId,
     pub(crate) clicked: bool,
+}
+
+impl WidgetState for ButtonState {
+    #[inline]
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    #[inline]
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 }
 
 impl<'a> ButtonBuilder<'a> {

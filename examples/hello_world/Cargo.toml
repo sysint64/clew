@@ -4,3 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+tech_paws_ui = { path = "../../tech_paws_ui" }
+tech_paws_ui_desktop = { path = "../../tech_paws_ui_desktop" }
+log = { workspace = true }
+env_logger = "0.10"
+tokio = { version = "1.47.1", features = ["full"] }

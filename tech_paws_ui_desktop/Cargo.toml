@@ -1,11 +1,14 @@
 [package]
-name = "tech_paws_ui"
+name = "tech_paws_ui_desktop"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+winit = "0.30"
 log = { workspace = true }
-glam = { workspace = true }
+slotmap = "1"
+tech_paws_ui = { path = "../tech_paws_ui" }
+anyhow = "1.0"
 tokio = { version = "1", features = ["rt", "sync", "time"], optional = true }
 
 [features]

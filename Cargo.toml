@@ -2,10 +2,9 @@
 resolver = "3"
 members = [
     "tech_paws_ui",
-    "tech_paws_winit",
-]
-exclude = [
-    "examples/*",
+    "tech_paws_ui_desktop",
+    "tech_paws_ui_tiny_skia",
+    "examples/hello_world"
 ]
 
 [workspace.dependencies]

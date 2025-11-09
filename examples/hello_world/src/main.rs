@@ -1,3 +1,118 @@
-fn main() {
-    println!("Hello, world!");
+use std::time::Duration;
+
+use tech_paws_ui::widgets::{
+    builder::BuildContext,
+    button::{self, button_id},
+    vstack::vstack,
+};
+use tech_paws_ui_desktop::{
+    app::{Application, ApplicationDelegate},
+    window::Window,
+    window_manager::{WindowDescriptor, WindowManager},
+};
+
+pub struct DemoApplication {
+    pub todo_list: Vec<String>,
+}
+
+impl DemoApplication {
+    pub fn new() -> Self {
+        Self {
+            todo_list: vec!["Task 1".to_string(), "Task 2".to_string()],
+        }
+    }
+}
+
+impl ApplicationDelegate for DemoApplication {
+    fn on_start(&mut self, window_manager: &mut WindowManager<DemoApplication>) {
+        window_manager.spawn_window(
+            MainWindow::new(),
+            WindowDescriptor {
+                title: "TODO List".to_string(),
+                width: 800,
+                height: 600,
+                resizable: true,
+            },
+        );
+    }
+}
+
+#[derive(Default)]
+pub struct MainWindow {}
+
+impl MainWindow {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Window<DemoApplication> for MainWindow {
+    fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
+        vstack().build(ctx, |ctx| {
+            for item in app.todo_list.iter() {
+                if button_id(item, &item).build(ctx).clicked() {
+                    // ctx.task_spawner.spawn(async move {
+                    //     // Simulate network request
+                    //     tokio::time::sleep(Duration::from_secs(2)).await;
+                    //     println!("Finished async task for {item}");
+                    // });
+
+                    // // println!("Clicked to {item}");
+                }
+            }
+        });
+    }
+}
+
+struct CounterView {
+    value: i32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Message {
+    Increment,
+    Decrement,
+}
+
+impl CounterView {
+    pub fn update(&mut self, app: &mut DemoApplication, message: Message) {
+        match message {
+            Message::Increment => {
+                self.value += 1;
+            }
+            Message::Decrement => {
+                self.value -= 1;
+            }
+        }
+    }
+
+    fn build(&mut self, ctx: &mut BuildContext) {
+        vstack().build(ctx, |ctx| {
+            if button_id("counter", &format!("Counter: {}", self.value))
+                .build(ctx)
+                .clicked()
+            {
+                let value = self.value;
+
+                ctx.spawn(async move {
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                    println!("Current counter: {value}");
+
+                    Message::Increment
+                });
+            };
+        });
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::Builder::new()
+        .filter(None, log::LevelFilter::Info)
+        .init();
+
+    log::info!("Starting app");
+    Application::run_application(DemoApplication::new())?;
+
+    Ok(())
 }

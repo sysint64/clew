@@ -34,10 +34,7 @@ impl WidgetsStates {
         F: FnOnce() -> T,
     {
         self.accessed_this_frame.insert(id);
-
-        if !self.data.contains_key(&id) {
-            self.data.insert(id, Box::new(create()));
-        }
+        self.data.entry(id).or_insert_with(|| Box::new(create()));
 
         self.data
             .get_mut(&id)

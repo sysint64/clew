@@ -510,11 +510,7 @@ pub fn layout(
                 context.push_container(context.parent_container);
 
                 match kind {
-                    ContainerKind::VStack {
-                        spacing,
-                        main_axis_alignment,
-                        cross_axis_alignment,
-                    } => {
+                    ContainerKind::VStack { spacing, .. } => {
                         context.parent_container = LayoutContainer {
                             idx: context.current_idx(),
                             axis: StackAxis::Vertical { spacing: *spacing },
@@ -526,10 +522,7 @@ pub fn layout(
                         };
                     }
                     ContainerKind::HStack {
-                        spacing,
-                        main_axis_alignment,
-                        cross_axis_alignment,
-                        rtl_aware,
+                        spacing, rtl_aware, ..
                     } => {
                         context.parent_container = LayoutContainer {
                             idx: context.current_idx(),
@@ -570,9 +563,7 @@ pub fn layout(
                         };
                     }
                     ContainerKind::Flow {
-                        spacing,
-                        run_spacing,
-                        rtl_aware,
+                        spacing, rtl_aware, ..
                     } => {
                         context.parent_container = LayoutContainer {
                             idx: context.current_idx(),
@@ -587,7 +578,7 @@ pub fn layout(
                             },
                         };
                     }
-                    ContainerKind::Align { align_x, align_y } => {
+                    ContainerKind::Align { .. } => {
                         // Do nothing
                     }
                 }
@@ -602,28 +593,15 @@ pub fn layout(
                 let mut size = parent_container.command.size;
 
                 match parent_container.command.kind {
-                    ContainerKind::VStack {
-                        spacing,
-                        main_axis_alignment,
-                        cross_axis_alignment,
-                    } => {
+                    ContainerKind::VStack { spacing, .. } => {
                         wrap_size.y -= spacing;
                         wrap_size.y = wrap_size.y.max(0.);
                     }
-                    ContainerKind::HStack {
-                        spacing,
-                        main_axis_alignment,
-                        cross_axis_alignment,
-                        rtl_aware,
-                    } => {
+                    ContainerKind::HStack { spacing, .. } => {
                         wrap_size.x -= spacing;
                         wrap_size.x = wrap_size.x.max(0.);
                     }
-                    ContainerKind::Flow {
-                        spacing,
-                        run_spacing,
-                        rtl_aware,
-                    } => {
+                    ContainerKind::Flow { spacing, .. } => {
                         wrap_size.x -= spacing;
                         wrap_size.x = wrap_size.x.max(0.);
                         wrap_size.y -= spacing;
@@ -647,24 +625,21 @@ pub fn layout(
                             },
                         };
                     }
-                    ContainerKind::Align { align_x, align_y } => {
+                    ContainerKind::Align { .. } => {
                         // Do nothing
                     }
                 };
 
                 let wrap_size = *wrap_size;
                 let idx = parent_container.idx;
-                let size = context.add_container_size(parent_container.command.size, wrap_size);
+                let size = context.add_container_size(size, wrap_size);
                 context.actual_sizes[idx] =
                     apply_constraints(size, parent_container.command.constraints);
 
                 context.parent_container = parent_container;
             }
             LayoutCommand::Fixed {
-                id,
-                constraints,
-                size,
-                zindex,
+                constraints, size, ..
             } => {
                 context.push_boundary();
                 context.set_constraints(*constraints);
@@ -679,13 +654,7 @@ pub fn layout(
                     ),
                 );
             }
-            LayoutCommand::Wrap {
-                id,
-                constraints,
-                size,
-                zindex,
-                wrap,
-            } => todo!(),
+            LayoutCommand::Wrap { .. } => todo!(),
             LayoutCommand::Spacer { constraints, size } => {
                 context.push_boundary();
                 context.set_constraints(*constraints);
@@ -812,11 +781,7 @@ pub fn layout(
                 };
 
                 match kind {
-                    ContainerKind::VStack {
-                        spacing,
-                        main_axis_alignment,
-                        cross_axis_alignment,
-                    } => {
+                    ContainerKind::VStack { spacing, .. } => {
                         context.parent_container = LayoutContainer {
                             idx: current_idx,
                             axis: StackAxis::Vertical { spacing: *spacing },
@@ -827,10 +792,7 @@ pub fn layout(
                         go_next = false;
                     }
                     ContainerKind::HStack {
-                        spacing,
-                        main_axis_alignment,
-                        cross_axis_alignment,
-                        rtl_aware,
+                        spacing, rtl_aware, ..
                     } => {
                         if *rtl_aware && context.layout_direction == LayoutDirection::RTL {
                             current_position = position + Vec2::new(widget_size.x, 0.);
@@ -848,11 +810,7 @@ pub fn layout(
                         current_idx += 1;
                         go_next = false;
                     }
-                    ContainerKind::Flow {
-                        spacing,
-                        run_spacing,
-                        rtl_aware,
-                    } => todo!(),
+                    ContainerKind::Flow { .. } => todo!(),
                     ContainerKind::ZStack => {
                         context.parent_container = LayoutContainer {
                             idx: current_idx,
@@ -863,7 +821,7 @@ pub fn layout(
                         current_idx += 1;
                         go_next = false;
                     }
-                    ContainerKind::Padding { padding } => {
+                    ContainerKind::Padding { .. } => {
                         context.parent_container = LayoutContainer {
                             idx: current_idx,
                             axis: StackAxis::None,
@@ -921,7 +879,7 @@ pub fn layout(
 
                 current_idx += 1;
             }
-            LayoutCommand::Spacer { constraints, size } => {
+            LayoutCommand::Spacer { .. } => {
                 current_idx += 1;
             }
         }

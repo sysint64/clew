@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::WidgetId;
 
 #[derive(Default)]
-pub(crate) struct InteractionState {
+pub struct InteractionState {
     pub(crate) hover: HashSet<WidgetId>,
     pub(crate) hot: Option<WidgetId>,
     pub(crate) active: Option<WidgetId>,

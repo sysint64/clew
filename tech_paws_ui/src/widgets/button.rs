@@ -3,7 +3,6 @@ use crate::{
     AlignX, AlignY, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, impl_position_methods,
     impl_width_methods,
     layout::{ContainerKind, LayoutCommand},
-    state::WidgetState,
 };
 use std::hash::Hash;
 

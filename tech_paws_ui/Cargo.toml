@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 log = { workspace = true }
 glam = { workspace = true }
+cosmic-text = { workspace = true }
+slotmap = { workspace = true }
 tokio = { version = "1", features = ["rt", "sync", "time"], optional = true }
 
 [features]

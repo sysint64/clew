@@ -476,3 +476,514 @@ pub(crate) fn rect_contains_boundary(boundary: Rect, rect: Rect) -> bool {
         || point_with_rect_hit_test(left_bottom, rect)
         || point_with_rect_hit_test(right_bottom, rect)
 }
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub struct ColorRgb {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Copy)]
+pub struct ColorRgba {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Copy)]
+pub struct ColorOkLab {
+    pub l: f64,
+    pub a: f64,
+    pub b: f64,
+}
+
+impl ColorRgb {
+    pub fn new(r: f32, b: f32, g: f32) -> Self {
+        ColorRgb { r, g, b }
+    }
+
+    pub fn with_alpha(&self, a: f32) -> ColorRgba {
+        ColorRgba::new(self.r, self.b, self.g, a)
+    }
+
+    pub fn from_hex(hex: u32) -> Self {
+        Self {
+            r: ((hex & 0xFF0000) >> 16) as f32 / 255.,
+            g: ((hex & 0x00FF00) >> 8) as f32 / 255.,
+            b: (hex & 0x0000FF) as f32 / 255.,
+        }
+    }
+
+    pub fn to_hex(&self) -> u32 {
+        let r = (self.r * 255.) as u32;
+        let g = (self.g * 255.) as u32;
+        let b = (self.b * 255.) as u32;
+
+        (r << 16) | (g << 8) | b
+    }
+
+    /// Source: https://bottosson.github.io/posts/oklab/
+    pub fn to_oklab(&self) -> ColorOkLab {
+        let r = self.r as f64;
+        let g = self.g as f64;
+        let b = self.b as f64;
+
+        let l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+        let m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+        let s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+
+        let l = l.cbrt();
+        let m = m.cbrt();
+        let s = s.cbrt();
+
+        ColorOkLab {
+            l: 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+            a: 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+            b: 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s,
+        }
+    }
+}
+
+impl ColorRgba {
+    pub fn transparent() -> ColorRgba {
+        ColorRgba::new(0., 0., 0., 0.)
+    }
+
+    pub fn new(r: f32, b: f32, g: f32, a: f32) -> Self {
+        ColorRgba { r, g, b, a }
+    }
+
+    pub fn to_rgb(&self) -> ColorRgb {
+        ColorRgb {
+            r: self.r,
+            g: self.g,
+            b: self.b,
+        }
+    }
+
+    pub fn to_array(&self) -> [f32; 4] {
+        [self.r, self.g, self.b, self.a]
+    }
+
+    pub fn from_hex(hex: u32) -> Self {
+        Self {
+            r: ((hex & 0x00FF0000) >> 16) as f32 / 255.,
+            g: ((hex & 0x0000FF00) >> 8) as f32 / 255.,
+            b: (hex & 0x000000FF) as f32 / 255.,
+            a: ((hex & 0xFF000000) >> 24) as f32 / 255.,
+        }
+    }
+
+    pub fn to_hex(&self) -> u32 {
+        let r = (self.r * 255.) as u32;
+        let g = (self.g * 255.) as u32;
+        let b = (self.b * 255.) as u32;
+        let a = (self.a * 255.) as u32;
+
+        (a << 24) | (r << 16) | (g << 8) | b
+    }
+
+    pub fn with_opacity(&self, opacity: f32) -> Self {
+        Self {
+            r: self.r,
+            g: self.g,
+            b: self.b,
+            a: opacity,
+        }
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Copy)]
+pub struct BorderRadius {
+    pub top_left: f32,
+    pub top_right: f32,
+    pub bottom_left: f32,
+    pub bottom_right: f32,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Copy)]
+pub struct Border {
+    pub top: Option<BorderSide>,
+    pub right: Option<BorderSide>,
+    pub bottom: Option<BorderSide>,
+    pub left: Option<BorderSide>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Copy)]
+pub struct BorderSide {
+    pub width: f32,
+    pub color: ColorRgba,
+}
+
+impl BorderRadius {
+    /// Creates a BorderRadius with individual values for each corner
+    pub fn new(top_left: f32, top_right: f32, bottom_left: f32, bottom_right: f32) -> Self {
+        Self {
+            top_left,
+            top_right,
+            bottom_left,
+            bottom_right,
+        }
+    }
+
+    /// Creates a BorderRadius with the same radius for all corners
+    pub fn all(radius: f32) -> Self {
+        Self {
+            top_left: radius,
+            top_right: radius,
+            bottom_left: radius,
+            bottom_right: radius,
+        }
+    }
+
+    /// Creates a BorderRadius with the same radius for top and bottom
+    pub fn vertical(top: f32, bottom: f32) -> Self {
+        Self {
+            top_left: top,
+            top_right: top,
+            bottom_left: bottom,
+            bottom_right: bottom,
+        }
+    }
+
+    /// Creates a BorderRadius with the same radius for left and right
+    pub fn horizontal(left: f32, right: f32) -> Self {
+        Self {
+            top_left: left,
+            top_right: right,
+            bottom_left: left,
+            bottom_right: right,
+        }
+    }
+
+    /// Creates a BorderRadius with radius only on top corners
+    pub fn top(radius: f32) -> Self {
+        Self {
+            top_left: radius,
+            top_right: radius,
+            bottom_left: 0.0,
+            bottom_right: 0.0,
+        }
+    }
+
+    /// Creates a BorderRadius with radius only on bottom corners
+    pub fn bottom(radius: f32) -> Self {
+        Self {
+            top_left: 0.0,
+            top_right: 0.0,
+            bottom_left: radius,
+            bottom_right: radius,
+        }
+    }
+
+    /// Creates a BorderRadius with radius only on left corners
+    pub fn left(radius: f32) -> Self {
+        Self {
+            top_left: radius,
+            top_right: 0.0,
+            bottom_left: radius,
+            bottom_right: 0.0,
+        }
+    }
+
+    /// Creates a BorderRadius with radius only on right corners
+    pub fn right(radius: f32) -> Self {
+        Self {
+            top_left: 0.0,
+            top_right: radius,
+            bottom_left: 0.0,
+            bottom_right: radius,
+        }
+    }
+}
+
+impl Border {
+    /// Creates a Border with individual sides
+    pub fn new(
+        top: Option<BorderSide>,
+        right: Option<BorderSide>,
+        bottom: Option<BorderSide>,
+        left: Option<BorderSide>,
+    ) -> Self {
+        Self {
+            top,
+            right,
+            bottom,
+            left,
+        }
+    }
+
+    /// Creates a Border with symmetric horizontal (left/right) and vertical (top/bottom) sides
+    pub fn symmetric(horizontal: BorderSide, vertical: BorderSide) -> Self {
+        Self {
+            top: Some(vertical),
+            right: Some(horizontal),
+            bottom: Some(vertical),
+            left: Some(horizontal),
+        }
+    }
+
+    /// Creates a Border with the same side applied to all edges
+    pub fn all(side: BorderSide) -> Self {
+        Self {
+            top: Some(side),
+            right: Some(side),
+            bottom: Some(side),
+            left: Some(side),
+        }
+    }
+
+    /// Creates a Border with only horizontal sides (left and right)
+    pub fn horizontal(side: BorderSide) -> Self {
+        Self {
+            top: None,
+            right: Some(side),
+            bottom: None,
+            left: Some(side),
+        }
+    }
+
+    /// Creates a Border with only vertical sides (top and bottom)
+    pub fn vertical(side: BorderSide) -> Self {
+        Self {
+            top: Some(side),
+            right: None,
+            bottom: Some(side),
+            left: None,
+        }
+    }
+
+    /// Creates a Border with only a top side
+    pub fn top(side: BorderSide) -> Self {
+        Self {
+            top: Some(side),
+            right: None,
+            bottom: None,
+            left: None,
+        }
+    }
+
+    /// Creates a Border with only a bottom side
+    pub fn bottom(side: BorderSide) -> Self {
+        Self {
+            top: None,
+            right: None,
+            bottom: Some(side),
+            left: None,
+        }
+    }
+
+    /// Creates a Border with only a left side
+    pub fn left(side: BorderSide) -> Self {
+        Self {
+            top: None,
+            right: None,
+            bottom: None,
+            left: Some(side),
+        }
+    }
+
+    /// Creates a Border with only a right side
+    pub fn right(side: BorderSide) -> Self {
+        Self {
+            top: None,
+            right: Some(side),
+            bottom: None,
+            left: None,
+        }
+    }
+}
+
+impl BorderSide {
+    /// Creates a new BorderSide
+    pub fn new(width: f32, color: ColorRgba) -> Self {
+        Self { width, color }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Gradient {
+    Linear(LinearGradient),
+    Radial(RadialGradient),
+    Sweep(SweepGradient),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LinearGradient {
+    /// Start point (normalized 0.0 to 1.0)
+    pub start: (f32, f32),
+    /// End point (normalized 0.0 to 1.0)
+    pub end: (f32, f32),
+    /// Color stops
+    pub stops: Vec<ColorStop>,
+    /// How to handle colors outside the gradient range
+    pub tile_mode: TileMode,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RadialGradient {
+    /// Center point (normalized 0.0 to 1.0)
+    pub center: (f32, f32),
+    /// Radius (normalized, typically 0.0 to 1.0)
+    pub radius: f32,
+    /// Optional focal point for elliptical gradients
+    pub focal: Option<(f32, f32)>,
+    /// Optional focal radius
+    pub focal_radius: Option<f32>,
+    /// Color stops
+    pub stops: Vec<ColorStop>,
+    /// How to handle colors outside the gradient range
+    pub tile_mode: TileMode,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SweepGradient {
+    /// Center point (normalized 0.0 to 1.0)
+    pub center: (f32, f32),
+    /// Start angle in radians (0 = right, π/2 = down)
+    pub start_angle: f32,
+    /// End angle in radians
+    pub end_angle: f32,
+    /// Color stops
+    pub stops: Vec<ColorStop>,
+    /// How to handle colors outside the gradient range
+    pub tile_mode: TileMode,
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub struct ColorStop {
+    /// Position along the gradient (0.0 to 1.0)
+    pub offset: f32,
+    /// Color at this position
+    pub color: ColorRgba,
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub enum TileMode {
+    /// Clamp to edge colors
+    Clamp,
+    /// Repeat the gradient
+    Repeat,
+    /// Repeat the gradient in reverse (mirror)
+    Mirror,
+    /// Decal - render transparent outside gradient
+    Decal,
+}
+
+impl LinearGradient {
+    /// Creates a simple top-to-bottom gradient
+    pub fn vertical(colors: Vec<ColorRgba>) -> Self {
+        Self {
+            start: (0.5, 0.0),
+            end: (0.5, 1.0),
+            stops: Self::even_stops(colors),
+            tile_mode: TileMode::Clamp,
+        }
+    }
+
+    /// Creates a simple left-to-right gradient
+    pub fn horizontal(colors: Vec<ColorRgba>) -> Self {
+        Self {
+            start: (0.0, 0.5),
+            end: (1.0, 0.5),
+            stops: Self::even_stops(colors),
+            tile_mode: TileMode::Clamp,
+        }
+    }
+
+    /// Creates a gradient at a specific angle (in radians)
+    pub fn angled(angle: f32, colors: Vec<ColorRgba>) -> Self {
+        let (dx, dy) = (angle.cos(), angle.sin());
+        Self {
+            start: (0.5 - dx * 0.5, 0.5 - dy * 0.5),
+            end: (0.5 + dx * 0.5, 0.5 + dy * 0.5),
+            stops: Self::even_stops(colors),
+            tile_mode: TileMode::Clamp,
+        }
+    }
+
+    pub fn new(start: (f32, f32), end: (f32, f32), stops: Vec<ColorStop>) -> Self {
+        Self {
+            start,
+            end,
+            stops,
+            tile_mode: TileMode::Clamp,
+        }
+    }
+
+    fn even_stops(colors: Vec<ColorRgba>) -> Vec<ColorStop> {
+        let count = colors.len();
+        if count == 0 {
+            return vec![];
+        }
+        colors
+            .into_iter()
+            .enumerate()
+            .map(|(i, color)| ColorStop {
+                offset: i as f32 / (count - 1).max(1) as f32,
+                color,
+            })
+            .collect()
+    }
+}
+
+impl RadialGradient {
+    /// Creates a simple radial gradient from center
+    pub fn circle(colors: Vec<ColorRgba>) -> Self {
+        Self {
+            center: (0.5, 0.5),
+            radius: 0.5,
+            focal: None,
+            focal_radius: None,
+            stops: LinearGradient::even_stops(colors),
+            tile_mode: TileMode::Clamp,
+        }
+    }
+
+    pub fn new(center: (f32, f32), radius: f32, stops: Vec<ColorStop>) -> Self {
+        Self {
+            center,
+            radius,
+            focal: None,
+            focal_radius: None,
+            stops,
+            tile_mode: TileMode::Clamp,
+        }
+    }
+}
+
+impl SweepGradient {
+    /// Creates a full 360° sweep gradient
+    pub fn full(colors: Vec<ColorRgba>) -> Self {
+        Self {
+            center: (0.5, 0.5),
+            start_angle: 0.0,
+            end_angle: std::f32::consts::TAU, // 2π
+            stops: LinearGradient::even_stops(colors),
+            tile_mode: TileMode::Clamp,
+        }
+    }
+
+    pub fn new(
+        center: (f32, f32),
+        start_angle: f32,
+        end_angle: f32,
+        stops: Vec<ColorStop>,
+    ) -> Self {
+        Self {
+            center,
+            start_angle,
+            end_angle,
+            stops,
+            tile_mode: TileMode::Clamp,
+        }
+    }
+}
+
+impl ColorStop {
+    pub fn new(offset: f32, color: ColorRgba) -> Self {
+        Self { offset, color }
+    }
+}

@@ -92,7 +92,7 @@ impl Component<Message> for Counter {
                     tokio::time::sleep(Duration::from_secs(2)).await;
                     println!("Current counter: {value}");
 
-                    Message::Increment
+                    Message::Decrement
                 });
             };
         });

@@ -1,23 +1,18 @@
-use crate::{layout::LayoutCommand, state::WidgetsStates, task_spawner::TaskSpawner};
+use crate::{
+    event_queue::EventQueue, layout::LayoutCommand, state::WidgetsStates, task_spawner::TaskSpawner,
+};
 
 pub struct BuildContext<'a> {
     pub current_zindex: i32,
     pub layout_commands: &'a mut Vec<LayoutCommand>,
     pub widgets_states: &'a mut WidgetsStates,
     pub task_spawner: &'a mut TaskSpawner,
+    pub event_queue: &'a mut EventQueue,
 }
 
 impl BuildContext<'_> {
     pub fn push_layout_command(&mut self, command: LayoutCommand) {
         self.layout_commands.push(command);
-    }
-
-    pub fn emit<Event>(&mut self, event: Event) {}
-
-    pub fn spawn<F, Event>(&self, future: F)
-    where
-        F: std::future::Future<Output = Event> + Send + 'static,
-    {
     }
 }
 

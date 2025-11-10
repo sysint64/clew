@@ -1,3 +1,4 @@
+use tech_paws_ui::event_queue::EventQueue;
 use tech_paws_ui::widgets::builder::BuildContext;
 use tech_paws_ui::{state::WidgetsStates, task_spawner::TaskSpawner};
 
@@ -6,38 +7,44 @@ use tokio::sync::mpsc;
 #[cfg(target_os = "macos")]
 use winit::platform::macos::EventLoopBuilderExtMacOS;
 
-pub trait ApplicationDelegate {
-    fn on_start(&mut self, window_manager: &mut WindowManager<Self>)
+pub trait ApplicationDelegate<Event> {
+    fn on_start(&mut self, window_manager: &mut WindowManager<Self, Event>)
     where
         Self: std::marker::Sized;
+
+    fn on_event(&mut self, event: Event) {}
 }
 
-pub struct Application<T: ApplicationDelegate> {
+pub struct Application<T: ApplicationDelegate<Event>, Event = ()> {
     app: T,
-    window_manager: WindowManager<T>,
+    window_manager: WindowManager<T, Event>,
 
     task_spawner: TaskSpawner,
     redraw_rx: mpsc::UnboundedReceiver<()>,
 }
 
-fn render<T: ApplicationDelegate>(
+fn render<T: ApplicationDelegate<Event>, Event>(
     app: &mut T,
     task_spawner: &mut TaskSpawner,
-    window: &mut Box<dyn Window<T>>,
+    window: &mut Box<dyn Window<T, Event>>,
 ) {
     let mut layout_commands = Vec::new();
     let mut widgets_states = WidgetsStates::default();
+    let mut queue = EventQueue::new();
     let mut build_context = BuildContext {
         current_zindex: 0,
         layout_commands: &mut layout_commands,
         widgets_states: &mut widgets_states,
         task_spawner: task_spawner,
+        event_queue: &mut queue,
     };
 
     window.build(app, &mut build_context);
 }
 
-impl<T: ApplicationDelegate> winit::application::ApplicationHandler for Application<T> {
+impl<T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHandler
+    for Application<T, Event>
+{
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         self.window_manager
             .with_event_loop(event_loop, |window_manager| {
@@ -70,7 +77,7 @@ impl<T: ApplicationDelegate> winit::application::ApplicationHandler for Applicat
     }
 }
 
-impl<T: ApplicationDelegate> Application<T> {
+impl<T: ApplicationDelegate<Event>, Event> Application<T, Event> {
     pub fn run_application(delegate: T) -> anyhow::Result<()> {
         let (redraw_tx, redraw_rx) = mpsc::unbounded_channel();
 

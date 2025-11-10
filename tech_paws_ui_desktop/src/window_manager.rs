@@ -33,13 +33,13 @@ impl WindowId {
     }
 }
 
-pub struct WindowManager<App> {
-    windows: HashMap<winit::window::WindowId, Box<dyn Window<App>>>,
+pub struct WindowManager<App, Event> {
+    windows: HashMap<winit::window::WindowId, Box<dyn Window<App, Event>>>,
     winit_windows: HashMap<winit::window::WindowId, Arc<winit::window::Window>>,
     event_loop: Option<*const winit::event_loop::ActiveEventLoop>,
 }
 
-impl<App> WindowManager<App> {
+impl<App, Event> WindowManager<App, Event> {
     pub fn new() -> Self {
         Self {
             windows: HashMap::new(),
@@ -53,7 +53,7 @@ impl<App> WindowManager<App> {
         event_loop: &winit::event_loop::ActiveEventLoop,
         callback: F,
     ) where
-        F: FnOnce(&mut WindowManager<App>),
+        F: FnOnce(&mut WindowManager<App, Event>),
     {
         self.event_loop = Some(event_loop);
         callback(self);
@@ -61,7 +61,7 @@ impl<App> WindowManager<App> {
     }
 
     /// Create a new window with the given descriptor
-    pub fn spawn_window<T: Window<App> + 'static>(
+    pub fn spawn_window<T: Window<App, Event> + 'static>(
         &mut self,
         window: T,
         descriptor: WindowDescriptor,
@@ -94,14 +94,14 @@ impl<App> WindowManager<App> {
         }
     }
 
-    pub fn get_window(&self, id: winit::window::WindowId) -> Option<&Box<dyn Window<App>>> {
+    pub fn get_window(&self, id: winit::window::WindowId) -> Option<&Box<dyn Window<App, Event>>> {
         self.windows.get(&id)
     }
 
     pub fn get_mut_window(
         &mut self,
         id: winit::window::WindowId,
-    ) -> Option<&mut Box<dyn Window<App>>> {
+    ) -> Option<&mut Box<dyn Window<App, Event>>> {
         self.windows.get_mut(&id)
     }
 

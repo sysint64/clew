@@ -3,6 +3,7 @@ use std::time::Duration;
 use tech_paws_ui::widgets::{
     builder::BuildContext,
     button::{self, button_id},
+    view::{Component, component},
     vstack::vstack,
 };
 use tech_paws_ui_desktop::{
@@ -23,8 +24,8 @@ impl DemoApplication {
     }
 }
 
-impl ApplicationDelegate for DemoApplication {
-    fn on_start(&mut self, window_manager: &mut WindowManager<DemoApplication>) {
+impl ApplicationDelegate<()> for DemoApplication {
+    fn on_start(&mut self, window_manager: &mut WindowManager<DemoApplication, ()>) {
         window_manager.spawn_window(
             MainWindow::new(),
             WindowDescriptor {
@@ -37,34 +38,25 @@ impl ApplicationDelegate for DemoApplication {
     }
 }
 
-#[derive(Default)]
-pub struct MainWindow {}
+pub struct MainWindow {
+    counter: Counter,
+}
 
 impl MainWindow {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            counter: Counter { value: 0 },
+        }
     }
 }
 
-impl Window<DemoApplication> for MainWindow {
+impl Window<DemoApplication, ()> for MainWindow {
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
-        vstack().build(ctx, |ctx| {
-            for item in app.todo_list.iter() {
-                if button_id(item, &item).build(ctx).clicked() {
-                    // ctx.task_spawner.spawn(async move {
-                    //     // Simulate network request
-                    //     tokio::time::sleep(Duration::from_secs(2)).await;
-                    //     println!("Finished async task for {item}");
-                    // });
-
-                    // // println!("Clicked to {item}");
-                }
-            }
-        });
+        component(&mut self.counter).build(ctx);
     }
 }
 
-struct CounterView {
+struct Counter {
     value: i32,
 }
 
@@ -74,9 +66,9 @@ pub enum Message {
     Decrement,
 }
 
-impl CounterView {
-    pub fn update(&mut self, app: &mut DemoApplication, message: Message) {
-        match message {
+impl Component<Message> for Counter {
+    fn on_event(&mut self, event: &Message) -> bool {
+        match event {
             Message::Increment => {
                 self.value += 1;
             }
@@ -84,6 +76,8 @@ impl CounterView {
                 self.value -= 1;
             }
         }
+
+        true
     }
 
     fn build(&mut self, ctx: &mut BuildContext) {
@@ -92,8 +86,8 @@ impl CounterView {
                 .build(ctx)
                 .clicked()
             {
+                ctx.emit(Message::Increment);
                 let value = self.value;
-
                 ctx.spawn(async move {
                     tokio::time::sleep(Duration::from_secs(2)).await;
                     println!("Current counter: {value}");

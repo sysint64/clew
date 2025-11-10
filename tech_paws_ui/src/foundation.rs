@@ -349,13 +349,17 @@ impl Constraints {
 
 #[derive(Debug, Default, Clone)]
 pub struct PhysicalSize {
-    pub width: f32,
-    pub height: f32,
+    pub width: u32,
+    pub height: u32,
 }
 
 impl PhysicalSize {
+    pub fn new(width: u32, height: u32) -> Self {
+        Self { width, height }
+    }
+
     pub(crate) fn to_vec2(&self) -> Vec2 {
-        Vec2::new(self.width, self.height)
+        Vec2::new(self.width as f32, self.height as f32)
     }
 }
 

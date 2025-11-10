@@ -582,7 +582,9 @@ dependencies = [
  "log",
  "tech_paws_ui",
  "tech_paws_ui_desktop",
+ "tech_paws_ui_tiny_skia",
  "tokio",
+ "winit",
 ]
 
 [[package]]
@@ -1562,7 +1564,9 @@ dependencies = [
 name = "tech_paws_ui_tiny_skia"
 version = "0.1.0"
 dependencies = [
+ "raw-window-handle",
  "softbuffer",
+ "tech_paws_ui",
  "tiny-skia",
 ]
 

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use tech_paws_ui::widgets::{
     builder::BuildContext,
@@ -11,6 +11,7 @@ use tech_paws_ui_desktop::{
     window::Window,
     window_manager::{WindowDescriptor, WindowManager},
 };
+use tech_paws_ui_tiny_skia::TinySkiaRenderer;
 
 pub struct DemoApplication {
     pub todo_list: Vec<String>,
@@ -35,6 +36,10 @@ impl ApplicationDelegate<()> for DemoApplication {
                 resizable: true,
             },
         );
+    }
+
+    fn create_renderer(window: Arc<winit::window::Window>) -> Box<dyn tech_paws_ui::render::Renderer> {
+        Box::new(TinySkiaRenderer::new(window.clone(), window.clone()))
     }
 }
 

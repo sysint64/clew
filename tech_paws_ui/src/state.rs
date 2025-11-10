@@ -3,12 +3,17 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use crate::{WidgetId, interaction::InteractionState};
+use crate::{View, WidgetId, interaction::InteractionState, render::RenderState};
 
 pub trait WidgetState: Any + Send {
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
+}
+
+pub struct UiState<'a> {
+    pub view: View,
+    pub render_state: RenderState<'a>,
 }
 
 #[derive(Default)]

@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 tech_paws_ui = { path = "../../tech_paws_ui" }
 tech_paws_ui_desktop = { path = "../../tech_paws_ui_desktop" }
+tech_paws_ui_tiny_skia = { path = "../../tech_paws_ui_tiny_skia" }
 log = { workspace = true }
+winit = { workspace = true }
 env_logger = "0.10"
 tokio = { version = "1.47.1", features = ["full"] }

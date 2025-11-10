@@ -12,6 +12,8 @@ log = "0.4"
 glam = "0.30"
 slotmap = "1"
 cosmic-text = { version = "0.14" }
+raw-window-handle = "0.6"
+winit = "0.30"
 
 [patch.crates-io]
 cosmic-text = { path = "/Users/sys.int64/dev/lib/cosmic-text" }

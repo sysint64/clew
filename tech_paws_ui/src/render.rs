@@ -1,15 +1,16 @@
 use crate::{
-    Border, BorderRadius, BorderSide, ColorRgba, Gradient,
-    text::{FontId, FontResources, TextId, TextsResources},
+    text::{FontId, FontResources, TextId, TextsResources}, Border, BorderRadius, BorderSide, ColorRgba, Gradient, View
 };
 
+#[derive(Default)]
 pub struct RenderState<'a> {
     pub fonts: FontResources,
     pub texts: TextsResources<'a>,
+    render_commands: Vec<RenderCommand>,
 }
 
 pub trait Renderer {
-    fn process_commands(&mut self, state: &RenderState, commands: &[RenderCommand]);
+    fn process_commands(&mut self, view: &View, state: &RenderState, commands: &[RenderCommand]);
 }
 
 pub enum RenderCommand {

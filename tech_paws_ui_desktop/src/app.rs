@@ -6,7 +6,7 @@ use parking_lot::Mutex;
 use tech_paws_ui::event_queue::EventQueue;
 use tech_paws_ui::render::{RenderCommand, Renderer, create_test_commands};
 use tech_paws_ui::state::UiState;
-use tech_paws_ui::text::{FontResources, StringInterner, TextsResources};
+use tech_paws_ui::text::{FontResources, StringId, StringInterner, TextId, TextsResources};
 use tech_paws_ui::widgets::builder::BuildContext;
 use tech_paws_ui::{PhysicalSize, View};
 use tech_paws_ui::{state::WidgetsStates, task_spawner::TaskSpawner};
@@ -34,12 +34,14 @@ pub struct Application<'a, T: ApplicationDelegate<Event>, Event = ()> {
     redraw_rx: mpsc::UnboundedReceiver<()>,
     fonts: FontResources,
     string_interner: StringInterner,
+    strings: HashMap<StringId, TextId>,
 }
 
 fn render<'a, T: ApplicationDelegate<Event>, Event>(
     app: &mut T,
     fonts: &mut FontResources,
     string_interner: &mut StringInterner,
+    strings: &mut HashMap<StringId, TextId>,
     task_spawner: &mut TaskSpawner,
     window_state: &mut WindowState<'a, T, Event>,
 ) {
@@ -58,7 +60,13 @@ fn render<'a, T: ApplicationDelegate<Event>, Event>(
     };
 
     window_state.window.build(app, &mut build_context);
-    tech_paws_ui::render(&mut window_state.ui_state, &mut window_state.texts, fonts);
+    tech_paws_ui::render(
+        &mut window_state.ui_state,
+        &mut window_state.texts,
+        fonts,
+        string_interner,
+        strings,
+    );
 }
 
 impl<T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHandler
@@ -103,6 +111,7 @@ impl<T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHandle
                     &mut self.app,
                     &mut self.fonts,
                     &mut self.string_interner,
+                    &mut self.strings,
                     &mut self.task_spawner,
                     window,
                 );
@@ -127,6 +136,7 @@ impl<T: ApplicationDelegate<Event>, Event> Application<'_, T, Event> {
             redraw_rx,
             fonts: FontResources::new(),
             string_interner: StringInterner::new(),
+            strings: HashMap::new(),
         };
 
         #[cfg(target_os = "macos")]

@@ -6,8 +6,9 @@ use crate::{
 
 use super::builder::BuildContext;
 
-pub struct VStackBuilder {
+pub struct HStackBuilder {
     size: Size,
+    rtl_aware: bool,
     spacing: f32,
     constraints: Constraints,
     align_x: Option<AlignX>,
@@ -17,9 +18,15 @@ pub struct VStackBuilder {
     cross_axis_alignment: CrossAxisAlignment,
 }
 
-impl VStackBuilder {
+impl HStackBuilder {
     impl_size_methods!();
     impl_position_methods!();
+
+    pub fn rtl_aware(mut self, rtl_aware: bool) -> Self {
+        self.rtl_aware = rtl_aware;
+
+        self
+    }
 
     pub fn spacing(mut self, spacing: f32) -> Self {
         self.spacing = spacing;
@@ -47,14 +54,16 @@ impl VStackBuilder {
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            kind: ContainerKind::VStack {
+            kind: ContainerKind::HStack {
                 spacing: self.spacing,
                 main_axis_alignment: self.main_axis_alignment,
                 cross_axis_alignment: self.cross_axis_alignment,
+                rtl_aware: self.rtl_aware,
             },
             size: self.size,
             constraints: self.constraints,
         });
+
         context.with_align(self.align_x, self.align_y, |context| callback(context));
         context.push_layout_command(LayoutCommand::EndContainer);
 
@@ -62,10 +71,11 @@ impl VStackBuilder {
     }
 }
 
-pub fn vstack() -> VStackBuilder {
-    VStackBuilder {
+pub fn hstack() -> HStackBuilder {
+    HStackBuilder {
         size: Size::default(),
         constraints: Constraints::default(),
+        rtl_aware: false,
         spacing: 5.,
         zindex: None,
         align_x: None,

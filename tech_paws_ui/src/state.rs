@@ -4,7 +4,12 @@ use std::{
 };
 
 use crate::{
-    event_queue::EventQueue, interaction::InteractionState, layout::{LayoutCommand, LayoutState, WidgetPlacement}, render::RenderState, View, WidgetId
+    LayoutDirection, View, WidgetId,
+    event_queue::EventQueue,
+    interaction::InteractionState,
+    io::UserInput,
+    layout::{LayoutCommand, LayoutState, WidgetPlacement},
+    render::RenderState,
 };
 
 pub trait WidgetState: Any + Send {
@@ -21,6 +26,10 @@ pub struct UiState {
     pub event_queue: EventQueue,
     pub widgets_states: WidgetsStates,
     pub widget_placements: Vec<WidgetPlacement>,
+    pub interaction_state: InteractionState,
+    pub user_input: UserInput,
+    // TODO(sysint64): Maybe move it to build context
+    pub layout_direction: LayoutDirection,
 }
 
 #[derive(Default)]
@@ -45,6 +54,9 @@ impl UiState {
             widgets_states: WidgetsStates::default(),
             layout_state: LayoutState::default(),
             widget_placements: Vec::new(),
+            interaction_state: InteractionState::default(),
+            user_input: UserInput::default(),
+            layout_direction: LayoutDirection::LTR,
         }
     }
 }

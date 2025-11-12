@@ -1,5 +1,10 @@
 use crate::{
-    event_queue::EventQueue, layout::LayoutCommand, state::WidgetsStates, task_spawner::TaskSpawner, text::{FontResources, StringInterner, TextsResources}, View,
+    AlignX, AlignY, View,
+    event_queue::EventQueue,
+    layout::{ContainerKind, LayoutCommand},
+    state::WidgetsStates,
+    task_spawner::TaskSpawner,
+    text::{FontResources, StringInterner, TextsResources},
 };
 
 pub struct BuildContext<'a, 'b> {
@@ -17,6 +22,22 @@ pub struct BuildContext<'a, 'b> {
 impl BuildContext<'_, '_> {
     pub fn push_layout_command(&mut self, command: LayoutCommand) {
         self.layout_commands.push(command);
+    }
+
+    pub fn with_align<F>(&mut self, align_x: Option<AlignX>, align_y: Option<AlignY>, callback: F)
+    where
+        F: FnOnce(&mut BuildContext),
+    {
+        if align_x.is_some() || align_y.is_some() {
+            self.push_layout_command(LayoutCommand::BeginAlign {
+                align_x: align_x.unwrap_or(AlignX::Left),
+                align_y: align_y.unwrap_or(AlignY::Top),
+            });
+            callback(self);
+            self.push_layout_command(LayoutCommand::EndAlign);
+        } else {
+            callback(self);
+        }
     }
 }
 

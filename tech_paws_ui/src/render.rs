@@ -4,12 +4,13 @@ use glam::Vec2;
 
 use crate::{
     Border, BorderRadius, BorderSide, ColorRgba, ColorStop, Gradient, LayoutDirection,
-    LinearGradient, RadialGradient, Rect, View,
+    LinearGradient, RadialGradient, Rect, View, WidgetType,
     interaction::InteractionState,
     io::UserInput,
     layout::{LayoutState, layout},
     state::UiState,
     text::{FontId, FontResources, StringId, StringInterner, TextId, TextsResources},
+    widgets,
 };
 
 #[derive(Debug, Default)]
@@ -111,7 +112,13 @@ where
     }
 }
 
-pub fn render(state: &mut UiState, text: &mut TextsResources, fonts: &mut FontResources) {
+pub fn render(
+    state: &mut UiState,
+    text: &mut TextsResources,
+    fonts: &mut FontResources,
+    string_interner: &mut StringInterner,
+    strings: &mut HashMap<StringId, TextId>,
+) {
     let start = std::time::Instant::now();
 
     layout(
@@ -121,8 +128,35 @@ pub fn render(state: &mut UiState, text: &mut TextsResources, fonts: &mut FontRe
         &mut state.widget_placements,
     );
 
+    for placement in &state.widget_placements {
+        let mut render_context = RenderContext {
+            interaction: &state.interaction_state,
+            input: &state.user_input,
+            view: &state.view,
+            text,
+            fonts,
+            string_interner,
+            strings,
+            layout_direction: state.layout_direction,
+            commands: &mut state.render_state.commands,
+        };
 
-    println!("{:?}", state.widget_placements);
+        if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>() {
+            widgets::button::render(
+                &mut render_context,
+                placement,
+                state
+                    .widgets_states
+                    .get_mut::<widgets::button::State>(placement.widget_ref.id)
+                    .unwrap(),
+            );
+        }
+    }
+
+    state.widgets_states.sweep(&mut state.interaction_state);
+    state.user_input.clear_frame_events();
+
+    // println!("{:?}", state.widget_placements);
 }
 
 pub fn create_test_commands() -> Vec<RenderCommand> {

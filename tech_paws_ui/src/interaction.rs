@@ -1,6 +1,11 @@
 use std::collections::HashSet;
 
-use crate::WidgetId;
+use crate::{
+    WidgetId,
+    io::UserInput,
+    state::UiState,
+    text::{FontResources, TextsResources},
+};
 
 #[derive(Default)]
 pub struct InteractionState {
@@ -42,3 +47,18 @@ impl InteractionState {
         }
     }
 }
+
+// pub fn handle_interaction(
+//     user_input: &mut UserInput,
+//     view: &View,
+//     text: &mut TextsResources,
+//     fonts: &mut FontResources,
+// ) {
+//     if state.input.mouse_left_pressed {
+//         state.input.mouse_left_click_count = state.input.mouse_left_click_tracker.on_click(
+//             state.input.mouse_x as f32,
+//             state.input.mouse_y as f32,
+//             view.scale_factor,
+//         );
+//     }
+// }

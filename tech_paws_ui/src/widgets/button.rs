@@ -35,14 +35,14 @@ impl ButtonResponse {
     }
 }
 
-pub(crate) struct ButtonState {
+pub(crate) struct State {
     pub(crate) text: StringId,
     pub(crate) clicked: bool,
 }
 
 pub struct ButtonWidget;
 
-impl WidgetState for ButtonState {
+impl WidgetState for State {
     #[inline]
     fn as_any(&self) -> &dyn Any {
         self
@@ -79,20 +79,24 @@ impl<'a> ButtonBuilder<'a> {
                 constraints: self.constraints,
             });
 
-            context.push_layout_command(LayoutCommand::Fixed {
-                widget_ref,
-                constraints: self.constraints,
-                size,
-                zindex: self.zindex.unwrap_or(context.current_zindex),
+            context.with_align(self.align_x, self.align_y, |context| {
+                context.push_layout_command(LayoutCommand::Fixed {
+                    widget_ref,
+                    constraints: self.constraints,
+                    size,
+                    zindex: self.zindex.unwrap_or(context.current_zindex),
+                });
             });
 
             context.push_layout_command(LayoutCommand::EndContainer);
         } else {
-            context.push_layout_command(LayoutCommand::Fixed {
-                widget_ref,
-                constraints: self.constraints,
-                size,
-                zindex: self.zindex.unwrap_or(context.current_zindex),
+            context.with_align(self.align_x, self.align_y, |context| {
+                context.push_layout_command(LayoutCommand::Fixed {
+                    widget_ref,
+                    constraints: self.constraints,
+                    size,
+                    zindex: self.zindex.unwrap_or(context.current_zindex),
+                });
             });
         }
 
@@ -100,7 +104,7 @@ impl<'a> ButtonBuilder<'a> {
 
         let state = context
             .widgets_states
-            .get_or_insert::<ButtonState, _>(self.id, || ButtonState {
+            .get_or_insert::<State, _>(self.id, || State {
                 clicked: false,
                 text,
             });
@@ -153,7 +157,7 @@ pub fn handle_interaction(
     id: WidgetId,
     input: &UserInput,
     interaction: &mut InteractionState,
-    widget_state: &mut ButtonState,
+    widget_state: &mut State,
 ) {
     widget_state.clicked = false;
 
@@ -173,12 +177,8 @@ pub fn handle_interaction(
     }
 }
 
-pub fn render(
-    ctx: &mut RenderContext,
-    id: WidgetId,
-    placement: &WidgetPlacement,
-    state: &ButtonState,
-) {
+pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &State) {
+    let id = placement.widget_ref.id;
     let size = placement.rect.size().px(ctx);
     let position = placement.rect.position().px(ctx);
 

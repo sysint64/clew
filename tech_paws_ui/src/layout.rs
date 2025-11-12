@@ -24,6 +24,11 @@ pub enum LayoutCommand {
         size: Size,
     },
     EndContainer,
+    BeginAlign {
+        align_x: AlignX,
+        align_y: AlignY,
+    },
+    EndAlign,
     Fixed {
         widget_ref: WidgetRef,
         constraints: Constraints,
@@ -71,10 +76,6 @@ pub enum ContainerKind {
     ZStack,
     Padding {
         padding: EdgeInsets,
-    },
-    Align {
-        align_x: AlignX,
-        align_y: AlignY,
     },
 }
 
@@ -506,10 +507,10 @@ pub fn layout(
                 constraints,
                 size,
             } => {
+                layout_state.push_container(layout_state.parent_container);
                 layout_state.push_boundary();
                 layout_state.add_flex_sum(*size);
                 layout_state.set_constraints(*constraints);
-                layout_state.push_container(layout_state.parent_container);
 
                 match kind {
                     ContainerKind::VStack { spacing, .. } => {
@@ -581,21 +582,17 @@ pub fn layout(
                             },
                         };
                     }
-                    ContainerKind::Align { .. } => {
-                        // Do nothing
-                    }
                 }
             }
             LayoutCommand::EndContainer => {
-                let parent_container = layout_state.pop_container();
-
                 let wrap_size = layout_state
                     .wrap_sizes
                     .get_mut(layout_state.parent_container.idx)
                     .unwrap();
-                let mut size = parent_container.command.size;
 
-                match parent_container.command.kind {
+                let mut size = layout_state.parent_container.command.size;
+
+                match layout_state.parent_container.command.kind {
                     ContainerKind::VStack { spacing, .. } => {
                         wrap_size.y -= spacing;
                         wrap_size.y = wrap_size.y.max(0.);
@@ -628,18 +625,17 @@ pub fn layout(
                             },
                         };
                     }
-                    ContainerKind::Align { .. } => {
-                        // Do nothing
-                    }
                 };
 
                 let wrap_size = *wrap_size;
-                let idx = parent_container.idx;
-                let size = layout_state.add_container_size(size, wrap_size);
-                layout_state.actual_sizes[idx] =
-                    apply_constraints(size, parent_container.command.constraints);
+                let current_container_idx = layout_state.parent_container.idx;
 
-                layout_state.parent_container = parent_container;
+                let constraints = layout_state.parent_container.command.constraints;
+                layout_state.parent_container = layout_state.pop_container();
+
+                let size = layout_state.add_container_size(size, wrap_size);
+                layout_state.actual_sizes[current_container_idx] =
+                    apply_constraints(size, constraints);
             }
             LayoutCommand::Fixed {
                 constraints, size, ..
@@ -663,6 +659,9 @@ pub fn layout(
                 layout_state.set_constraints(*constraints);
                 layout_state.add_flex_sum(*size);
                 layout_state.add_size(*size, *constraints, Vec2::ZERO);
+            }
+            LayoutCommand::BeginAlign { .. } | LayoutCommand::EndAlign => {
+                // Nothing
             }
         }
     }
@@ -744,11 +743,16 @@ pub fn layout(
 
         let mut widget_size = layout_state.actual_sizes[current_idx];
 
-        let boundary_size = match layout_state.parent_container.axis {
-            StackAxis::None => container_size,
-            StackAxis::Horizontal { .. } => Vec2::new(widget_size.x, container_size.y),
-            StackAxis::Vertical { .. } => Vec2::new(container_size.x, widget_size.y),
-        };
+        let boundary_size = container_size;
+
+        // Don't remember why I added this, it seems like it breaks flex size
+        // ---------------------------------------------------------------------
+        // let boundary_size = match layout_state.parent_container.axis {
+        //     StackAxis::None => container_size,
+        //     StackAxis::Horizontal { .. } => Vec2::new(widget_size.x, container_size.y),
+        //     StackAxis::Vertical { .. } => Vec2::new(container_size.x, widget_size.y),
+        // };
+        // ---------------------------------------------------------------------
 
         let mut boundary = Rect::from_pos_size(current_position, boundary_size);
         let (align_x, align_y) = layout_state.get_align();
@@ -773,6 +777,14 @@ pub fn layout(
         let rect = Rect::from_pos_size(position, widget_size);
 
         match command {
+            LayoutCommand::BeginAlign { align_x, align_y } => {
+                layout_state.push_align(*align_x, *align_y);
+                continue;
+            }
+            LayoutCommand::EndAlign => {
+                layout_state.pop_align();
+                continue;
+            }
             LayoutCommand::BeginContainer {
                 kind,
                 constraints,
@@ -837,17 +849,9 @@ pub fn layout(
 
                         current_idx += 1;
                     }
-                    ContainerKind::Align { align_x, align_y } => {
-                        layout_state.push_align(*align_x, *align_y);
-                    }
                 }
             }
             LayoutCommand::EndContainer => {
-                if let ContainerKind::Align { .. } = layout_state.parent_container.command.kind {
-                    layout_state.pop_align();
-                    continue;
-                }
-
                 widget_size = container_size;
                 layout_state.parent_container = layout_state.pop_container();
                 current_position = layout_state.pop_position();

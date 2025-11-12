@@ -1,3 +1,4 @@
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -6,14 +7,13 @@ use parking_lot::Mutex;
 use tech_paws_ui::io::Cursor;
 use tech_paws_ui::render::{RenderCommand, Renderer, create_test_commands};
 use tech_paws_ui::state::UiState;
+use tech_paws_ui::state::WidgetsStates;
 use tech_paws_ui::text::{FontResources, StringId, StringInterner, TextId, TextsResources};
 use tech_paws_ui::widgets::builder::BuildContext;
 use tech_paws_ui::{PhysicalSize, View};
-use tech_paws_ui::{state::WidgetsStates, task_spawner::TaskSpawner};
 
 use crate::window_manager::WindowState;
 use crate::{window::Window, window_manager::WindowManager};
-use tokio::sync::mpsc;
 #[cfg(target_os = "macos")]
 use winit::platform::macos::EventLoopBuilderExtMacOS;
 
@@ -24,7 +24,11 @@ pub trait ApplicationDelegate<Event> {
     where
         Self: std::marker::Sized;
 
-    fn on_event(&mut self, event: Event) {}
+    fn on_event(&mut self, window_manager: &mut WindowManager<Self, Event>, event: &Event)
+    where
+        Self: std::marker::Sized,
+    {
+    }
 
     fn create_renderer(window: Arc<winit::window::Window>) -> Box<dyn Renderer>;
 }
@@ -32,29 +36,48 @@ pub trait ApplicationDelegate<Event> {
 pub struct Application<'a, T: ApplicationDelegate<Event>, Event = ()> {
     app: T,
     window_manager: WindowManager<'a, T, Event>,
-    task_spawner: TaskSpawner,
-    redraw_rx: mpsc::UnboundedReceiver<()>,
     fonts: FontResources,
     string_interner: StringInterner,
     strings: HashMap<StringId, TextId>,
     last_cursor: Cursor,
+    broadcast_event_queue: Vec<Arc<dyn Any + Send>>,
+    broadcast_async_tx: tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
+    broadcast_async_rx: tokio::sync::mpsc::UnboundedReceiver<Box<dyn Any + Send>>,
 }
 
-fn render<'a, T: ApplicationDelegate<Event>, Event>(
+fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
     app: &mut T,
     fonts: &mut FontResources,
     string_interner: &mut StringInterner,
     strings: &mut HashMap<StringId, TextId>,
-    task_spawner: &mut TaskSpawner,
+    broadcast_event_queue: &mut Vec<Arc<dyn Any + Send>>,
+    broadcast_async_tx: &mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     window_state: &mut WindowState<'a, T, Event>,
 ) {
     window_state.ui_state.before_render();
+
+    for event_box in window_state.ui_state.current_event_queue.iter() {
+        // Skip event processing for () type
+        if TypeId::of::<Event>() != TypeId::of::<()>() {
+            if let Some(event) = event_box.downcast_ref::<Event>() {
+                window_state.window.on_event(app, &event);
+            }
+        }
+    }
+
+    for event_box in broadcast_event_queue.iter() {
+        window_state
+            .ui_state
+            .current_event_queue
+            .push(event_box.clone());
+    }
+
+    broadcast_event_queue.clear();
 
     let mut build_context = BuildContext {
         current_zindex: 0,
         layout_commands: &mut window_state.ui_state.layout_commands,
         widgets_states: &mut window_state.ui_state.widgets_states,
-        task_spawner: task_spawner,
         event_queue: &mut window_state.ui_state.current_event_queue,
         next_event_queue: &mut window_state.ui_state.next_event_queue,
         text: &mut window_state.texts,
@@ -62,9 +85,12 @@ fn render<'a, T: ApplicationDelegate<Event>, Event>(
         view: &window_state.ui_state.view,
         string_interner,
         async_tx: &mut window_state.ui_state.async_tx,
+        broadcast_event_queue,
+        broadcast_async_tx,
     };
 
     window_state.window.build(app, &mut build_context);
+
     tech_paws_ui::render(
         &mut window_state.ui_state,
         &mut window_state.texts,
@@ -74,7 +100,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event>(
     );
 }
 
-impl<T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHandler
+impl<T: ApplicationDelegate<Event>, Event: 'static> winit::application::ApplicationHandler
     for Application<'_, T, Event>
 {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
@@ -90,6 +116,26 @@ impl<T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHandle
         window_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
+        // Collect async events
+        while let Ok(event) = self.broadcast_async_rx.try_recv() {
+            self.broadcast_event_queue.push(event.into());
+        }
+
+        for event_box in self.broadcast_event_queue.iter() {
+            if let Some(event) = event_box.downcast_ref::<Event>() {
+                self.app.on_event(&mut self.window_manager, event);
+
+                for window in self.window_manager.windows.values_mut() {
+                    window.window.on_event(&mut self.app, event);
+                }
+            }
+        }
+
+        if let winit::event::WindowEvent::RedrawRequested = event {
+        } else {
+            self.broadcast_event_queue.clear();
+        }
+
         let window = self.window_manager.get_mut_window(window_id).unwrap();
         let input_cursor = window.ui_state.user_input.cursor;
 
@@ -137,7 +183,8 @@ impl<T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHandle
                     &mut self.fonts,
                     &mut self.string_interner,
                     &mut self.strings,
-                    &mut self.task_spawner,
+                    &mut self.broadcast_event_queue,
+                    &mut self.broadcast_async_tx,
                     window,
                 );
 
@@ -222,9 +269,9 @@ impl<T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHandle
     }
 }
 
-impl<T: ApplicationDelegate<Event>, Event> Application<'_, T, Event> {
+impl<T: ApplicationDelegate<Event>, Event: 'static> Application<'_, T, Event> {
     pub fn run_application(mut delegate: T) -> anyhow::Result<()> {
-        let (redraw_tx, redraw_rx) = mpsc::unbounded_channel();
+        let (broadcast_async_tx, broadcast_async_rx) = tokio::sync::mpsc::unbounded_channel();
 
         let mut fonts = FontResources::new();
         delegate.init_assets(&mut fonts);
@@ -232,12 +279,13 @@ impl<T: ApplicationDelegate<Event>, Event> Application<'_, T, Event> {
         let mut application = Application {
             app: delegate,
             window_manager: WindowManager::new(T::create_renderer),
-            task_spawner: TaskSpawner::new(redraw_tx),
-            redraw_rx,
             fonts,
             string_interner: StringInterner::new(),
             strings: HashMap::new(),
             last_cursor: Cursor::Default,
+            broadcast_event_queue: Vec::new(),
+            broadcast_async_rx,
+            broadcast_async_tx,
         };
 
         #[cfg(target_os = "macos")]

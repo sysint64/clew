@@ -1,6 +1,6 @@
 use std::{
     any::Any,
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet}, sync::Arc,
 };
 
 use crate::{
@@ -22,8 +22,8 @@ pub struct UiState {
     pub render_state: RenderState,
     pub layout_commands: Vec<LayoutCommand>,
     pub layout_state: LayoutState,
-    pub current_event_queue: Vec<Box<dyn Any + Send>>,
-    pub next_event_queue: Vec<Box<dyn Any + Send>>,
+    pub current_event_queue: Vec<Arc<dyn Any + Send>>,
+    pub next_event_queue: Vec<Arc<dyn Any + Send>>,
     pub widgets_states: WidgetsStates,
     pub widget_placements: Vec<WidgetPlacement>,
     pub interaction_state: InteractionState,
@@ -51,7 +51,7 @@ impl UiState {
 
         // Collect async events
         while let Ok(event) = self.async_rx.try_recv() {
-            self.current_event_queue.push(event);
+            self.current_event_queue.push(event.into());
         }
     }
 

@@ -1,10 +1,9 @@
-use std::any::Any;
+use std::{any::Any, sync::Arc};
 
 use crate::{
     AlignX, AlignY, View,
     layout::{ContainerKind, LayoutCommand},
     state::WidgetsStates,
-    task_spawner::TaskSpawner,
     text::{FontResources, StringInterner, TextsResources},
 };
 
@@ -12,14 +11,15 @@ pub struct BuildContext<'a, 'b> {
     pub current_zindex: i32,
     pub layout_commands: &'a mut Vec<LayoutCommand>,
     pub widgets_states: &'a mut WidgetsStates,
-    pub task_spawner: &'a mut TaskSpawner,
-    pub event_queue: &'a mut Vec<Box<dyn Any + Send>>,
-    pub next_event_queue: &'a mut Vec<Box<dyn Any + Send>>,
+    pub event_queue: &'a mut Vec<Arc<dyn Any + Send>>,
+    pub next_event_queue: &'a mut Vec<Arc<dyn Any + Send>>,
+    pub broadcast_event_queue: &'a mut Vec<Arc<dyn Any + Send>>,
     pub text: &'a mut TextsResources<'b>,
     pub fonts: &'a mut FontResources,
     pub view: &'a View,
     pub string_interner: &'a mut StringInterner,
     pub async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
+    pub broadcast_async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
 }
 
 impl BuildContext<'_, '_> {
@@ -44,7 +44,7 @@ impl BuildContext<'_, '_> {
     }
 
     pub fn emit<E: Any + Send + 'static>(&mut self, event: E) {
-        self.next_event_queue.push(Box::new(event));
+        self.next_event_queue.push(Arc::new(event));
     }
 
     pub fn spawn<E: Any + Send + 'static, F>(&self, future: F)
@@ -52,6 +52,22 @@ impl BuildContext<'_, '_> {
         F: Future<Output = E> + Send + 'static,
     {
         let tx = self.async_tx.clone();
+
+        tokio::spawn(async move {
+            let event = future.await;
+            let _ = tx.send(Box::new(event));
+        });
+    }
+
+    pub fn broadcast<E: Any + Send + 'static>(&mut self, event: E) {
+        self.broadcast_event_queue.push(Arc::new(event));
+    }
+
+    pub fn spawn_broadcast<E: Any + Send + 'static, F>(&self, future: F)
+    where
+        F: Future<Output = E> + Send + 'static,
+    {
+        let tx = self.broadcast_async_tx.clone();
 
         tokio::spawn(async move {
             let event = future.await;

@@ -46,7 +46,7 @@ pub(crate) struct WindowState<'a, App, Event> {
 }
 
 pub struct WindowManager<'a, App, Event> {
-    windows: HashMap<winit::window::WindowId, WindowState<'a, App, Event>>,
+    pub(crate) windows: HashMap<winit::window::WindowId, WindowState<'a, App, Event>>,
     event_loop: Option<*const winit::event_loop::ActiveEventLoop>,
     renderer_factory: fn(Arc<winit::window::Window>) -> Box<dyn Renderer>,
 }

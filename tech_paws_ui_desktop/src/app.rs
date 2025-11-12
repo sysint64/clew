@@ -4,6 +4,7 @@ use std::sync::Arc;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use tech_paws_ui::event_queue::EventQueue;
+use tech_paws_ui::io::Cursor;
 use tech_paws_ui::render::{RenderCommand, Renderer, create_test_commands};
 use tech_paws_ui::state::UiState;
 use tech_paws_ui::text::{FontResources, StringId, StringInterner, TextId, TextsResources};
@@ -18,6 +19,8 @@ use tokio::sync::mpsc;
 use winit::platform::macos::EventLoopBuilderExtMacOS;
 
 pub trait ApplicationDelegate<Event> {
+    fn init_assets(&mut self, fonts: &mut FontResources) {}
+
     fn on_start(&mut self, window_manager: &mut WindowManager<Self, Event>)
     where
         Self: std::marker::Sized;
@@ -35,6 +38,7 @@ pub struct Application<'a, T: ApplicationDelegate<Event>, Event = ()> {
     fonts: FontResources,
     string_interner: StringInterner,
     strings: HashMap<StringId, TextId>,
+    last_cursor: Cursor,
 }
 
 fn render<'a, T: ApplicationDelegate<Event>, Event>(
@@ -86,6 +90,26 @@ impl<T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHandle
         event: winit::event::WindowEvent,
     ) {
         let window = self.window_manager.get_mut_window(window_id).unwrap();
+        let input_cursor = window.ui_state.user_input.cursor;
+
+        if self.last_cursor != input_cursor
+        /* || ui_state.parameters.should_update_cursor_each_frame*/
+        {
+            let cursor = match input_cursor {
+                Cursor::Default => winit::window::CursorIcon::Default,
+                Cursor::Pointer => winit::window::CursorIcon::Pointer,
+                Cursor::Text => winit::window::CursorIcon::Text,
+                Cursor::EwResize => winit::window::CursorIcon::EwResize,
+                Cursor::NsResize => winit::window::CursorIcon::NsResize,
+                Cursor::NeswResize => winit::window::CursorIcon::NeswResize,
+                Cursor::NwseResize => winit::window::CursorIcon::NwseResize,
+            };
+
+            window
+                .winit_window
+                .set_cursor(winit::window::Cursor::Icon(cursor));
+            self.last_cursor = input_cursor;
+        }
 
         match event {
             winit::event::WindowEvent::CloseRequested => {
@@ -116,9 +140,81 @@ impl<T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHandle
                     window,
                 );
 
-                window
-                    .renderer
-                    .process_commands(&window.ui_state.view, &window.ui_state.render_state);
+                window.renderer.process_commands(
+                    &window.ui_state.view,
+                    &window.ui_state.render_state,
+                    &mut self.fonts,
+                    &mut window.texts,
+                );
+            }
+            winit::event::WindowEvent::MouseInput {
+                state: btn_state,
+                button,
+                ..
+            } => {
+                window.ui_state.user_input.mouse_pressed =
+                    btn_state == winit::event::ElementState::Pressed;
+                window.ui_state.user_input.mouse_released =
+                    btn_state == winit::event::ElementState::Released;
+
+                match button {
+                    winit::event::MouseButton::Left => {
+                        window.ui_state.user_input.mouse_left_pressed =
+                            window.ui_state.user_input.mouse_pressed;
+                        window.ui_state.user_input.mouse_left_released =
+                            window.ui_state.user_input.mouse_released;
+                    }
+                    winit::event::MouseButton::Right => {
+                        window.ui_state.user_input.mouse_right_pressed =
+                            window.ui_state.user_input.mouse_pressed;
+                        window.ui_state.user_input.mouse_right_released =
+                            window.ui_state.user_input.mouse_released;
+                    }
+                    winit::event::MouseButton::Middle => {
+                        window.ui_state.user_input.mouse_middle_pressed =
+                            window.ui_state.user_input.mouse_pressed;
+                        window.ui_state.user_input.mouse_middle_released =
+                            window.ui_state.user_input.mouse_released;
+                    }
+                    _ => {}
+                }
+            }
+
+            // Mouse wheel scrolling
+            winit::event::WindowEvent::MouseWheel { delta, .. } => {
+                match delta {
+                    winit::event::MouseScrollDelta::LineDelta(x, y) => {
+                        window.ui_state.user_input.mouse_wheel_delta_x = x as f64 * 20.0; // Scale line delta
+                        window.ui_state.user_input.mouse_wheel_delta_y = y as f64 * 20.0;
+                    }
+                    winit::event::MouseScrollDelta::PixelDelta(pos) => {
+                        window.ui_state.user_input.mouse_wheel_delta_x = pos.x;
+                        window.ui_state.user_input.mouse_wheel_delta_y = pos.y;
+                    }
+                }
+            }
+
+            // Mouse movement
+            winit::event::WindowEvent::CursorMoved { position, .. } => {
+                window.ui_state.user_input.mouse_x = position.x;
+                window.ui_state.user_input.mouse_y = position.y;
+            }
+
+            // Focus events
+            winit::event::WindowEvent::Focused(focused) => {
+                if !focused {
+                    // Clear input state when window loses focus
+                    // input.keys_pressed.clear();
+                    window.ui_state.user_input.mouse_left_pressed = false;
+                    window.ui_state.user_input.mouse_right_pressed = false;
+                    window.ui_state.user_input.mouse_middle_pressed = false;
+
+                    window.winit_window.set_cursor(winit::window::Cursor::Icon(
+                        winit::window::CursorIcon::Default,
+                    ));
+                    self.last_cursor = Cursor::Default;
+                    window.ui_state.user_input.cursor = Cursor::Default;
+                }
             }
             _ => (),
         }
@@ -126,17 +222,21 @@ impl<T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHandle
 }
 
 impl<T: ApplicationDelegate<Event>, Event> Application<'_, T, Event> {
-    pub fn run_application(delegate: T) -> anyhow::Result<()> {
+    pub fn run_application(mut delegate: T) -> anyhow::Result<()> {
         let (redraw_tx, redraw_rx) = mpsc::unbounded_channel();
+
+        let mut fonts = FontResources::new();
+        delegate.init_assets(&mut fonts);
 
         let mut application = Application {
             app: delegate,
             window_manager: WindowManager::new(T::create_renderer),
             task_spawner: TaskSpawner::new(redraw_tx),
             redraw_rx,
-            fonts: FontResources::new(),
+            fonts,
             string_interner: StringInterner::new(),
             strings: HashMap::new(),
+            last_cursor: Cursor::Default,
         };
 
         #[cfg(target_os = "macos")]

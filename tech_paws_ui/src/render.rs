@@ -5,7 +5,7 @@ use glam::Vec2;
 use crate::{
     Border, BorderRadius, BorderSide, ColorRgba, ColorStop, Gradient, LayoutDirection,
     LinearGradient, RadialGradient, Rect, View, WidgetType,
-    interaction::InteractionState,
+    interaction::{InteractionState, handle_interaction},
     io::UserInput,
     layout::{LayoutState, layout},
     state::UiState,
@@ -25,7 +25,13 @@ impl RenderState {
 }
 
 pub trait Renderer {
-    fn process_commands(&mut self, view: &View, state: &RenderState);
+    fn process_commands(
+        &mut self,
+        view: &View,
+        state: &RenderState,
+        fonts: &mut FontResources,
+        text: &mut TextsResources,
+    );
 }
 
 pub struct RenderContext<'a, 'b> {
@@ -60,7 +66,8 @@ pub enum RenderCommand {
         border: Option<BorderSide>,
     },
     Text {
-        boundary: Rect,
+        x: f32,
+        y: f32,
         text_id: TextId,
         tint_color: Option<ColorRgba>,
     },
@@ -153,10 +160,18 @@ pub fn render(
         }
     }
 
+    handle_interaction(
+        &mut state.user_input,
+        &mut state.interaction_state,
+        &mut state.widgets_states,
+        &state.view,
+        text,
+        fonts,
+        &state.widget_placements,
+    );
+
     state.widgets_states.sweep(&mut state.interaction_state);
     state.user_input.clear_frame_events();
-
-    // println!("{:?}", state.widget_placements);
 }
 
 pub fn create_test_commands() -> Vec<RenderCommand> {

@@ -1035,3 +1035,25 @@ impl From<Vec4> for Rect {
         }
     }
 }
+
+impl From<cosmic_text::Color> for ColorRgba {
+    fn from(value: cosmic_text::Color) -> Self {
+        Self {
+            r: value.r() as f32 / 255.0,
+            g: value.g() as f32 / 255.0,
+            b: value.b() as f32 / 255.0,
+            a: value.a() as f32 / 255.0,
+        }
+    }
+}
+
+impl From<ColorRgba> for cosmic_text::Color {
+    fn from(value: ColorRgba) -> Self {
+        Self::rgba(
+            (value.r * 255.).clamp(0., 255.) as u8,
+            (value.g * 255.).clamp(0., 255.) as u8,
+            (value.b * 255.).clamp(0., 255.) as u8,
+            (value.a * 255.).clamp(0., 255.) as u8,
+        )
+    }
+}

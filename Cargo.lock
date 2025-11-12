@@ -1594,6 +1594,7 @@ dependencies = [
 name = "tech_paws_ui_tiny_skia"
 version = "0.1.0"
 dependencies = [
+ "cosmic-text",
  "raw-window-handle",
  "softbuffer",
  "tech_paws_ui",

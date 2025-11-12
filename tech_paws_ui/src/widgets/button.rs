@@ -219,7 +219,8 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
         );
 
     ctx.push_command(RenderCommand::Text {
-        boundary: placement.rect.px(ctx).shrink(2.0.px(ctx)),
+        x: text_position.x,
+        y: text_position.y,
         text_id,
         tint_color: Some(ColorRgba::from_hex(0xFFFFFFFF)),
     });

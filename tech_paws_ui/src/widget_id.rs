@@ -37,6 +37,8 @@ impl WidgetId {
     }
 }
 
+pub struct LayoutWidget;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WidgetType {
     type_id: std::any::TypeId,

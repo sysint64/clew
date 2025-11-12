@@ -1,17 +1,20 @@
 use std::{num::NonZeroU32, slice};
 
+use cosmic_text::SwashCache;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use tech_paws_ui::{
     Border, BorderRadius, BorderSide, ColorRgba, Gradient, Rect, TileMode, View,
     render::{Fill, RenderCommand, RenderState, Renderer},
+    text::{FontResources, TextsResources},
 };
-use tiny_skia::PixmapMut;
+use tiny_skia::{Paint, PixmapMut};
 
 pub struct TinySkiaRenderer<D, W> {
     context: softbuffer::Context<D>,
     surface: softbuffer::Surface<D, W>,
     current_width: u32,
     current_height: u32,
+    swash_cache: SwashCache,
 }
 
 impl<D: HasDisplayHandle, W: HasWindowHandle> TinySkiaRenderer<D, W> {
@@ -24,12 +27,19 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> TinySkiaRenderer<D, W> {
             surface,
             current_width: 0,
             current_height: 0,
+            swash_cache: SwashCache::new(),
         }
     }
 }
 
 impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W> {
-    fn process_commands(&mut self, view: &View, state: &RenderState) {
+    fn process_commands(
+        &mut self,
+        view: &View,
+        state: &RenderState,
+        fonts: &mut FontResources,
+        text: &mut TextsResources,
+    ) {
         let width = view.size.width as u32;
         let height = view.size.height as u32;
 
@@ -83,8 +93,46 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
                 } => {
                     render_oval(&mut pixmap, *boundary, fill, border.as_ref(), current_clip);
                 }
-                RenderCommand::Text { .. } => {
-                    // TODO: Implement text rendering
+                RenderCommand::Text {
+                    x: text_position_x,
+                    y: text_position_y,
+                    text_id,
+                    tint_color,
+                } => {
+                    let mut paint = Paint {
+                        anti_alias: false,
+                        ..Default::default()
+                    };
+
+                    text.get_mut(*text_id).with_buffer_mut(|buffer| {
+                        buffer.draw(
+                            &mut fonts.font_system,
+                            &mut self.swash_cache,
+                            tint_color.unwrap_or(ColorRgba::from_hex(0xFF000000)).into(),
+                            |x, y, w, h, color| {
+                                let opacity = color.a() as f32 / 255.;
+                                let color = tint_color
+                                    .map(|c| c.with_opacity(opacity * c.a).into())
+                                    .unwrap_or(color);
+
+                                // Note: due to softbuffer and tiny_skia having incompatible internal color representations we swap
+                                // the red and blue channels here
+                                paint.set_color_rgba8(color.b(), color.g(), color.r(), color.a());
+                                pixmap.fill_rect(
+                                    tiny_skia::Rect::from_xywh(
+                                        text_position_x + x as f32,
+                                        text_position_y + y as f32,
+                                        w as f32,
+                                        h as f32,
+                                    )
+                                    .unwrap(),
+                                    &paint,
+                                    tiny_skia::Transform::identity(),
+                                    None,
+                                );
+                            },
+                        );
+                    });
                 }
                 RenderCommand::PushClipRect(_rect) => {
                     // let clip_path = {
@@ -420,5 +468,7 @@ fn render_border(
 }
 
 fn convert_color(color: &ColorRgba) -> tiny_skia::Color {
-    tiny_skia::Color::from_rgba(color.r, color.g, color.b, color.a).unwrap()
+    // Note: due to softbuffer and tiny_skia having incompatible internal color representations we swap
+    // the red and blue channels here
+    tiny_skia::Color::from_rgba(color.b, color.g, color.r, color.a).unwrap()
 }

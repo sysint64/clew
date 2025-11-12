@@ -2,7 +2,7 @@ use std::any::TypeId;
 
 use super::builder::BuildContext;
 
-pub struct ViewBuilder<'a, V: Component<Event>, Event> {
+pub struct ComponentBuilder<'a, V: Component<Event>, Event> {
     view: &'a mut V,
     phantom_data: std::marker::PhantomData<Event>,
 }
@@ -15,7 +15,7 @@ pub trait Component<Event = ()> {
     fn build(&mut self, ctx: &mut BuildContext);
 }
 
-impl<'a, V: Component<Event>, Event: 'static> ViewBuilder<'a, V, Event> {
+impl<'a, V: Component<Event>, Event: 'static> ComponentBuilder<'a, V, Event> {
     pub fn build(&mut self, context: &mut BuildContext) {
         // Skip event processing for () type
         if TypeId::of::<Event>() != TypeId::of::<()>() {
@@ -30,8 +30,8 @@ impl<'a, V: Component<Event>, Event: 'static> ViewBuilder<'a, V, Event> {
     }
 }
 
-pub fn component<V: Component<Event>, Event>(view: &mut V) -> ViewBuilder<V, Event> {
-    ViewBuilder {
+pub fn component<V: Component<Event>, Event>(view: &mut V) -> ComponentBuilder<V, Event> {
+    ComponentBuilder {
         view,
         phantom_data: std::marker::PhantomData,
     }

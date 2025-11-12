@@ -1,6 +1,7 @@
 use cosmic_text::Edit;
 use glam::Vec2;
 use slotmap::{SlotMap, new_key_type};
+use string_interner;
 
 use crate::View;
 
@@ -8,6 +9,10 @@ new_key_type! {
     pub struct FontId;
     pub struct TextId;
 }
+
+pub type StringId = string_interner::DefaultSymbol;
+
+pub type StringInterner = string_interner::StringInterner<string_interner::DefaultBackend>;
 
 pub struct FontResources {
     pub font_system: cosmic_text::FontSystem,

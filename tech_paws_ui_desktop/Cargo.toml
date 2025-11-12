@@ -10,6 +10,9 @@ slotmap = "1"
 tech_paws_ui = { path = "../tech_paws_ui" }
 anyhow = "1.0"
 tokio = { version = "1", features = ["rt", "sync", "time"], optional = true }
+string-interner = { workspace = true }
+parking_lot = { workspace = true }
+once_cell = { workspace = true }
 
 [features]
 default = ["tokio"]

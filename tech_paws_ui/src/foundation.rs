@@ -1,4 +1,6 @@
-use glam::Vec2;
+use std::ops::{Add, Mul};
+
+use glam::{Vec2, Vec4};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Axis {
@@ -378,6 +380,19 @@ pub struct Rect {
     pub height: f32,
 }
 
+impl Mul<f32> for Rect {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self {
+            x: self.x * rhs,
+            y: self.y * rhs,
+            width: self.width * rhs,
+            height: self.height * rhs,
+        }
+    }
+}
+
 impl Default for Rect {
     fn default() -> Self {
         Self {
@@ -551,6 +566,13 @@ impl ColorRgb {
 }
 
 impl ColorRgba {
+    pub const TRANSPARENT: Self = Self {
+        r: 0.,
+        g: 0.,
+        b: 0.,
+        a: 0.,
+    };
+
     pub fn transparent() -> ColorRgba {
         ColorRgba::new(0., 0., 0., 0.)
     }
@@ -989,5 +1011,27 @@ impl SweepGradient {
 impl ColorStop {
     pub fn new(offset: f32, color: ColorRgba) -> Self {
         Self { offset, color }
+    }
+}
+
+impl From<Vec4> for ColorRgba {
+    fn from(value: Vec4) -> Self {
+        ColorRgba {
+            r: value.x,
+            g: value.y,
+            b: value.z,
+            a: value.w,
+        }
+    }
+}
+
+impl From<Vec4> for Rect {
+    fn from(value: Vec4) -> Self {
+        Rect {
+            x: value.x,
+            y: value.y,
+            width: value.z,
+            height: value.w,
+        }
     }
 }

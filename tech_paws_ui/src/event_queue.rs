@@ -35,7 +35,7 @@ impl EventQueue {
     }
 }
 
-impl<'a> BuildContext<'a> {
+impl BuildContext<'_, '_> {
     pub fn emit<E: Any + Send + 'static>(&mut self, event: E) {
         self.event_queue.push(event);
     }

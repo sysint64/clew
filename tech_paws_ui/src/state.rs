@@ -3,7 +3,9 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use crate::{View, WidgetId, interaction::InteractionState, render::RenderState};
+use crate::{
+    event_queue::EventQueue, interaction::InteractionState, layout::{LayoutCommand, LayoutState, WidgetPlacement}, render::RenderState, View, WidgetId
+};
 
 pub trait WidgetState: Any + Send {
     fn as_any(&self) -> &dyn Any;
@@ -11,15 +13,40 @@ pub trait WidgetState: Any + Send {
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
-pub struct UiState<'a> {
+pub struct UiState {
     pub view: View,
-    pub render_state: RenderState<'a>,
+    pub render_state: RenderState,
+    pub layout_commands: Vec<LayoutCommand>,
+    pub layout_state: LayoutState,
+    pub event_queue: EventQueue,
+    pub widgets_states: WidgetsStates,
+    pub widget_placements: Vec<WidgetPlacement>,
 }
 
 #[derive(Default)]
 pub struct WidgetsStates {
     pub data: HashMap<WidgetId, Box<dyn WidgetState>>,
     pub accessed_this_frame: HashSet<WidgetId>,
+}
+
+impl UiState {
+    pub fn before_render(&mut self) {
+        self.layout_commands.clear();
+        self.render_state.commands.clear();
+        self.widget_placements.clear();
+    }
+
+    pub fn new(view: View) -> Self {
+        Self {
+            view,
+            render_state: Default::default(),
+            layout_commands: Vec::new(),
+            event_queue: EventQueue::new(),
+            widgets_states: WidgetsStates::default(),
+            layout_state: LayoutState::default(),
+            widget_placements: Vec::new(),
+        }
+    }
 }
 
 impl WidgetsStates {

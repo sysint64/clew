@@ -13,15 +13,11 @@ use tech_paws_ui_desktop::{
 };
 use tech_paws_ui_tiny_skia::TinySkiaRenderer;
 
-pub struct DemoApplication {
-    pub todo_list: Vec<String>,
-}
+pub struct DemoApplication {}
 
 impl DemoApplication {
     pub fn new() -> Self {
-        Self {
-            todo_list: vec!["Task 1".to_string(), "Task 2".to_string()],
-        }
+        Self {}
     }
 }
 
@@ -38,7 +34,9 @@ impl ApplicationDelegate<()> for DemoApplication {
         );
     }
 
-    fn create_renderer(window: Arc<winit::window::Window>) -> Box<dyn tech_paws_ui::render::Renderer> {
+    fn create_renderer(
+        window: Arc<winit::window::Window>,
+    ) -> Box<dyn tech_paws_ui::render::Renderer> {
         Box::new(TinySkiaRenderer::new(window.clone(), window.clone()))
     }
 }
@@ -66,18 +64,18 @@ struct Counter {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum Message {
+pub enum CounterEvent {
     Increment,
     Decrement,
 }
 
-impl Component<Message> for Counter {
-    fn on_event(&mut self, event: &Message) -> bool {
+impl Component<CounterEvent> for Counter {
+    fn on_event(&mut self, event: &CounterEvent) -> bool {
         match event {
-            Message::Increment => {
+            CounterEvent::Increment => {
                 self.value += 1;
             }
-            Message::Decrement => {
+            CounterEvent::Decrement => {
                 self.value -= 1;
             }
         }
@@ -91,13 +89,13 @@ impl Component<Message> for Counter {
                 .build(ctx)
                 .clicked()
             {
-                ctx.emit(Message::Increment);
+                ctx.emit(CounterEvent::Increment);
                 let value = self.value;
                 ctx.spawn(async move {
                     tokio::time::sleep(Duration::from_secs(2)).await;
                     println!("Current counter: {value}");
 
-                    Message::Decrement
+                    CounterEvent::Decrement
                 });
             };
         });

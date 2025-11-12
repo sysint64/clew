@@ -14,6 +14,9 @@ slotmap = "1"
 cosmic-text = { version = "0.14" }
 raw-window-handle = "0.6"
 winit = "0.30"
+string-interner = "0.19"
+parking_lot = "0.12"
+once_cell = "1.21"
 
 [patch.crates-io]
 cosmic-text = { path = "/Users/sys.int64/dev/lib/cosmic-text" }

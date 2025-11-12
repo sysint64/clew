@@ -8,6 +8,8 @@ log = { workspace = true }
 glam = { workspace = true }
 cosmic-text = { workspace = true }
 slotmap = { workspace = true }
+string-interner = { workspace = true }
+bitflags = "2.10"
 tokio = { version = "1", features = ["rt", "sync", "time"], optional = true }
 
 [features]

@@ -1,16 +1,20 @@
 use crate::{
-    event_queue::EventQueue, layout::LayoutCommand, state::WidgetsStates, task_spawner::TaskSpawner,
+    event_queue::EventQueue, layout::LayoutCommand, state::WidgetsStates, task_spawner::TaskSpawner, text::{FontResources, StringInterner, TextsResources}, View,
 };
 
-pub struct BuildContext<'a> {
+pub struct BuildContext<'a, 'b> {
     pub current_zindex: i32,
     pub layout_commands: &'a mut Vec<LayoutCommand>,
     pub widgets_states: &'a mut WidgetsStates,
     pub task_spawner: &'a mut TaskSpawner,
     pub event_queue: &'a mut EventQueue,
+    pub text: &'a mut TextsResources<'b>,
+    pub fonts: &'a mut FontResources,
+    pub view: &'a View,
+    pub string_interner: &'a mut StringInterner,
 }
 
-impl BuildContext<'_> {
+impl BuildContext<'_, '_> {
     pub fn push_layout_command(&mut self, command: LayoutCommand) {
         self.layout_commands.push(command);
     }

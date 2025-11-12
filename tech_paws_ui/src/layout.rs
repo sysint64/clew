@@ -4,8 +4,8 @@ use crate::{
 };
 use glam::Vec2;
 
-const RENDER_DEBUG_INFO: bool = true;
-pub(crate) const RENDER_DEBUG_BOUNDARIES: bool = true;
+const RENDER_DEBUG_INFO: bool = false;
+pub(crate) const RENDER_DEBUG_BOUNDARIES: bool = false;
 
 #[derive(Debug)]
 pub(crate) struct WidgetPlacement {
@@ -104,7 +104,7 @@ struct LayoutContainer {
 }
 
 #[derive(Default)]
-pub(crate) struct LayoutContext {
+pub(crate) struct LayoutState {
     cursor: usize,
 
     wrap_sizes: Vec<Vec2>,
@@ -131,7 +131,7 @@ pub(crate) struct LayoutContext {
     align_y_stack: Vec<AlignY>,
 }
 
-impl LayoutContext {
+impl LayoutState {
     fn current_idx(&self) -> usize {
         self.cursor - 1
     }
@@ -483,19 +483,19 @@ fn apply_constraints(size: Vec2, constraints: Constraints) -> Vec2 {
 }
 
 pub fn layout(
-    context: &mut LayoutContext,
+    layout_state: &mut LayoutState,
     view: &View,
     commands: &[LayoutCommand],
     widget_placements: &mut Vec<WidgetPlacement>,
 ) {
-    context.clear();
+    layout_state.clear();
 
     // Pass 1 - Calculate fixed sizes and flex sum -------------------------------------------------
     // Root container
-    context.push_boundary();
+    layout_state.push_boundary();
     let view_size = view.size.to_vec2();
     let root_size = view_size / view.scale_factor;
-    context.actual_sizes[0] = root_size;
+    layout_state.actual_sizes[0] = root_size;
 
     for command in commands {
         match command {
@@ -504,15 +504,15 @@ pub fn layout(
                 constraints,
                 size,
             } => {
-                context.push_boundary();
-                context.add_flex_sum(*size);
-                context.set_constraints(*constraints);
-                context.push_container(context.parent_container);
+                layout_state.push_boundary();
+                layout_state.add_flex_sum(*size);
+                layout_state.set_constraints(*constraints);
+                layout_state.push_container(layout_state.parent_container);
 
                 match kind {
                     ContainerKind::VStack { spacing, .. } => {
-                        context.parent_container = LayoutContainer {
-                            idx: context.current_idx(),
+                        layout_state.parent_container = LayoutContainer {
+                            idx: layout_state.current_idx(),
                             axis: StackAxis::Vertical { spacing: *spacing },
                             command: LayoutContainerCommand {
                                 kind: *kind,
@@ -524,8 +524,8 @@ pub fn layout(
                     ContainerKind::HStack {
                         spacing, rtl_aware, ..
                     } => {
-                        context.parent_container = LayoutContainer {
-                            idx: context.current_idx(),
+                        layout_state.parent_container = LayoutContainer {
+                            idx: layout_state.current_idx(),
                             axis: StackAxis::Horizontal {
                                 spacing: *spacing,
                                 rtl_aware: *rtl_aware,
@@ -538,8 +538,8 @@ pub fn layout(
                         };
                     }
                     ContainerKind::ZStack => {
-                        context.parent_container = LayoutContainer {
-                            idx: context.current_idx(),
+                        layout_state.parent_container = LayoutContainer {
+                            idx: layout_state.current_idx(),
                             axis: StackAxis::None,
                             command: LayoutContainerCommand {
                                 kind: *kind,
@@ -549,11 +549,12 @@ pub fn layout(
                         };
                     }
                     ContainerKind::Padding { padding } => {
-                        context.set_offset(Vec2::new(padding.left, padding.top));
-                        context.set_resize(Vec2::new(-padding.horizontal(), -padding.vertical()));
+                        layout_state.set_offset(Vec2::new(padding.left, padding.top));
+                        layout_state
+                            .set_resize(Vec2::new(-padding.horizontal(), -padding.vertical()));
 
-                        context.parent_container = LayoutContainer {
-                            idx: context.current_idx(),
+                        layout_state.parent_container = LayoutContainer {
+                            idx: layout_state.current_idx(),
                             axis: StackAxis::None,
                             command: LayoutContainerCommand {
                                 kind: *kind,
@@ -565,8 +566,8 @@ pub fn layout(
                     ContainerKind::Flow {
                         spacing, rtl_aware, ..
                     } => {
-                        context.parent_container = LayoutContainer {
-                            idx: context.current_idx(),
+                        layout_state.parent_container = LayoutContainer {
+                            idx: layout_state.current_idx(),
                             axis: StackAxis::Horizontal {
                                 spacing: *spacing,
                                 rtl_aware: *rtl_aware,
@@ -584,11 +585,11 @@ pub fn layout(
                 }
             }
             LayoutCommand::EndContainer => {
-                let parent_container = context.pop_container();
+                let parent_container = layout_state.pop_container();
 
-                let wrap_size = context
+                let wrap_size = layout_state
                     .wrap_sizes
-                    .get_mut(context.parent_container.idx)
+                    .get_mut(layout_state.parent_container.idx)
                     .unwrap();
                 let mut size = parent_container.command.size;
 
@@ -632,20 +633,20 @@ pub fn layout(
 
                 let wrap_size = *wrap_size;
                 let idx = parent_container.idx;
-                let size = context.add_container_size(size, wrap_size);
-                context.actual_sizes[idx] =
+                let size = layout_state.add_container_size(size, wrap_size);
+                layout_state.actual_sizes[idx] =
                     apply_constraints(size, parent_container.command.constraints);
 
-                context.parent_container = parent_container;
+                layout_state.parent_container = parent_container;
             }
             LayoutCommand::Fixed {
                 constraints, size, ..
             } => {
-                context.push_boundary();
-                context.set_constraints(*constraints);
-                context.add_flex_sum_x(size.width);
-                context.add_flex_sum_y(size.height);
-                context.add_size(
+                layout_state.push_boundary();
+                layout_state.set_constraints(*constraints);
+                layout_state.add_flex_sum_x(size.width);
+                layout_state.add_flex_sum_y(size.height);
+                layout_state.add_size(
                     *size,
                     *constraints,
                     Vec2::new(
@@ -656,20 +657,20 @@ pub fn layout(
             }
             LayoutCommand::Wrap { .. } => todo!(),
             LayoutCommand::Spacer { constraints, size } => {
-                context.push_boundary();
-                context.set_constraints(*constraints);
-                context.add_flex_sum(*size);
-                context.add_size(*size, *constraints, Vec2::ZERO);
+                layout_state.push_boundary();
+                layout_state.set_constraints(*constraints);
+                layout_state.add_flex_sum(*size);
+                layout_state.add_size(*size, *constraints, Vec2::ZERO);
             }
         }
     }
 
-    debug_assert!(context.containers_stack_cursor == 0);
+    debug_assert!(layout_state.containers_stack_cursor == 0);
 
     // Extra memory to simplify calculations
-    context.push_boundary();
-    context.flex_sum_x[context.cursor - 1] = 0.;
-    context.flex_sum_y[context.cursor - 1] = 0.;
+    layout_state.push_boundary();
+    layout_state.flex_sum_x[layout_state.cursor - 1] = 0.;
+    layout_state.flex_sum_y[layout_state.cursor - 1] = 0.;
 
     // Pass 2 - Widget placements ------------------------------------------------------------------
     let mut current_idx = 1; // Skip root container
@@ -677,34 +678,34 @@ pub fn layout(
 
     widget_placements.clear();
 
-    context.push_position(current_position);
-    context.parent_container = LayoutContainer {
+    layout_state.push_position(current_position);
+    layout_state.parent_container = LayoutContainer {
         idx: 0,
         axis: StackAxis::None,
         command: Default::default(),
     };
-    context.push_align(AlignX::Left, AlignY::Top);
+    layout_state.push_align(AlignX::Left, AlignY::Top);
 
     for command in commands {
         let mut go_next = true;
-        let container_idx = context.parent_container.idx;
+        let container_idx = layout_state.parent_container.idx;
 
-        let container_resize = context.resizes[container_idx];
-        let container_offset = context.offsets[container_idx];
-        let container_size_resized = context.actual_sizes[container_idx] + container_resize;
-        let container_size = context.actual_sizes[container_idx];
+        let container_resize = layout_state.resizes[container_idx];
+        let container_offset = layout_state.offsets[container_idx];
+        let container_size_resized = layout_state.actual_sizes[container_idx] + container_resize;
+        let container_size = layout_state.actual_sizes[container_idx];
 
-        let flex_x = context.flex_x[current_idx];
-        let flex_y = context.flex_y[current_idx];
+        let flex_x = layout_state.flex_x[current_idx];
+        let flex_y = layout_state.flex_y[current_idx];
 
         if flex_x > 0. {
-            let constraints = context.constraints[current_idx];
-            let container_flex_size = context.flex_sizes[container_idx];
+            let constraints = layout_state.constraints[current_idx];
+            let container_flex_size = layout_state.flex_sizes[container_idx];
 
-            let mut size = match context.parent_container.axis {
+            let mut size = match layout_state.parent_container.axis {
                 StackAxis::None => container_size_resized.x,
                 StackAxis::Horizontal { spacing, .. } => {
-                    let flex_sum_x = context.flex_sum_x[container_idx].max(1.);
+                    let flex_sum_x = layout_state.flex_sum_x[container_idx].max(1.);
                     let available_width =
                         (container_size_resized.x - container_flex_size.x + spacing).max(0.);
                     let per_flex = available_width / flex_sum_x;
@@ -715,18 +716,18 @@ pub fn layout(
             };
 
             size = apply_constraints_width(size, constraints);
-            context.actual_sizes[current_idx].x = size;
+            layout_state.actual_sizes[current_idx].x = size;
         }
 
         if flex_y > 0. {
-            let constraints = context.constraints[current_idx];
-            let container_flex_size = context.flex_sizes[container_idx];
+            let constraints = layout_state.constraints[current_idx];
+            let container_flex_size = layout_state.flex_sizes[container_idx];
 
-            let mut size = match context.parent_container.axis {
+            let mut size = match layout_state.parent_container.axis {
                 StackAxis::None => container_size_resized.y,
                 StackAxis::Horizontal { .. } => container_size_resized.y,
                 StackAxis::Vertical { spacing } => {
-                    let flex_sum_y = context.flex_sum_y[container_idx].max(1.);
+                    let flex_sum_y = layout_state.flex_sum_y[container_idx].max(1.);
                     let available_height =
                         (container_size_resized.y - container_flex_size.y + spacing).max(0.);
                     let per_flex = available_height / flex_sum_y;
@@ -736,28 +737,32 @@ pub fn layout(
             };
 
             size = apply_constraints_height(size, constraints);
-            context.actual_sizes[current_idx].y = size;
+            layout_state.actual_sizes[current_idx].y = size;
         }
 
-        let mut widget_size = context.actual_sizes[current_idx];
+        let mut widget_size = layout_state.actual_sizes[current_idx];
 
-        let boundary_size = match context.parent_container.axis {
+        let boundary_size = match layout_state.parent_container.axis {
             StackAxis::None => container_size,
             StackAxis::Horizontal { .. } => Vec2::new(widget_size.x, container_size.y),
             StackAxis::Vertical { .. } => Vec2::new(container_size.x, widget_size.y),
         };
 
         let mut boundary = Rect::from_pos_size(current_position, boundary_size);
-        let (align_x, align_y) = context.get_align();
+        let (align_x, align_y) = layout_state.get_align();
         let mut position = current_position
             + container_offset
             + Vec2::new(
-                align_x.position(context.layout_direction, boundary_size.x, widget_size.x),
+                align_x.position(
+                    layout_state.layout_direction,
+                    boundary_size.x,
+                    widget_size.x,
+                ),
                 align_y.position(boundary_size.y, widget_size.y),
             );
 
-        if let StackAxis::Horizontal { rtl_aware, .. } = context.parent_container.axis {
-            if rtl_aware && context.layout_direction == LayoutDirection::RTL {
+        if let StackAxis::Horizontal { rtl_aware, .. } = layout_state.parent_container.axis {
+            if rtl_aware && layout_state.layout_direction == LayoutDirection::RTL {
                 position.x -= widget_size.x;
                 boundary.x -= widget_size.x;
             }
@@ -771,8 +776,8 @@ pub fn layout(
                 constraints,
                 size,
             } => {
-                context.push_position(current_position);
-                context.push_container(context.parent_container);
+                layout_state.push_position(current_position);
+                layout_state.push_container(layout_state.parent_container);
                 current_position = position;
                 let command = LayoutContainerCommand {
                     kind: *kind,
@@ -782,7 +787,7 @@ pub fn layout(
 
                 match kind {
                     ContainerKind::VStack { spacing, .. } => {
-                        context.parent_container = LayoutContainer {
+                        layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
                             axis: StackAxis::Vertical { spacing: *spacing },
                             command,
@@ -794,11 +799,11 @@ pub fn layout(
                     ContainerKind::HStack {
                         spacing, rtl_aware, ..
                     } => {
-                        if *rtl_aware && context.layout_direction == LayoutDirection::RTL {
+                        if *rtl_aware && layout_state.layout_direction == LayoutDirection::RTL {
                             current_position = position + Vec2::new(widget_size.x, 0.);
                         }
 
-                        context.parent_container = LayoutContainer {
+                        layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
                             axis: StackAxis::Horizontal {
                                 spacing: *spacing,
@@ -812,7 +817,7 @@ pub fn layout(
                     }
                     ContainerKind::Flow { .. } => todo!(),
                     ContainerKind::ZStack => {
-                        context.parent_container = LayoutContainer {
+                        layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
                             axis: StackAxis::None,
                             command,
@@ -822,7 +827,7 @@ pub fn layout(
                         go_next = false;
                     }
                     ContainerKind::Padding { .. } => {
-                        context.parent_container = LayoutContainer {
+                        layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
                             axis: StackAxis::None,
                             command,
@@ -831,29 +836,29 @@ pub fn layout(
                         current_idx += 1;
                     }
                     ContainerKind::Align { align_x, align_y } => {
-                        context.push_align(*align_x, *align_y);
+                        layout_state.push_align(*align_x, *align_y);
                     }
                 }
             }
             LayoutCommand::EndContainer => {
-                if let ContainerKind::Align { .. } = context.parent_container.command.kind {
-                    context.pop_align();
+                if let ContainerKind::Align { .. } = layout_state.parent_container.command.kind {
+                    layout_state.pop_align();
                     continue;
                 }
 
                 widget_size = container_size;
-                context.parent_container = context.pop_container();
-                current_position = context.pop_position();
+                layout_state.parent_container = layout_state.pop_container();
+                current_position = layout_state.pop_position();
 
                 if RENDER_DEBUG_BOUNDARIES {
-                    let container_idx = context.parent_container.idx;
-                    let container_offset = context.offsets[container_idx];
-                    let container_size = context.actual_sizes[container_idx];
+                    let container_idx = layout_state.parent_container.idx;
+                    let container_offset = layout_state.offsets[container_idx];
+                    let container_size = layout_state.actual_sizes[container_idx];
                     let position = current_position
                         + container_offset
                         + Vec2::new(
                             align_x.position(
-                                context.layout_direction,
+                                layout_state.layout_direction,
                                 container_size.x,
                                 widget_size.x,
                             ),
@@ -885,9 +890,9 @@ pub fn layout(
         }
 
         if go_next {
-            match context.parent_container.axis {
+            match layout_state.parent_container.axis {
                 StackAxis::Horizontal { spacing, rtl_aware } => {
-                    if rtl_aware && context.layout_direction == LayoutDirection::RTL {
+                    if rtl_aware && layout_state.layout_direction == LayoutDirection::RTL {
                         current_position.x -= widget_size.x + spacing
                     } else {
                         current_position.x += widget_size.x + spacing
@@ -901,5 +906,5 @@ pub fn layout(
         }
     }
 
-    debug_assert!(context.containers_stack_cursor == 0);
+    debug_assert!(layout_state.containers_stack_cursor == 0);
 }

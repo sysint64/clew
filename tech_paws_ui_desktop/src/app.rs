@@ -1,12 +1,17 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use tech_paws_ui::PhysicalSize;
+use once_cell::sync::Lazy;
+use parking_lot::Mutex;
 use tech_paws_ui::event_queue::EventQueue;
-use tech_paws_ui::render::Renderer;
+use tech_paws_ui::render::{RenderCommand, Renderer, create_test_commands};
+use tech_paws_ui::state::UiState;
+use tech_paws_ui::text::{FontResources, StringInterner, TextsResources};
 use tech_paws_ui::widgets::builder::BuildContext;
+use tech_paws_ui::{PhysicalSize, View};
 use tech_paws_ui::{state::WidgetsStates, task_spawner::TaskSpawner};
 
+use crate::window_manager::WindowState;
 use crate::{window::Window, window_manager::WindowManager};
 use tokio::sync::mpsc;
 #[cfg(target_os = "macos")]
@@ -27,29 +32,37 @@ pub struct Application<'a, T: ApplicationDelegate<Event>, Event = ()> {
     window_manager: WindowManager<'a, T, Event>,
     task_spawner: TaskSpawner,
     redraw_rx: mpsc::UnboundedReceiver<()>,
+    fonts: FontResources,
+    string_interner: StringInterner,
 }
 
-fn render<T: ApplicationDelegate<Event>, Event>(
+fn render<'a, T: ApplicationDelegate<Event>, Event>(
     app: &mut T,
+    fonts: &mut FontResources,
+    string_interner: &mut StringInterner,
     task_spawner: &mut TaskSpawner,
-    window: &mut Box<dyn Window<T, Event>>,
+    window_state: &mut WindowState<'a, T, Event>,
 ) {
-    let mut layout_commands = Vec::new();
-    let mut widgets_states = WidgetsStates::default();
-    let mut queue = EventQueue::new();
+    window_state.ui_state.before_render();
+
     let mut build_context = BuildContext {
         current_zindex: 0,
-        layout_commands: &mut layout_commands,
-        widgets_states: &mut widgets_states,
+        layout_commands: &mut window_state.ui_state.layout_commands,
+        widgets_states: &mut window_state.ui_state.widgets_states,
         task_spawner: task_spawner,
-        event_queue: &mut queue,
+        event_queue: &mut window_state.ui_state.event_queue,
+        text: &mut window_state.texts,
+        fonts,
+        view: &window_state.ui_state.view,
+        string_interner,
     };
 
-    window.build(app, &mut build_context);
+    window_state.window.build(app, &mut build_context);
+    tech_paws_ui::render(&mut window_state.ui_state, &mut window_state.texts, fonts);
 }
 
-impl<'a, T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHandler
-    for Application<'a, T, Event>
+impl<T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHandler
+    for Application<'_, T, Event>
 {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         self.window_manager
@@ -64,40 +77,39 @@ impl<'a, T: ApplicationDelegate<Event>, Event> winit::application::ApplicationHa
         window_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
+        let window = self.window_manager.get_mut_window(window_id).unwrap();
+
         match event {
             winit::event::WindowEvent::CloseRequested => {
                 println!("The close button was pressed; stopping");
                 event_loop.exit();
             }
             winit::event::WindowEvent::Resized(size) => {
-                let ui_state = self.window_manager.get_mut_ui_state(window_id).unwrap();
-                ui_state.view.size = PhysicalSize::new(size.width, size.height);
+                window.ui_state.view.size = PhysicalSize::new(size.width, size.height);
                 self.window_manager.request_redraw(window_id);
             }
             winit::event::WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                let ui_state = self.window_manager.get_mut_ui_state(window_id).unwrap();
-                ui_state.view.scale_factor = scale_factor as f32;
-                ui_state
-                    .render_state
+                window.ui_state.view.scale_factor = scale_factor as f32;
+                window
                     .texts
-                    .update_view(&ui_state.view, &mut ui_state.render_state.fonts);
+                    .update_view(&window.ui_state.view, &mut self.fonts);
+
                 self.window_manager.request_redraw(window_id);
             }
             winit::event::WindowEvent::RedrawRequested => {
-                self.window_manager
-                    .get_winit_window(window_id)
-                    .unwrap()
-                    .request_redraw();
+                window.winit_window.request_redraw();
 
-                let window = self.window_manager.get_mut_window(window_id).unwrap();
-                render(&mut self.app, &mut self.task_spawner, window);
+                render(
+                    &mut self.app,
+                    &mut self.fonts,
+                    &mut self.string_interner,
+                    &mut self.task_spawner,
+                    window,
+                );
 
-                let (ui_state, renderer) =
-                    self.window_manager.get_ui_state_and_renderer_mut(window_id);
-                let ui_state = ui_state.unwrap();
-                let renderer = renderer.unwrap();
-
-                renderer.process_commands(&ui_state.view, &ui_state.render_state, &[]);
+                window
+                    .renderer
+                    .process_commands(&window.ui_state.view, &window.ui_state.render_state);
             }
             _ => (),
         }
@@ -113,6 +125,8 @@ impl<T: ApplicationDelegate<Event>, Event> Application<'_, T, Event> {
             window_manager: WindowManager::new(T::create_renderer),
             task_spawner: TaskSpawner::new(redraw_tx),
             redraw_rx,
+            fonts: FontResources::new(),
+            string_interner: StringInterner::new(),
         };
 
         #[cfg(target_os = "macos")]

@@ -1,9 +1,15 @@
+use glam::{Vec2, Vec4};
+
 use super::builder::BuildContext;
 use crate::{
-    AlignX, AlignY, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, impl_position_methods,
-    impl_width_methods,
-    layout::{ContainerKind, LayoutCommand},
+    AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets, Rect,
+    Size, SizeConstraint, WidgetId, impl_position_methods, impl_width_methods,
+    interaction::InteractionState,
+    io::UserInput,
+    layout::{ContainerKind, LayoutCommand, WidgetPlacement},
+    render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
     state::WidgetState,
+    text::{StringId, TextId},
 };
 use std::{any::Any, hash::Hash};
 
@@ -29,7 +35,7 @@ impl ButtonResponse {
 }
 
 pub(crate) struct ButtonState {
-    // pub(crate) text: StringId,
+    pub(crate) text: StringId,
     pub(crate) clicked: bool,
 }
 
@@ -56,7 +62,7 @@ impl<'a> ButtonBuilder<'a> {
     }
 
     pub fn build(&self, context: &mut BuildContext) -> ButtonResponse {
-        // let text = context.state.string_interner.get_or_intern(self.text);
+        let text = context.string_interner.get_or_intern(self.text);
         let size = Size::new(self.width, SizeConstraint::Fixed(20.0));
 
         if let Some(padding) = self.padding {
@@ -90,9 +96,10 @@ impl<'a> ButtonBuilder<'a> {
 
         let state = context
             .widgets_states
-            .get_or_insert::<ButtonState, _>(self.id, || ButtonState { clicked: false });
-
-        // state.text = text;
+            .get_or_insert::<ButtonState, _>(self.id, || ButtonState {
+                clicked: false,
+                text,
+            });
 
         ButtonResponse {
             clicked: state.clicked,
@@ -136,4 +143,80 @@ pub fn button_id(id: impl Hash, text: &str) -> ButtonBuilder {
             max_height: Some(20.),
         },
     }
+}
+
+pub fn handle_interaction(
+    id: WidgetId,
+    input: &UserInput,
+    interaction: &mut InteractionState,
+    widget_state: &mut ButtonState,
+) {
+    widget_state.clicked = false;
+
+    if interaction.is_active(&id) {
+        if input.mouse_released {
+            if interaction.is_hot(&id) {
+                interaction.set_inactive(&id);
+                interaction.focused = Some(id);
+                widget_state.clicked = true;
+            } else {
+                interaction.set_inactive(&id);
+            }
+        }
+    } else if input.mouse_left_pressed && interaction.is_hot(&id) {
+        interaction.focused = Some(id);
+        interaction.set_active(&id);
+    }
+}
+
+pub fn render(
+    ctx: &mut RenderContext,
+    id: WidgetId,
+    placement: &WidgetPlacement,
+    state: &ButtonState,
+) {
+    let size = placement.rect.size().px(ctx);
+    let position = placement.rect.position().px(ctx);
+
+    let border_color = if ctx.interaction.is_focused(&id) {
+        Vec4::new(0.2, 0.4, 0.8, 1.0)
+    } else {
+        Vec4::new(0.2, 0.2, 0.2, 1.0)
+    };
+
+    let fill_color = if ctx.interaction.is_active(&id) && ctx.interaction.is_hot(&id) {
+        Vec4::new(0.4, 0.4, 0.4, 1.0)
+    } else if ctx.interaction.is_hot(&id) {
+        Vec4::new(0.6, 0.6, 0.6, 1.0)
+    } else {
+        Vec4::new(0.5, 0.5, 0.5, 1.0)
+    };
+
+    ctx.push_command(RenderCommand::Rect {
+        boundary: placement.rect.px(ctx),
+        fill: Fill::Color(fill_color.into()),
+        border_radius: BorderRadius::all(4.),
+        border: Border::all(BorderSide::new(1., border_color.into())),
+    });
+
+    let text_id = cache_string(ctx, state.text, |ctx| {
+        let text = ctx.string_interner.resolve(state.text).unwrap();
+        ctx.text
+            .add_text(ctx.view, ctx.fonts, 12., 12., |fonts, text_res| {
+                text_res.set_text(fonts, text)
+            })
+    });
+
+    let text_size = ctx.text.get_mut(text_id).layout();
+    let text_position = position
+        + Vec2::new(
+            AlignX::Center.position(ctx.layout_direction, size.x, text_size.x),
+            AlignX::Center.position(ctx.layout_direction, size.y, text_size.y),
+        );
+
+    ctx.push_command(RenderCommand::Text {
+        boundary: placement.rect.px(ctx).shrink(2.0.px(ctx)),
+        text_id,
+        tint_color: Some(ColorRgba::from_hex(0xFFFFFFFF)),
+    });
 }

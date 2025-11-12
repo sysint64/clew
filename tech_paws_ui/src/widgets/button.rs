@@ -109,6 +109,8 @@ impl<'a> ButtonBuilder<'a> {
                 text,
             });
 
+        state.text = text;
+
         ButtonResponse {
             clicked: state.clicked,
         }

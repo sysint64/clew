@@ -104,69 +104,6 @@ impl Component<CounterEvent> for Counter {
     }
 
     fn build(&mut self, ctx: &mut BuildContext) {
-        // vstack().spacing(32.).fill_max_size().build(ctx, |ctx| {
-        //     hstack().fill_max_size().build(ctx, |ctx| {
-        //         if button("Button 1")
-        //             .align_y(AlignY::Center)
-        //             .build(ctx)
-        //             .clicked()
-        //         {
-        //             log::info!("Button 1 clicked");
-        //         }
-
-        //         if button("Button 4").fill_max_width().build(ctx).clicked() {
-        //             log::info!("Button 4 clicked");
-        //         }
-
-        //         vstack().width(SizeConstraint::Fill(2.)).build(ctx, |ctx| {
-        //             if button("vstack 1").fill_max_width().build(ctx).clicked() {
-        //                 log::info!("Button 2 clicked");
-        //             }
-        //             if button("vstack 2").fill_max_width().build(ctx).clicked() {
-        //                 log::info!("Button 3 clicked");
-        //             }
-        //             if button("vstack 2").fill_max_width().build(ctx).clicked() {
-        //                 log::info!("Button 3 clicked");
-        //             }
-        //         });
-
-        //         if button("Button 4").build(ctx).clicked() {
-        //             log::info!("Button 4 clicked");
-        //         }
-        //     });
-
-        //     vstack().fill_max_size().build(ctx, |ctx| {
-        //         button("vstack 2").align_x(AlignX::End).build(ctx);
-        //     });
-
-        //     hstack().fill_max_width().build(ctx, |ctx| {
-        //         if button("Button 1").build(ctx).clicked() {
-        //             log::info!("Button 1 clicked");
-        //         }
-
-        //         if button("Button 4")
-        //             .fill_max_width()
-        //             .build(ctx)
-        //             .clicked()
-        //         {
-        //             log::info!("Button 4 clicked");
-        //         }
-
-        //         vstack().fill_max_width().build(ctx, |ctx| {
-        //             if button("vstack 1").fill_max_width().build(ctx).clicked() {
-        //                 log::info!("Button 2 clicked");
-        //             }
-        //             if button("vstack 2").fill_max_width().build(ctx).clicked() {
-        //                 log::info!("Button 3 clicked");
-        //             }
-        //         });
-
-        //         if button("Button 4").build(ctx).clicked() {
-        //             log::info!("Button 4 clicked");
-        //         }
-        //     });
-        // });
-
         vstack().fill_max_size().build(ctx, |ctx| {
             if button_id("counter", &format!("Counter: {}", self.value))
                 .align_x(AlignX::Center)
@@ -174,13 +111,11 @@ impl Component<CounterEvent> for Counter {
                 .build(ctx)
                 .clicked()
             {
-                ctx.emit(CounterEvent::Increment);
-                let value = self.value;
                 ctx.spawn(async move {
                     tokio::time::sleep(Duration::from_secs(2)).await;
-                    println!("Current counter: {value}");
+                    println!("LETS GO!");
 
-                    CounterEvent::Decrement
+                    CounterEvent::Increment
                 });
             };
         });

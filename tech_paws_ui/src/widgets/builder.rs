@@ -1,6 +1,7 @@
+use std::any::Any;
+
 use crate::{
     AlignX, AlignY, View,
-    event_queue::EventQueue,
     layout::{ContainerKind, LayoutCommand},
     state::WidgetsStates,
     task_spawner::TaskSpawner,
@@ -12,11 +13,13 @@ pub struct BuildContext<'a, 'b> {
     pub layout_commands: &'a mut Vec<LayoutCommand>,
     pub widgets_states: &'a mut WidgetsStates,
     pub task_spawner: &'a mut TaskSpawner,
-    pub event_queue: &'a mut EventQueue,
+    pub event_queue: &'a mut Vec<Box<dyn Any + Send>>,
+    pub next_event_queue: &'a mut Vec<Box<dyn Any + Send>>,
     pub text: &'a mut TextsResources<'b>,
     pub fonts: &'a mut FontResources,
     pub view: &'a View,
     pub string_interner: &'a mut StringInterner,
+    pub async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
 }
 
 impl BuildContext<'_, '_> {
@@ -38,6 +41,22 @@ impl BuildContext<'_, '_> {
         } else {
             callback(self);
         }
+    }
+
+    pub fn emit<E: Any + Send + 'static>(&mut self, event: E) {
+        self.next_event_queue.push(Box::new(event));
+    }
+
+    pub fn spawn<E: Any + Send + 'static, F>(&self, future: F)
+    where
+        F: Future<Output = E> + Send + 'static,
+    {
+        let tx = self.async_tx.clone();
+
+        tokio::spawn(async move {
+            let event = future.await;
+            let _ = tx.send(Box::new(event));
+        });
     }
 }
 

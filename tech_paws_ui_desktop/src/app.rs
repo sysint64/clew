@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
-use tech_paws_ui::event_queue::EventQueue;
 use tech_paws_ui::io::Cursor;
 use tech_paws_ui::render::{RenderCommand, Renderer, create_test_commands};
 use tech_paws_ui::state::UiState;
@@ -56,11 +55,13 @@ fn render<'a, T: ApplicationDelegate<Event>, Event>(
         layout_commands: &mut window_state.ui_state.layout_commands,
         widgets_states: &mut window_state.ui_state.widgets_states,
         task_spawner: task_spawner,
-        event_queue: &mut window_state.ui_state.event_queue,
+        event_queue: &mut window_state.ui_state.current_event_queue,
+        next_event_queue: &mut window_state.ui_state.next_event_queue,
         text: &mut window_state.texts,
         fonts,
         view: &window_state.ui_state.view,
         string_interner,
+        async_tx: &mut window_state.ui_state.async_tx,
     };
 
     window_state.window.build(app, &mut build_context);

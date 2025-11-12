@@ -1,4 +1,3 @@
-pub mod event_queue;
 mod foundation;
 mod interaction;
 pub mod io;

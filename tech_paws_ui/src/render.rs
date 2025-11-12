@@ -112,8 +112,6 @@ where
 }
 
 pub fn render(state: &mut UiState, text: &mut TextsResources, fonts: &mut FontResources) {
-    // println!("{:?}", state.layout_commands);
-    // println!("{:?}", state.render_state.commands);
     let start = std::time::Instant::now();
 
     layout(
@@ -122,6 +120,7 @@ pub fn render(state: &mut UiState, text: &mut TextsResources, fonts: &mut FontRe
         &state.layout_commands,
         &mut state.widget_placements,
     );
+
 
     println!("{:?}", state.widget_placements);
 }

@@ -1,6 +1,7 @@
 use crate::{
     AlignX, AlignY, Constraints, CrossAxisAlignment, EdgeInsets, LayoutDirection,
-    MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, rect_contains_boundary,
+    MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, WidgetRef,
+    rect_contains_boundary,
 };
 use glam::Vec2;
 
@@ -9,6 +10,7 @@ pub(crate) const RENDER_DEBUG_BOUNDARIES: bool = false;
 
 #[derive(Debug)]
 pub(crate) struct WidgetPlacement {
+    pub(crate) widget_ref: WidgetRef,
     pub(crate) zindex: i32,
     pub(crate) boundary: Rect,
     pub(crate) rect: Rect,
@@ -23,13 +25,13 @@ pub enum LayoutCommand {
     },
     EndContainer,
     Fixed {
-        id: WidgetId,
+        widget_ref: WidgetRef,
         constraints: Constraints,
         size: Size,
         zindex: i32,
     },
     Wrap {
-        id: WidgetId,
+        widget_ref: WidgetRef,
         constraints: Constraints,
         size: Size,
         zindex: i32,
@@ -865,17 +867,23 @@ pub fn layout(
                             align_y.position(container_size.y, widget_size.y),
                         );
 
-                    widget_placements.push(WidgetPlacement {
-                        zindex: i32::MAX,
-                        boundary: Rect::ZERO,
-                        rect: Rect::from_pos_size(position, widget_size),
-                    });
+                    // widget_placements.push(WidgetPlacement {
+                    //     zindex: i32::MAX,
+                    //     boundary: Rect::ZERO,
+                    //     rect: Rect::from_pos_size(position, widget_size),
+                    // });
                 }
             }
-            LayoutCommand::Fixed { zindex, .. } | LayoutCommand::Wrap { zindex, .. } => {
+            LayoutCommand::Fixed {
+                widget_ref, zindex, ..
+            }
+            | LayoutCommand::Wrap {
+                widget_ref, zindex, ..
+            } => {
                 // Don't render anything outside the screen view
                 if rect_contains_boundary(boundary, Rect::from_pos_size(Vec2::ZERO, root_size)) {
                     widget_placements.push(WidgetPlacement {
+                        widget_ref: *widget_ref,
                         zindex: *zindex,
                         boundary,
                         rect,

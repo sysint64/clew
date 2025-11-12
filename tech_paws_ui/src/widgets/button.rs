@@ -3,7 +3,8 @@ use glam::{Vec2, Vec4};
 use super::builder::BuildContext;
 use crate::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets, Rect,
-    Size, SizeConstraint, WidgetId, impl_position_methods, impl_width_methods,
+    Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_position_methods,
+    impl_width_methods,
     interaction::InteractionState,
     io::UserInput,
     layout::{ContainerKind, LayoutCommand, WidgetPlacement},
@@ -39,6 +40,8 @@ pub(crate) struct ButtonState {
     pub(crate) clicked: bool,
 }
 
+pub struct ButtonWidget;
+
 impl WidgetState for ButtonState {
     #[inline]
     fn as_any(&self) -> &dyn Any {
@@ -64,6 +67,7 @@ impl<'a> ButtonBuilder<'a> {
     pub fn build(&self, context: &mut BuildContext) -> ButtonResponse {
         let text = context.string_interner.get_or_intern(self.text);
         let size = Size::new(self.width, SizeConstraint::Fixed(20.0));
+        let widget_ref = WidgetRef::new(WidgetType::of::<ButtonWidget>(), self.id);
 
         if let Some(padding) = self.padding {
             let mut padding_containts = self.constraints;
@@ -76,7 +80,7 @@ impl<'a> ButtonBuilder<'a> {
             });
 
             context.push_layout_command(LayoutCommand::Fixed {
-                id: self.id,
+                widget_ref,
                 constraints: self.constraints,
                 size,
                 zindex: self.zindex.unwrap_or(context.current_zindex),
@@ -85,7 +89,7 @@ impl<'a> ButtonBuilder<'a> {
             context.push_layout_command(LayoutCommand::EndContainer);
         } else {
             context.push_layout_command(LayoutCommand::Fixed {
-                id: self.id,
+                widget_ref,
                 constraints: self.constraints,
                 size,
                 zindex: self.zindex.unwrap_or(context.current_zindex),

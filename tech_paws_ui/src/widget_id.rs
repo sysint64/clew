@@ -36,3 +36,30 @@ impl WidgetId {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WidgetType {
+    type_id: std::any::TypeId,
+    name: &'static str,
+}
+
+impl WidgetType {
+    pub fn of<T: 'static>() -> Self {
+        Self {
+            type_id: std::any::TypeId::of::<T>(),
+            name: std::any::type_name::<T>(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct WidgetRef {
+    pub(crate) widget_type: WidgetType,
+    pub(crate) id: WidgetId,
+}
+
+impl WidgetRef {
+    pub(crate) fn new(widget_type: WidgetType, id: WidgetId) -> Self {
+        Self { widget_type, id }
+    }
+}

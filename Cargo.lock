@@ -473,9 +473,9 @@ checksum = "52051878f80a721bb68ebfbc930e07b65ba72f2da88968ea5c06fd6ca3d3a127"
 
 [[package]]
 name = "flate2"
-version = "1.1.4"
+version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc5a4e564e38c699f2880d3fda590bedc2e69f3f84cd48b457bd892ce61d0aa9"
+checksum = "bfe33edd8e85a12a67454e37f8c75e730830d83e313556ab9ebf9ee7fbeb3bfb"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
@@ -595,9 +595,10 @@ version = "0.1.0"
 dependencies = [
  "env_logger",
  "log",
- "tech_paws_ui",
- "tech_paws_ui_desktop",
- "tech_paws_ui_tiny_skia",
+ "tech-paws-ui",
+ "tech-paws-ui-derive",
+ "tech-paws-ui-desktop",
+ "tech-paws-ui-tiny-skia",
  "tokio",
  "winit",
 ]
@@ -1544,9 +1545,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.109"
+version = "2.0.110"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f17c7e013e88258aa9543dcbe81aca68a667a9ac37cd69c9fbc07858bfe0e2f"
+checksum = "a99801b5bd34ede4cf3fc688c5919368fea4e4814a4664359503e6015b280aea"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1563,7 +1564,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tech_paws_ui"
+name = "tech-paws-ui"
 version = "0.1.0"
 dependencies = [
  "bitflags 2.10.0",
@@ -1576,7 +1577,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "tech_paws_ui_desktop"
+name = "tech-paws-ui-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "tech-paws-ui-desktop"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1585,19 +1595,19 @@ dependencies = [
  "parking_lot",
  "slotmap",
  "string-interner",
- "tech_paws_ui",
+ "tech-paws-ui",
  "tokio",
  "winit",
 ]
 
 [[package]]
-name = "tech_paws_ui_tiny_skia"
+name = "tech-paws-ui-tiny-skia"
 version = "0.1.0"
 dependencies = [
  "cosmic-text",
  "raw-window-handle",
  "softbuffer",
- "tech_paws_ui",
+ "tech-paws-ui",
  "tiny-skia",
 ]
 

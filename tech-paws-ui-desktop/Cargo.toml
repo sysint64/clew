@@ -1,5 +1,5 @@
 [package]
-name = "tech_paws_ui_desktop"
+name = "tech-paws-ui-desktop"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,7 +7,7 @@ edition = "2024"
 winit = { workspace = true }
 log = { workspace = true }
 slotmap = "1"
-tech_paws_ui = { path = "../tech_paws_ui" }
+tech-paws-ui = { path = "../tech-paws-ui" }
 anyhow = "1.0"
 tokio = { version = "1", features = ["rt", "sync", "time"], optional = true }
 string-interner = { workspace = true }

@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-tech_paws_ui = { path = "../../tech_paws_ui" }
-tech_paws_ui_desktop = { path = "../../tech_paws_ui_desktop" }
-tech_paws_ui_tiny_skia = { path = "../../tech_paws_ui_tiny_skia" }
+tech-paws-ui = { path = "../../tech-paws-ui" }
+tech-paws-ui-desktop = { path = "../../tech-paws-ui-desktop" }
+tech-paws-ui-tiny-skia = { path = "../../tech-paws-ui-tiny-skia" }
+tech-paws-ui-derive = { path = "../../tech-paws-ui-derive" }
+
 log = { workspace = true }
 winit = { workspace = true }
 env_logger = "0.10"

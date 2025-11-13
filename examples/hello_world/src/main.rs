@@ -1,17 +1,19 @@
 use std::{sync::Arc, time::Duration};
 
+use tech_paws_ui::identifiable::Identifiable;
 use tech_paws_ui::{
     AlignX, AlignY, ColorRgb,
     render::Renderer,
     text::FontResources,
     widgets::{
         builder::BuildContext,
-        button::{button, button_id},
-        scope::scope,
+        button::button,
+        for_each::for_each,
         view::{Component, component},
         vstack::vstack,
     },
 };
+use tech_paws_ui_derive::Identifiable;
 use tech_paws_ui_desktop::{
     app::{Application, ApplicationDelegate},
     window::Window,
@@ -94,7 +96,25 @@ pub struct MainWindow {
 impl MainWindow {
     pub fn new() -> Self {
         Self {
-            counter: Counter {},
+            counter: Counter {
+                books: vec![
+                    Book {
+                        id: 12,
+                        key: 21,
+                        title: "Book 1".to_string(),
+                    },
+                    Book {
+                        id: 113,
+                        key: 311,
+                        title: "Book 2".to_string(),
+                    },
+                    Book {
+                        id: 114,
+                        key: 411,
+                        title: "Book 2".to_string(),
+                    },
+                ],
+            },
         }
     }
 }
@@ -118,7 +138,17 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
     }
 }
 
-struct Counter {}
+struct Counter {
+    books: Vec<Book>,
+}
+
+#[derive(Identifiable)]
+struct Book {
+    id: u64,
+    #[id]
+    key: u64,
+    title: String,
+}
 
 enum CounterComponentEvent {
     HelloWorld,
@@ -136,15 +166,15 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
             .align_x(AlignX::Center)
             .align_y(AlignY::Center)
             .build(ctx, |ctx| {
-                for i in 0..5 {
-                    scope(i).build(ctx, |ctx| {
-                        if button("Button").build(ctx).clicked() {
-                            println!("Clicked to {i}");
-                        }
-                    });
-                }
+                for_each(self.books.iter_mut()).build(ctx, |ctx, book| {
+                    if button(&book.title).build(ctx).clicked() {
+                        book.title = "Changed!".to_string();
+                        println!("Clicked to book with id id: {}", book.id());
+                    }
+                });
 
-                if button_id("counter", &format!("Counter: {}", app.counter))
+                if button(&format!("Counter: {}", app.counter))
+                    .id("counter")
                     .build(ctx)
                     .clicked()
                 {

@@ -140,25 +140,6 @@ pub fn button(text: &str) -> ButtonBuilder<'_> {
     }
 }
 
-#[track_caller]
-pub fn button_id(id: impl Hash, text: &str) -> ButtonBuilder {
-    ButtonBuilder {
-        id: WidgetId::auto_with_seed(id),
-        text,
-        width: SizeConstraint::Wrap,
-        align_x: None,
-        align_y: None,
-        padding: None,
-        zindex: None,
-        constraints: Constraints {
-            min_width: Some(100.),
-            min_height: Some(20.),
-            max_width: None,
-            max_height: Some(20.),
-        },
-    }
-}
-
 pub fn handle_interaction(
     id: WidgetId,
     input: &UserInput,

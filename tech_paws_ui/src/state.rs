@@ -1,6 +1,7 @@
 use std::{
     any::Any,
-    collections::{HashMap, HashSet}, sync::Arc,
+    collections::{HashMap, HashSet},
+    sync::Arc,
 };
 
 use crate::{
@@ -27,6 +28,7 @@ pub struct UiState {
     pub widgets_states: WidgetsStates,
     pub widget_placements: Vec<WidgetPlacement>,
     pub interaction_state: InteractionState,
+    pub last_interaction_state: InteractionState,
     pub user_input: UserInput,
     // TODO(sysint64): Maybe move it to build context
     pub layout_direction: LayoutDirection,
@@ -37,6 +39,7 @@ pub struct UiState {
 #[derive(Default)]
 pub struct WidgetsStates {
     pub data: HashMap<WidgetId, Box<dyn WidgetState>>,
+    pub last: HashMap<WidgetId, Box<dyn WidgetState>>,
     pub accessed_this_frame: HashSet<WidgetId>,
 }
 
@@ -68,6 +71,7 @@ impl UiState {
             layout_state: LayoutState::default(),
             widget_placements: Vec::new(),
             interaction_state: InteractionState::default(),
+            last_interaction_state: InteractionState::default(),
             user_input: UserInput::default(),
             layout_direction: LayoutDirection::LTR,
             async_tx,
@@ -96,6 +100,36 @@ impl WidgetsStates {
         self.data
             .get_mut(&id)
             .and_then(|b| b.as_any_mut().downcast_mut::<T>())
+    }
+
+    pub fn update_last<T>(&mut self, id: WidgetId) -> bool
+    where
+        T: WidgetState + Clone + PartialEq,
+    {
+        let current_state = self
+            .data
+            .get(&id)
+            .and_then(|b| b.as_any().downcast_ref::<T>())
+            .unwrap();
+
+        let last_state = self
+            .last
+            .get_mut(&id)
+            .and_then(|b| b.as_any_mut().downcast_mut::<T>());
+
+        if let Some(last_state) = last_state {
+            if last_state != current_state {
+                *last_state = current_state.clone();
+
+                true
+            } else {
+                false
+            }
+        } else {
+            self.last.insert(id, Box::new(current_state.clone()));
+
+            true
+        }
     }
 
     pub fn contains(&self, id: WidgetId) -> bool {

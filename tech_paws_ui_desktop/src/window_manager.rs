@@ -1,7 +1,7 @@
 use std::{collections::HashMap, rc::Rc, sync::Arc};
 
 use tech_paws_ui::{
-    EdgeInsets, PhysicalSize, View, render::Renderer, state::UiState, text::TextsResources,
+    EdgeInsets, PhysicalSize, View, ViewId, render::Renderer, state::UiState, text::TextsResources,
 };
 
 use crate::window::Window;
@@ -25,18 +25,6 @@ impl Default for WindowDescriptor {
     }
 }
 
-pub struct WindowId {
-    winit_window_id: winit::window::WindowId,
-}
-
-impl WindowId {
-    fn new(id: winit::window::WindowId) -> Self {
-        Self {
-            winit_window_id: id,
-        }
-    }
-}
-
 pub(crate) struct WindowState<'a, App, Event> {
     pub(crate) window: Box<dyn Window<App, Event>>,
     pub(crate) winit_window: Arc<winit::window::Window>,
@@ -49,6 +37,8 @@ pub struct WindowManager<'a, App, Event> {
     pub(crate) windows: HashMap<winit::window::WindowId, WindowState<'a, App, Event>>,
     event_loop: Option<*const winit::event_loop::ActiveEventLoop>,
     renderer_factory: fn(Arc<winit::window::Window>) -> Box<dyn Renderer>,
+    // TODO(sysint64): Implement proper id manager
+    next_view_id: usize,
 }
 
 impl<'a, App, Event> WindowManager<'a, App, Event> {
@@ -57,6 +47,7 @@ impl<'a, App, Event> WindowManager<'a, App, Event> {
             windows: HashMap::new(),
             event_loop: None,
             renderer_factory,
+            next_view_id: 0,
         }
     }
 
@@ -96,10 +87,12 @@ impl<'a, App, Event> WindowManager<'a, App, Event> {
                     let inner_size = winit_window.inner_size();
                     let renderer = (self.renderer_factory)(winit_window.clone());
                     let ui_state = UiState::new(View {
+                        id: ViewId(self.next_view_id),
                         size: PhysicalSize::new(inner_size.width, inner_size.height),
                         scale_factor: scale_factor as f32,
                         safe_area: EdgeInsets::ZERO,
                     });
+                    self.next_view_id += 1;
 
                     self.windows.insert(
                         id,
@@ -132,6 +125,14 @@ impl<'a, App, Event> WindowManager<'a, App, Event> {
         id: winit::window::WindowId,
     ) -> Option<&mut WindowState<'a, App, Event>> {
         self.windows.get_mut(&id)
+    }
+
+    pub fn request_view_redraw(&self, id: ViewId) {
+        for window in self.windows.values() {
+            if window.ui_state.view.id == id {
+                window.winit_window.request_redraw();
+            }
+        }
     }
 
     pub fn request_redraw(&self, id: winit::window::WindowId) {

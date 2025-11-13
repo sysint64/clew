@@ -9,7 +9,7 @@ use tech_paws_ui::render::{RenderCommand, Renderer, create_test_commands};
 use tech_paws_ui::state::UiState;
 use tech_paws_ui::state::WidgetsStates;
 use tech_paws_ui::text::{FontResources, StringId, StringInterner, TextId, TextsResources};
-use tech_paws_ui::widgets::builder::BuildContext;
+use tech_paws_ui::widgets::builder::{ApplicationEvent, ApplicationEventLoopProxy, BuildContext};
 use tech_paws_ui::{PhysicalSize, View};
 
 use crate::window_manager::WindowState;
@@ -43,6 +43,18 @@ pub struct Application<'a, T: ApplicationDelegate<Event>, Event = ()> {
     broadcast_event_queue: Vec<Arc<dyn Any + Send>>,
     broadcast_async_tx: tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     broadcast_async_rx: tokio::sync::mpsc::UnboundedReceiver<Box<dyn Any + Send>>,
+    event_loop_proxy: Arc<WinitEventLoopProxy>,
+    force_redraw: bool,
+}
+
+pub struct WinitEventLoopProxy {
+    proxy: winit::event_loop::EventLoopProxy<ApplicationEvent>,
+}
+
+impl ApplicationEventLoopProxy for WinitEventLoopProxy {
+    fn send_event(&self, event: ApplicationEvent) {
+        let _ = self.proxy.send_event(event);
+    }
 }
 
 fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
@@ -53,7 +65,9 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
     broadcast_event_queue: &mut Vec<Arc<dyn Any + Send>>,
     broadcast_async_tx: &mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     window_state: &mut WindowState<'a, T, Event>,
-) {
+    event_loop_proxy: Arc<WinitEventLoopProxy>,
+    force_redraw: bool,
+) -> bool {
     window_state.ui_state.before_render();
 
     for event_box in window_state.ui_state.current_event_queue.iter() {
@@ -87,27 +101,43 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         async_tx: &mut window_state.ui_state.async_tx,
         broadcast_event_queue,
         broadcast_async_tx,
+        event_loop_proxy,
     };
 
     window_state.window.build(app, &mut build_context);
 
-    tech_paws_ui::render(
+    let need_to_redraw = tech_paws_ui::render(
         &mut window_state.ui_state,
         &mut window_state.texts,
         fonts,
         string_interner,
         strings,
+        force_redraw,
     );
+
+    need_to_redraw
 }
 
-impl<T: ApplicationDelegate<Event>, Event: 'static> winit::application::ApplicationHandler
-    for Application<'_, T, Event>
+impl<T: ApplicationDelegate<Event>, Event: 'static>
+    winit::application::ApplicationHandler<ApplicationEvent> for Application<'_, T, Event>
 {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         self.window_manager
             .with_event_loop(event_loop, |window_manager| {
                 self.app.on_start(window_manager);
             });
+    }
+
+    fn user_event(
+        &mut self,
+        event_loop: &winit::event_loop::ActiveEventLoop,
+        event: ApplicationEvent,
+    ) {
+        match (event) {
+            ApplicationEvent::Wake { view_id } => {
+                self.window_manager.request_view_redraw(view_id);
+            }
+        }
     }
 
     fn window_event(
@@ -131,8 +161,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> winit::application::Applicat
             }
         }
 
-        if let winit::event::WindowEvent::RedrawRequested = event {
-        } else {
+        if !matches!(event, winit::event::WindowEvent::RedrawRequested) {
             self.broadcast_event_queue.clear();
         }
 
@@ -165,6 +194,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> winit::application::Applicat
             }
             winit::event::WindowEvent::Resized(size) => {
                 window.ui_state.view.size = PhysicalSize::new(size.width, size.height);
+                self.force_redraw = true;
                 self.window_manager.request_redraw(window_id);
             }
             winit::event::WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
@@ -173,12 +203,11 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> winit::application::Applicat
                     .texts
                     .update_view(&window.ui_state.view, &mut self.fonts);
 
+                self.force_redraw = true;
                 self.window_manager.request_redraw(window_id);
             }
             winit::event::WindowEvent::RedrawRequested => {
-                window.winit_window.request_redraw();
-
-                render(
+                let need_to_redraw = render(
                     &mut self.app,
                     &mut self.fonts,
                     &mut self.string_interner,
@@ -186,20 +215,30 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> winit::application::Applicat
                     &mut self.broadcast_event_queue,
                     &mut self.broadcast_async_tx,
                     window,
+                    self.event_loop_proxy.clone(),
+                    self.force_redraw,
                 );
 
-                window.renderer.process_commands(
-                    &window.ui_state.view,
-                    &window.ui_state.render_state,
-                    &mut self.fonts,
-                    &mut window.texts,
-                );
+                if need_to_redraw {
+                    window.renderer.process_commands(
+                        &window.ui_state.view,
+                        &window.ui_state.render_state,
+                        &mut self.fonts,
+                        &mut window.texts,
+                    );
+
+                    window.winit_window.request_redraw();
+                    self.force_redraw = false;
+                }
             }
             winit::event::WindowEvent::MouseInput {
                 state: btn_state,
                 button,
                 ..
             } => {
+                println!("PRESS");
+                window.winit_window.request_redraw();
+
                 window.ui_state.user_input.mouse_pressed =
                     btn_state == winit::event::ElementState::Pressed;
                 window.ui_state.user_input.mouse_released =
@@ -230,6 +269,8 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> winit::application::Applicat
 
             // Mouse wheel scrolling
             winit::event::WindowEvent::MouseWheel { delta, .. } => {
+                window.winit_window.request_redraw();
+
                 match delta {
                     winit::event::MouseScrollDelta::LineDelta(x, y) => {
                         window.ui_state.user_input.mouse_wheel_delta_x = x as f64 * 20.0; // Scale line delta
@@ -244,12 +285,16 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> winit::application::Applicat
 
             // Mouse movement
             winit::event::WindowEvent::CursorMoved { position, .. } => {
+                window.winit_window.request_redraw();
+
                 window.ui_state.user_input.mouse_x = position.x;
                 window.ui_state.user_input.mouse_y = position.y;
             }
 
             // Focus events
             winit::event::WindowEvent::Focused(focused) => {
+                window.winit_window.request_redraw();
+
                 if !focused {
                     // Clear input state when window loses focus
                     // input.keys_pressed.clear();
@@ -276,6 +321,16 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> Application<'_, T, Event> {
         let mut fonts = FontResources::new();
         delegate.init_assets(&mut fonts);
 
+        #[cfg(target_os = "macos")]
+        let event_loop = winit::event_loop::EventLoop::with_user_event()
+            .with_activation_policy(winit::platform::macos::ActivationPolicy::Regular)
+            .build()?;
+
+        #[cfg(not(target_os = "macos"))]
+        let event_loop = winit::event_loop::EventLoop::with_user_event().build()?;
+
+        let event_proxy = event_loop.create_proxy();
+
         let mut application = Application {
             app: delegate,
             window_manager: WindowManager::new(T::create_renderer),
@@ -286,23 +341,11 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> Application<'_, T, Event> {
             broadcast_event_queue: Vec::new(),
             broadcast_async_rx,
             broadcast_async_tx,
+            force_redraw: false,
+            event_loop_proxy: Arc::new(WinitEventLoopProxy { proxy: event_proxy }),
         };
 
-        #[cfg(target_os = "macos")]
-        {
-            let event_loop = winit::event_loop::EventLoop::with_user_event()
-                .with_activation_policy(winit::platform::macos::ActivationPolicy::Regular)
-                .build()?;
-
-            event_loop.run_app(&mut application)?;
-        }
-
-        #[cfg(not(target_os = "macos"))]
-        {
-            let event_loop = winit::event_loop::EventLoop::with_user_event().build()?;
-
-            event_loop.run_app(&mut application)?;
-        }
+        event_loop.run_app(&mut application)?;
 
         Ok(())
     }

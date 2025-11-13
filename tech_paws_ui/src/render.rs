@@ -125,8 +125,10 @@ pub fn render(
     fonts: &mut FontResources,
     string_interner: &mut StringInterner,
     strings: &mut HashMap<StringId, TextId>,
-) {
+    force_redraw: bool,
+) -> bool {
     let start = std::time::Instant::now();
+    let mut need_to_redraw = false;
 
     layout(
         &mut state.layout_state,
@@ -135,43 +137,54 @@ pub fn render(
         &mut state.widget_placements,
     );
 
-    for placement in &state.widget_placements {
-        let mut render_context = RenderContext {
-            interaction: &state.interaction_state,
-            input: &state.user_input,
-            view: &state.view,
+    need_to_redraw = need_to_redraw
+        || handle_interaction(
+            &mut state.user_input,
+            &mut state.interaction_state,
+            &mut state.widgets_states,
+            &state.view,
             text,
             fonts,
-            string_interner,
-            strings,
-            layout_direction: state.layout_direction,
-            commands: &mut state.render_state.commands,
-        };
+            &state.widget_placements,
+        );
 
-        if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>() {
-            widgets::button::render(
-                &mut render_context,
-                placement,
-                state
-                    .widgets_states
-                    .get_mut::<widgets::button::State>(placement.widget_ref.id)
-                    .unwrap(),
-            );
+    need_to_redraw = need_to_redraw || state.interaction_state != state.last_interaction_state;
+    state.last_interaction_state = state.interaction_state.clone();
+
+    if force_redraw || need_to_redraw {
+        println!("REDRAW");
+
+        for placement in &state.widget_placements {
+            let mut render_context = RenderContext {
+                interaction: &state.interaction_state,
+                input: &state.user_input,
+                view: &state.view,
+                text,
+                fonts,
+                string_interner,
+                strings,
+                layout_direction: state.layout_direction,
+                commands: &mut state.render_state.commands,
+            };
+
+            if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>()
+            {
+                widgets::button::render(
+                    &mut render_context,
+                    placement,
+                    state
+                        .widgets_states
+                        .get_mut::<widgets::button::State>(placement.widget_ref.id)
+                        .unwrap(),
+                );
+            }
         }
     }
 
-    handle_interaction(
-        &mut state.user_input,
-        &mut state.interaction_state,
-        &mut state.widgets_states,
-        &state.view,
-        text,
-        fonts,
-        &state.widget_placements,
-    );
-
     state.widgets_states.sweep(&mut state.interaction_state);
     state.user_input.clear_frame_events();
+
+    force_redraw || need_to_redraw
 }
 
 pub fn create_test_commands() -> Vec<RenderCommand> {

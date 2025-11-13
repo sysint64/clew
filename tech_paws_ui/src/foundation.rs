@@ -365,8 +365,12 @@ impl PhysicalSize {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ViewId(pub usize);
+
 #[derive(Debug, Clone)]
 pub struct View {
+    pub id: ViewId,
     pub size: PhysicalSize,
     pub scale_factor: f32,
     pub safe_area: EdgeInsets,

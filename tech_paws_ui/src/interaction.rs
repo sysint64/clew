@@ -12,7 +12,7 @@ use crate::{
     widgets,
 };
 
-#[derive(Default)]
+#[derive(Default, Clone, PartialEq)]
 pub struct InteractionState {
     pub(crate) hover: HashSet<WidgetId>,
     pub(crate) hot: Option<WidgetId>,
@@ -61,7 +61,7 @@ pub fn handle_interaction(
     text: &mut TextsResources,
     fonts: &mut FontResources,
     widget_placements: &[WidgetPlacement],
-) {
+) -> bool {
     if user_input.mouse_left_pressed {
         user_input.mouse_left_click_count = user_input.mouse_left_click_tracker.on_click(
             user_input.mouse_x as f32,
@@ -99,6 +99,8 @@ pub fn handle_interaction(
         }
     }
 
+    let mut need_to_redraw = false;
+
     for placement in widget_placements.iter() {
         if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>() {
             widgets::button::handle_interaction(
@@ -109,6 +111,11 @@ pub fn handle_interaction(
                     .get_mut::<widgets::button::State>(placement.widget_ref.id)
                     .unwrap(),
             );
+
+            need_to_redraw = need_to_redraw
+                || widgets_states.update_last::<widgets::button::State>(placement.widget_ref.id);
         }
     }
+
+    need_to_redraw
 }

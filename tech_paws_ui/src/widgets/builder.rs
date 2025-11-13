@@ -1,11 +1,20 @@
 use std::{any::Any, sync::Arc};
 
 use crate::{
-    AlignX, AlignY, View,
+    AlignX, AlignY, View, ViewId,
     layout::{ContainerKind, LayoutCommand},
     state::WidgetsStates,
     text::{FontResources, StringInterner, TextsResources},
 };
+
+#[derive(Debug)]
+pub enum ApplicationEvent {
+    Wake { view_id: ViewId },
+}
+
+pub trait ApplicationEventLoopProxy: Send + Sync {
+    fn send_event(&self, event: ApplicationEvent);
+}
 
 pub struct BuildContext<'a, 'b> {
     pub current_zindex: i32,
@@ -20,6 +29,7 @@ pub struct BuildContext<'a, 'b> {
     pub string_interner: &'a mut StringInterner,
     pub async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     pub broadcast_async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
+    pub event_loop_proxy: Arc<dyn ApplicationEventLoopProxy>,
 }
 
 impl BuildContext<'_, '_> {
@@ -52,10 +62,13 @@ impl BuildContext<'_, '_> {
         F: Future<Output = E> + Send + 'static,
     {
         let tx = self.async_tx.clone();
+        let event_loop_proxy = self.event_loop_proxy.clone();
+        let view_id = self.view.id;
 
         tokio::spawn(async move {
             let event = future.await;
             let _ = tx.send(Box::new(event));
+            event_loop_proxy.send_event(ApplicationEvent::Wake { view_id });
         });
     }
 
@@ -68,10 +81,13 @@ impl BuildContext<'_, '_> {
         F: Future<Output = E> + Send + 'static,
     {
         let tx = self.broadcast_async_tx.clone();
+        let event_loop_proxy = self.event_loop_proxy.clone();
+        let view_id = self.view.id;
 
         tokio::spawn(async move {
             let event = future.await;
             let _ = tx.send(Box::new(event));
+            event_loop_proxy.send_event(ApplicationEvent::Wake { view_id });
         });
     }
 }

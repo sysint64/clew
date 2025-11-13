@@ -35,6 +35,7 @@ impl ButtonResponse {
     }
 }
 
+#[derive(Clone, PartialEq)]
 pub(crate) struct State {
     pub(crate) text: StringId,
     pub(crate) clicked: bool,

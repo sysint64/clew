@@ -99,6 +99,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         broadcast_event_queue,
         broadcast_async_tx,
         event_loop_proxy,
+        id_seed: None,
     };
 
     window_state.window.build(app, &mut build_context);

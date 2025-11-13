@@ -10,5 +10,5 @@ mod widget_id;
 pub mod widgets;
 
 pub use foundation::*;
-pub use widget_id::*;
 pub use render::render;
+pub use widget_id::*;

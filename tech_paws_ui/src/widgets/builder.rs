@@ -30,11 +30,22 @@ pub struct BuildContext<'a, 'b> {
     pub async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     pub broadcast_async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     pub event_loop_proxy: Arc<dyn ApplicationEventLoopProxy>,
+    pub id_seed: Option<u64>,
 }
 
 impl BuildContext<'_, '_> {
     pub fn push_layout_command(&mut self, command: LayoutCommand) {
         self.layout_commands.push(command);
+    }
+
+    pub fn with_id_seed<F>(&mut self, seed: u64, callback: F)
+    where
+        F: FnOnce(&mut BuildContext),
+    {
+        let last_id_seed = self.id_seed;
+        self.id_seed = Some(seed);
+        callback(self);
+        self.id_seed = last_id_seed;
     }
 
     pub fn with_align<F>(&mut self, align_x: Option<AlignX>, align_y: Option<AlignY>, callback: F)

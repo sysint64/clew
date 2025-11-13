@@ -7,6 +7,7 @@ use tech_paws_ui::{
     widgets::{
         builder::BuildContext,
         button::{button, button_id},
+        scope::scope,
         view::{Component, component},
         vstack::vstack,
     },
@@ -135,8 +136,12 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
             .align_x(AlignX::Center)
             .align_y(AlignY::Center)
             .build(ctx, |ctx| {
-                if button("Hello World").build(ctx).clicked() {
-                    println!("Hello World!");
+                for i in 0..5 {
+                    scope(i).build(ctx, |ctx| {
+                        if button("Button").build(ctx).clicked() {
+                            println!("Clicked to {i}");
+                        }
+                    });
                 }
 
                 if button_id("counter", &format!("Counter: {}", app.counter))

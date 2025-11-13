@@ -24,6 +24,12 @@ impl WidgetId {
         }
     }
 
+    pub(crate) fn with_seed(mut self, seed: Option<u64>) -> Self {
+        self.seed = seed;
+
+        self
+    }
+
     #[track_caller]
     pub(crate) fn _auto() -> Self {
         let location = std::panic::Location::caller();

@@ -67,9 +67,11 @@ impl<'a> ButtonBuilder<'a> {
     }
 
     pub fn build(&self, context: &mut BuildContext) -> ButtonResponse {
+        let id = self.id.with_seed(context.id_seed);
+
         let text = context.string_interner.get_or_intern(self.text);
         let size = Size::new(self.width, SizeConstraint::Fixed(20.0));
-        let widget_ref = WidgetRef::new(WidgetType::of::<ButtonWidget>(), self.id);
+        let widget_ref = WidgetRef::new(WidgetType::of::<ButtonWidget>(), id);
 
         if let Some(padding) = self.padding {
             let mut padding_containts = self.constraints;
@@ -102,11 +104,11 @@ impl<'a> ButtonBuilder<'a> {
             });
         }
 
-        context.widgets_states.accessed_this_frame.insert(self.id);
+        context.widgets_states.accessed_this_frame.insert(id);
 
         let state = context
             .widgets_states
-            .get_or_insert::<State, _>(self.id, || State {
+            .get_or_insert::<State, _>(id, || State {
                 clicked: false,
                 text,
             });

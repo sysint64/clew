@@ -154,6 +154,18 @@ macro_rules! impl_size_methods {
 }
 
 #[macro_export]
+macro_rules! impl_id {
+    () => {
+        #[track_caller]
+        pub fn id(mut self, id: impl Hash) -> Self {
+            self.id = WidgetId::auto_with_seed(id);
+
+            self
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! impl_width_methods {
     () => {
         pub fn width<T: Into<SizeConstraint>>(mut self, size: T) -> Self {

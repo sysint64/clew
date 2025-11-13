@@ -1,7 +1,7 @@
 use std::{collections::HashMap, rc::Rc, sync::Arc};
 
 use tech_paws_ui::{
-    EdgeInsets, PhysicalSize, View, ViewId, render::Renderer, state::UiState, text::TextsResources,
+    render::Renderer, state::UiState, text::TextsResources, ColorRgb, ColorRgba, EdgeInsets, PhysicalSize, View, ViewId
 };
 
 use crate::window::Window;
@@ -12,6 +12,7 @@ pub struct WindowDescriptor {
     pub width: u32,
     pub height: u32,
     pub resizable: bool,
+    pub fill_color: ColorRgb,
 }
 
 impl Default for WindowDescriptor {
@@ -21,6 +22,7 @@ impl Default for WindowDescriptor {
             width: 800,
             height: 600,
             resizable: true,
+            fill_color: ColorRgb::from_hex(0x000000),
         }
     }
 }
@@ -31,6 +33,7 @@ pub(crate) struct WindowState<'a, App, Event> {
     pub(crate) texts: TextsResources<'a>,
     pub(crate) ui_state: UiState,
     pub(crate) renderer: Box<dyn Renderer>,
+    pub(crate) fill_color: ColorRgb,
 }
 
 pub struct WindowManager<'a, App, Event> {
@@ -102,6 +105,7 @@ impl<'a, App, Event> WindowManager<'a, App, Event> {
                             texts: TextsResources::new(),
                             ui_state,
                             renderer,
+                            fill_color: descriptor.fill_color,
                         },
                     );
 

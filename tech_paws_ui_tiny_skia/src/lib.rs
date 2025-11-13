@@ -3,7 +3,7 @@ use std::{num::NonZeroU32, slice};
 use cosmic_text::SwashCache;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use tech_paws_ui::{
-    Border, BorderRadius, BorderSide, ColorRgba, Gradient, Rect, TileMode, View,
+    Border, BorderRadius, BorderSide, ColorRgb, ColorRgba, Gradient, Rect, TileMode, View,
     render::{Fill, RenderCommand, RenderState, Renderer},
     text::{FontResources, TextsResources},
 };
@@ -37,6 +37,7 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
         &mut self,
         view: &View,
         state: &RenderState,
+        fill_color: ColorRgb,
         fonts: &mut FontResources,
         text: &mut TextsResources,
     ) {
@@ -63,7 +64,7 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
             )
         };
         let mut pixmap = PixmapMut::from_bytes(surface_buffer_u8, width, height).unwrap();
-        pixmap.fill(tiny_skia::Color::from_rgba8(0, 0, 0, 0xFF));
+        pixmap.fill(convert_rgb_color(&fill_color));
 
         let mut clip_stack: Vec<tiny_skia::Mask> = Vec::new();
 
@@ -256,7 +257,7 @@ fn render_oval(
         stroke.width = border_side.width;
 
         let mut paint = tiny_skia::Paint::default();
-        paint.set_color(convert_color(&border_side.color));
+        paint.set_color(convert_rgba_color(&border_side.color));
         paint.anti_alias = true;
 
         pixmap.stroke_path(
@@ -334,7 +335,7 @@ fn create_paint_from_fill(fill: &Fill, rect: Rect) -> Option<tiny_skia::Paint<'s
         Fill::None => None,
         Fill::Color(color) => {
             let mut paint = tiny_skia::Paint::default();
-            paint.set_color(convert_color(color));
+            paint.set_color(convert_rgba_color(color));
             paint.anti_alias = true;
             Some(paint)
         }
@@ -354,7 +355,9 @@ fn create_gradient_shader(gradient: &Gradient, rect: Rect) -> Option<tiny_skia::
             let stops: Vec<tiny_skia::GradientStop> = linear
                 .stops
                 .iter()
-                .map(|stop| tiny_skia::GradientStop::new(stop.offset, convert_color(&stop.color)))
+                .map(|stop| {
+                    tiny_skia::GradientStop::new(stop.offset, convert_rgba_color(&stop.color))
+                })
                 .collect();
 
             // Convert normalized coordinates to absolute coordinates
@@ -375,7 +378,9 @@ fn create_gradient_shader(gradient: &Gradient, rect: Rect) -> Option<tiny_skia::
             let stops: Vec<tiny_skia::GradientStop> = radial
                 .stops
                 .iter()
-                .map(|stop| tiny_skia::GradientStop::new(stop.offset, convert_color(&stop.color)))
+                .map(|stop| {
+                    tiny_skia::GradientStop::new(stop.offset, convert_rgba_color(&stop.color))
+                })
                 .collect();
 
             // Convert normalized coordinates to absolute coordinates
@@ -454,7 +459,7 @@ fn render_border(
         stroke.width = max_width;
 
         let mut paint = tiny_skia::Paint::default();
-        paint.set_color(convert_color(&color));
+        paint.set_color(convert_rgba_color(&color));
         paint.anti_alias = true;
 
         pixmap.stroke_path(
@@ -467,8 +472,14 @@ fn render_border(
     }
 }
 
-fn convert_color(color: &ColorRgba) -> tiny_skia::Color {
+fn convert_rgba_color(color: &ColorRgba) -> tiny_skia::Color {
     // Note: due to softbuffer and tiny_skia having incompatible internal color representations we swap
     // the red and blue channels here
     tiny_skia::Color::from_rgba(color.b, color.g, color.r, color.a).unwrap()
+}
+
+fn convert_rgb_color(color: &ColorRgb) -> tiny_skia::Color {
+    // Note: due to softbuffer and tiny_skia having incompatible internal color representations we swap
+    // the red and blue channels here
+    tiny_skia::Color::from_rgba(color.b, color.g, color.r, 1.).unwrap()
 }

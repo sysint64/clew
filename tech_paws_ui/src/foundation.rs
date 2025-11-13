@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul};
+use std::ops::Mul;
 
 use glam::{Vec2, Vec4};
 
@@ -478,6 +478,15 @@ impl Rect {
 
     pub fn shrink(&self, size: f32) -> Rect {
         self.expand(-size)
+    }
+
+    pub(crate) fn offset(&self, dx: f32, dy: f32) -> Rect {
+        Rect {
+            x: self.x + dx,
+            y: self.y + dy,
+            width: self.width,
+            height: self.height,
+        }
     }
 }
 

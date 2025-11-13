@@ -46,17 +46,19 @@ impl VStackBuilder {
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
 
-        context.push_layout_command(LayoutCommand::BeginContainer {
-            kind: ContainerKind::VStack {
-                spacing: self.spacing,
-                main_axis_alignment: self.main_axis_alignment,
-                cross_axis_alignment: self.cross_axis_alignment,
-            },
-            size: self.size,
-            constraints: self.constraints,
+        context.with_align(self.align_x, self.align_y, |context| {
+            context.push_layout_command(LayoutCommand::BeginContainer {
+                kind: ContainerKind::VStack {
+                    spacing: self.spacing,
+                    main_axis_alignment: self.main_axis_alignment,
+                    cross_axis_alignment: self.cross_axis_alignment,
+                },
+                size: self.size,
+                constraints: self.constraints,
+            });
+            callback(context);
+            context.push_layout_command(LayoutCommand::EndContainer);
         });
-        context.with_align(self.align_x, self.align_y, |context| callback(context));
-        context.push_layout_command(LayoutCommand::EndContainer);
 
         context.current_zindex = last_zindex;
     }

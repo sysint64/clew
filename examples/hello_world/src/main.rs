@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use tech_paws_ui::{
-    AlignX, AlignY, SizeConstraint,
+    AlignX, AlignY, ColorRgb, SizeConstraint,
     render::Renderer,
     text::FontResources,
     widgets::{
@@ -75,6 +75,7 @@ impl ApplicationDelegate<CounterEvent> for DemoApplication {
                 width: 800,
                 height: 600,
                 resizable: true,
+                fill_color: ColorRgb::from_hex(0x121212),
             },
         );
     }
@@ -131,20 +132,27 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
-        if button_id("counter", &format!("Counter: {}", app.counter))
+        vstack()
             .align_x(AlignX::Center)
             .align_y(AlignY::Center)
-            .build(ctx)
-            .clicked()
-        {
-            ctx.broadcast(CounterEvent::Increment);
-            ctx.emit(CounterComponentEvent::HelloWorld);
-            ctx.spawn(async move {
-                tokio::time::sleep(Duration::from_secs(2)).await;
+            .build(ctx, |ctx| {
+                if button("Hello World").build(ctx).clicked() {
+                    println!("Hello World!");
+                }
 
-                CounterEvent::Increment
+                if button_id("counter", &format!("Counter: {}", app.counter))
+                    .build(ctx)
+                    .clicked()
+                {
+                    ctx.broadcast(CounterEvent::Increment);
+                    ctx.emit(CounterComponentEvent::HelloWorld);
+                    ctx.spawn(async move {
+                        tokio::time::sleep(Duration::from_secs(2)).await;
+
+                        CounterEvent::Increment
+                    });
+                };
             });
-        };
     }
 }
 

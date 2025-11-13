@@ -747,11 +747,11 @@ pub fn layout(
 
         // Don't remember why I added this, it seems like it breaks flex size
         // ---------------------------------------------------------------------
-        // let boundary_size = match layout_state.parent_container.axis {
-        //     StackAxis::None => container_size,
-        //     StackAxis::Horizontal { .. } => Vec2::new(widget_size.x, container_size.y),
-        //     StackAxis::Vertical { .. } => Vec2::new(container_size.x, widget_size.y),
-        // };
+        let boundary_size = match layout_state.parent_container.axis {
+            StackAxis::None => container_size,
+            StackAxis::Horizontal { .. } => Vec2::new(widget_size.x, container_size.y),
+            StackAxis::Vertical { .. } => Vec2::new(container_size.x, widget_size.y),
+        };
         // ---------------------------------------------------------------------
 
         let mut boundary = Rect::from_pos_size(current_position, boundary_size);

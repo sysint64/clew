@@ -223,6 +223,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
                     window.renderer.process_commands(
                         &window.ui_state.view,
                         &window.ui_state.render_state,
+                        window.fill_color,
                         &mut self.fonts,
                         &mut window.texts,
                     );

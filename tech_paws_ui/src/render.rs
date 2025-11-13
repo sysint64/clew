@@ -3,14 +3,7 @@ use std::collections::HashMap;
 use glam::Vec2;
 
 use crate::{
-    Border, BorderRadius, BorderSide, ColorRgba, ColorStop, Gradient, LayoutDirection,
-    LinearGradient, RadialGradient, Rect, View, WidgetType,
-    interaction::{InteractionState, handle_interaction},
-    io::UserInput,
-    layout::{LayoutState, layout},
-    state::UiState,
-    text::{FontId, FontResources, StringId, StringInterner, TextId, TextsResources},
-    widgets,
+    interaction::{handle_interaction, InteractionState}, io::UserInput, layout::{layout, LayoutState}, state::UiState, text::{FontId, FontResources, StringId, StringInterner, TextId, TextsResources}, widgets, Border, BorderRadius, BorderSide, ColorRgb, ColorRgba, ColorStop, Gradient, LayoutDirection, LinearGradient, RadialGradient, Rect, View, WidgetType
 };
 
 #[derive(Debug, Default)]
@@ -29,6 +22,7 @@ pub trait Renderer {
         &mut self,
         view: &View,
         state: &RenderState,
+        fill_color: ColorRgb,
         fonts: &mut FontResources,
         text: &mut TextsResources,
     );

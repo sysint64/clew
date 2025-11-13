@@ -2,15 +2,7 @@ use glam::{Vec2, Vec4};
 
 use super::builder::BuildContext;
 use crate::{
-    AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets, Rect,
-    Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_position_methods,
-    impl_width_methods,
-    interaction::InteractionState,
-    io::UserInput,
-    layout::{ContainerKind, LayoutCommand, WidgetPlacement},
-    render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
-    state::WidgetState,
-    text::{StringId, TextId},
+    impl_id, impl_position_methods, impl_width_methods, interaction::InteractionState, io::UserInput, layout::{ContainerKind, LayoutCommand, WidgetPlacement}, render::{cache_string, Fill, PixelExtension, RenderCommand, RenderContext}, state::WidgetState, text::{StringId, TextId}, AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets, Gradient, LinearGradient, Rect, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType
 };
 use std::{any::Any, hash::Hash};
 
@@ -56,6 +48,7 @@ impl WidgetState for State {
 }
 
 impl<'a> ButtonBuilder<'a> {
+    impl_id!();
     impl_width_methods!();
     impl_position_methods!();
 
@@ -186,24 +179,46 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
     let position = placement.rect.position().px(ctx);
 
     let border_color = if ctx.interaction.is_focused(&id) {
-        Vec4::new(0.2, 0.4, 0.8, 1.0)
+        ColorRgba::from_hex(0xFF357CCE)
     } else {
-        Vec4::new(0.2, 0.2, 0.2, 1.0)
+        if ctx.interaction.is_active(&id) && ctx.interaction.is_hot(&id) {
+            ColorRgba::from_hex(0xFF414141)
+        } else if ctx.interaction.is_hot(&id) {
+            ColorRgba::from_hex(0xFF616161)
+        } else {
+            ColorRgba::from_hex(0xFF414141)
+        }
     };
 
-    let fill_color = if ctx.interaction.is_active(&id) && ctx.interaction.is_hot(&id) {
-        Vec4::new(0.4, 0.4, 0.4, 1.0)
+    let fill = if ctx.interaction.is_active(&id) && ctx.interaction.is_hot(&id) {
+        Fill::Gradient(Gradient::Linear(LinearGradient::vertical(vec![
+            ColorRgba::from_hex(0xFF1C1C1C),
+            ColorRgba::from_hex(0xFF212121),
+        ])))
     } else if ctx.interaction.is_hot(&id) {
-        Vec4::new(0.6, 0.6, 0.6, 1.0)
+        Fill::Gradient(Gradient::Linear(LinearGradient::vertical(vec![
+            ColorRgba::from_hex(0xFF383838),
+            ColorRgba::from_hex(0xFF2E2E2E),
+        ])))
     } else {
-        Vec4::new(0.5, 0.5, 0.5, 1.0)
+        Fill::Gradient(Gradient::Linear(LinearGradient::vertical(vec![
+            ColorRgba::from_hex(0xFF2F2F2F),
+            ColorRgba::from_hex(0xFF272727),
+        ])))
     };
 
     ctx.push_command(RenderCommand::Rect {
+        boundary: placement.rect.offset(0., 1.).px(ctx),
+        fill: Fill::Color(ColorRgba::from_hex(0xFF272727)),
+        border_radius: BorderRadius::all(3.0.px(ctx)),
+        border: Border::all(BorderSide::new(0.0, border_color)),
+    });
+
+    ctx.push_command(RenderCommand::Rect {
         boundary: placement.rect.px(ctx),
-        fill: Fill::Color(fill_color.into()),
-        border_radius: BorderRadius::all(4.),
-        border: Border::all(BorderSide::new(1., border_color.into())),
+        fill,
+        border_radius: BorderRadius::all(3.0.px(ctx)),
+        border: Border::all(BorderSide::new(1.0.px(ctx), border_color)),
     });
 
     let text_id = cache_string(ctx, state.text, |ctx| {

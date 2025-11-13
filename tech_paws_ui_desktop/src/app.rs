@@ -2,29 +2,25 @@ use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
+use tech_paws_ui::PhysicalSize;
 use tech_paws_ui::io::Cursor;
-use tech_paws_ui::render::{RenderCommand, Renderer, create_test_commands};
-use tech_paws_ui::state::UiState;
-use tech_paws_ui::state::WidgetsStates;
-use tech_paws_ui::text::{FontResources, StringId, StringInterner, TextId, TextsResources};
+use tech_paws_ui::render::Renderer;
+use tech_paws_ui::text::{FontResources, StringId, StringInterner, TextId};
 use tech_paws_ui::widgets::builder::{ApplicationEvent, ApplicationEventLoopProxy, BuildContext};
-use tech_paws_ui::{PhysicalSize, View};
 
+use crate::window_manager::WindowManager;
 use crate::window_manager::WindowState;
-use crate::{window::Window, window_manager::WindowManager};
 #[cfg(target_os = "macos")]
 use winit::platform::macos::EventLoopBuilderExtMacOS;
 
 pub trait ApplicationDelegate<Event> {
-    fn init_assets(&mut self, fonts: &mut FontResources) {}
+    fn init_assets(&mut self, _fonts: &mut FontResources) {}
 
     fn on_start(&mut self, window_manager: &mut WindowManager<Self, Event>)
     where
         Self: std::marker::Sized;
 
-    fn on_event(&mut self, window_manager: &mut WindowManager<Self, Event>, event: &Event)
+    fn on_event(&mut self, _window_manager: &mut WindowManager<Self, Event>, _event: &Event)
     where
         Self: std::marker::Sized,
     {
@@ -57,6 +53,7 @@ impl ApplicationEventLoopProxy for WinitEventLoopProxy {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
     app: &mut T,
     fonts: &mut FontResources,
@@ -74,7 +71,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         // Skip event processing for () type
         if TypeId::of::<Event>() != TypeId::of::<()>() {
             if let Some(event) = event_box.downcast_ref::<Event>() {
-                window_state.window.on_event(app, &event);
+                window_state.window.on_event(app, event);
             }
         }
     }
@@ -106,16 +103,14 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
 
     window_state.window.build(app, &mut build_context);
 
-    let need_to_redraw = tech_paws_ui::render(
+    tech_paws_ui::render(
         &mut window_state.ui_state,
         &mut window_state.texts,
         fonts,
         string_interner,
         strings,
         force_redraw,
-    );
-
-    need_to_redraw
+    )
 }
 
 impl<T: ApplicationDelegate<Event>, Event: 'static>
@@ -128,12 +123,8 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
             });
     }
 
-    fn user_event(
-        &mut self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
-        event: ApplicationEvent,
-    ) {
-        match (event) {
+    fn user_event(&mut self, _: &winit::event_loop::ActiveEventLoop, event: ApplicationEvent) {
+        match event {
             ApplicationEvent::Wake { view_id } => {
                 self.window_manager.request_view_redraw(view_id);
             }

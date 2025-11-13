@@ -1,8 +1,16 @@
-use glam::{Vec2, Vec4};
+use glam::Vec2;
 
 use super::builder::BuildContext;
 use crate::{
-    impl_id, impl_position_methods, impl_width_methods, interaction::InteractionState, io::UserInput, layout::{ContainerKind, LayoutCommand, WidgetPlacement}, render::{cache_string, Fill, PixelExtension, RenderCommand, RenderContext}, state::WidgetState, text::{StringId, TextId}, AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets, Gradient, LinearGradient, Rect, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType
+    AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets, Gradient,
+    LinearGradient, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
+    impl_position_methods, impl_width_methods,
+    interaction::InteractionState,
+    io::UserInput,
+    layout::{ContainerKind, LayoutCommand, WidgetPlacement},
+    render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
+    state::WidgetState,
+    text::StringId,
 };
 use std::{any::Any, hash::Hash};
 
@@ -28,7 +36,7 @@ impl ButtonResponse {
 }
 
 #[derive(Clone, PartialEq)]
-pub(crate) struct State {
+pub struct State {
     pub(crate) text: StringId,
     pub(crate) clicked: bool,
 }
@@ -180,14 +188,12 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
 
     let border_color = if ctx.interaction.is_focused(&id) {
         ColorRgba::from_hex(0xFF357CCE)
+    } else if ctx.interaction.is_active(&id) && ctx.interaction.is_hot(&id) {
+        ColorRgba::from_hex(0xFF414141)
+    } else if ctx.interaction.is_hot(&id) {
+        ColorRgba::from_hex(0xFF616161)
     } else {
-        if ctx.interaction.is_active(&id) && ctx.interaction.is_hot(&id) {
-            ColorRgba::from_hex(0xFF414141)
-        } else if ctx.interaction.is_hot(&id) {
-            ColorRgba::from_hex(0xFF616161)
-        } else {
-            ColorRgba::from_hex(0xFF414141)
-        }
+        ColorRgba::from_hex(0xFF414141)
     };
 
     let fill = if ctx.interaction.is_active(&id) && ctx.interaction.is_hot(&id) {

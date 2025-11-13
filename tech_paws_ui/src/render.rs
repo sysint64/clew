@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use glam::Vec2;
 
 use crate::{
-    interaction::{handle_interaction, InteractionState}, io::UserInput, layout::{layout, LayoutState}, state::UiState, text::{FontId, FontResources, StringId, StringInterner, TextId, TextsResources}, widgets, Border, BorderRadius, BorderSide, ColorRgb, ColorRgba, ColorStop, Gradient, LayoutDirection, LinearGradient, RadialGradient, Rect, View, WidgetType
+    interaction::{handle_interaction, InteractionState}, io::UserInput, layout::layout, state::UiState, text::{FontResources, StringId, StringInterner, TextId, TextsResources}, widgets, Border, BorderRadius, BorderSide, ColorRgb, ColorRgba, Gradient, LayoutDirection, Rect, View, WidgetType
 };
 
 #[derive(Debug, Default)]
@@ -121,7 +121,7 @@ pub fn render(
     strings: &mut HashMap<StringId, TextId>,
     force_redraw: bool,
 ) -> bool {
-    let start = std::time::Instant::now();
+    let _start = std::time::Instant::now();
     let mut need_to_redraw = false;
 
     layout(

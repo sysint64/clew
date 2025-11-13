@@ -1,7 +1,8 @@
-use std::{collections::HashMap, rc::Rc, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use tech_paws_ui::{
-    render::Renderer, state::UiState, text::TextsResources, ColorRgb, ColorRgba, EdgeInsets, PhysicalSize, View, ViewId
+    ColorRgb, EdgeInsets, PhysicalSize, View, ViewId, render::Renderer, state::UiState,
+    text::TextsResources,
 };
 
 use crate::window::Window;
@@ -120,11 +121,7 @@ impl<'a, App, Event> WindowManager<'a, App, Event> {
         }
     }
 
-    pub fn get_window(&self, id: winit::window::WindowId) -> Option<&WindowState<'a, App, Event>> {
-        self.windows.get(&id)
-    }
-
-    pub fn get_mut_window(
+    pub(crate) fn get_mut_window(
         &mut self,
         id: winit::window::WindowId,
     ) -> Option<&mut WindowState<'a, App, Event>> {
@@ -139,7 +136,7 @@ impl<'a, App, Event> WindowManager<'a, App, Event> {
         }
     }
 
-    pub fn request_redraw(&self, id: winit::window::WindowId) {
+    pub(crate) fn request_redraw(&self, id: winit::window::WindowId) {
         if let Some(window) = self.windows.get(&id) {
             window.winit_window.request_redraw();
         }

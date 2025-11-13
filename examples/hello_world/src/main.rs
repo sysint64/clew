@@ -1,13 +1,12 @@
 use std::{sync::Arc, time::Duration};
 
 use tech_paws_ui::{
-    AlignX, AlignY, ColorRgb, SizeConstraint,
+    AlignX, AlignY, ColorRgb,
     render::Renderer,
     text::FontResources,
     widgets::{
         builder::BuildContext,
         button::{button, button_id},
-        hstack::hstack,
         view::{Component, component},
         vstack::vstack,
     },
@@ -23,6 +22,7 @@ pub struct DemoApplication {
     counter: u32,
 }
 
+#[allow(clippy::new_without_default)]
 impl DemoApplication {
     pub fn new() -> Self {
         Self { counter: 0 }
@@ -52,7 +52,7 @@ impl ApplicationDelegate<CounterEvent> for DemoApplication {
 
     fn on_event(
         &mut self,
-        window_manager: &mut WindowManager<DemoApplication, CounterEvent>,
+        _: &mut WindowManager<DemoApplication, CounterEvent>,
         event: &CounterEvent,
     ) {
         match event {
@@ -86,13 +86,14 @@ impl ApplicationDelegate<CounterEvent> for DemoApplication {
 }
 
 pub struct MainWindow {
-    pub counter: Counter,
+    counter: Counter,
 }
 
+#[allow(clippy::new_without_default)]
 impl MainWindow {
     pub fn new() -> Self {
         Self {
-            counter: Counter { value: 0 },
+            counter: Counter {},
         }
     }
 }
@@ -116,16 +117,14 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
     }
 }
 
-struct Counter {
-    value: i32,
-}
+struct Counter {}
 
 enum CounterComponentEvent {
     HelloWorld,
 }
 
 impl Component<DemoApplication, CounterComponentEvent> for Counter {
-    fn on_event(&mut self, app: &mut DemoApplication, event: &CounterComponentEvent) -> bool {
+    fn on_event(&mut self, _: &mut DemoApplication, _: &CounterComponentEvent) -> bool {
         println!("Hello World!");
 
         true

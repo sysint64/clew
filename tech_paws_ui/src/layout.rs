@@ -1,19 +1,18 @@
 use crate::{
     AlignX, AlignY, Constraints, CrossAxisAlignment, EdgeInsets, LayoutDirection,
-    MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, WidgetRef,
+    MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetRef,
     rect_contains_boundary,
 };
 use glam::Vec2;
 
-const RENDER_DEBUG_INFO: bool = false;
 pub(crate) const RENDER_DEBUG_BOUNDARIES: bool = false;
 
 #[derive(Debug)]
-pub(crate) struct WidgetPlacement {
-    pub(crate) widget_ref: WidgetRef,
-    pub(crate) zindex: i32,
-    pub(crate) boundary: Rect,
-    pub(crate) rect: Rect,
+pub struct WidgetPlacement {
+    pub widget_ref: WidgetRef,
+    pub zindex: i32,
+    pub boundary: Rect,
+    pub rect: Rect,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -743,7 +742,7 @@ pub fn layout(
 
         let mut widget_size = layout_state.actual_sizes[current_idx];
 
-        let boundary_size = container_size;
+        // let boundary_size = container_size;
 
         // Don't remember why I added this, it seems like it breaks flex size
         // ---------------------------------------------------------------------
@@ -860,7 +859,7 @@ pub fn layout(
                     let container_idx = layout_state.parent_container.idx;
                     let container_offset = layout_state.offsets[container_idx];
                     let container_size = layout_state.actual_sizes[container_idx];
-                    let position = current_position
+                    let _position = current_position
                         + container_offset
                         + Vec2::new(
                             align_x.position(

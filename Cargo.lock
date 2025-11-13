@@ -1685,19 +1685,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
-name = "todo_list_mvu"
-version = "0.1.0"
-dependencies = [
- "env_logger",
- "log",
- "tech_paws_ui",
- "tech_paws_ui_desktop",
- "tech_paws_ui_tiny_skia",
- "tokio",
- "winit",
-]
-
-[[package]]
 name = "tokio"
 version = "1.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -7,7 +7,7 @@ use crate::{
     io::UserInput,
     layout::WidgetPlacement,
     point_with_rect_hit_test,
-    state::{UiState, WidgetsStates},
+    state::WidgetsStates,
     text::{FontResources, TextsResources},
     widgets,
 };
@@ -38,7 +38,7 @@ impl InteractionState {
         self.focused == Some(*id)
     }
 
-    pub(crate) fn was_focused(&self, id: &WidgetId) -> bool {
+    pub(crate) fn _was_focused(&self, id: &WidgetId) -> bool {
         self.was_focused == Some(*id)
     }
 
@@ -58,8 +58,8 @@ pub fn handle_interaction(
     interaction_state: &mut InteractionState,
     widgets_states: &mut WidgetsStates,
     view: &View,
-    text: &mut TextsResources,
-    fonts: &mut FontResources,
+    _text: &mut TextsResources,
+    _fonts: &mut FontResources,
     widget_placements: &[WidgetPlacement],
 ) -> bool {
     if user_input.mouse_left_pressed {
@@ -105,7 +105,7 @@ pub fn handle_interaction(
         if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>() {
             widgets::button::handle_interaction(
                 placement.widget_ref.id,
-                &user_input,
+                user_input,
                 interaction_state,
                 widgets_states
                     .get_mut::<widgets::button::State>(placement.widget_ref.id)

@@ -2,7 +2,7 @@ use std::{any::Any, sync::Arc};
 
 use crate::{
     AlignX, AlignY, View, ViewId,
-    layout::{ContainerKind, LayoutCommand},
+    layout::LayoutCommand,
     state::WidgetsStates,
     text::{FontResources, StringInterner, TextsResources},
 };

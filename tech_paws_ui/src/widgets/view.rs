@@ -9,7 +9,7 @@ pub struct ComponentBuilder<'a, A, V: Component<A, Event>, Event> {
 }
 
 pub trait Component<A, Event = ()> {
-    fn on_event(&mut self, app: &mut A, event: &Event) -> bool {
+    fn on_event(&mut self, _app: &mut A, _event: &Event) -> bool {
         false
     }
 

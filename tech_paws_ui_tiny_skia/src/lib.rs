@@ -10,7 +10,6 @@ use tech_paws_ui::{
 use tiny_skia::{Paint, PixmapMut};
 
 pub struct TinySkiaRenderer<D, W> {
-    context: softbuffer::Context<D>,
     surface: softbuffer::Surface<D, W>,
     current_width: u32,
     current_height: u32,
@@ -20,10 +19,9 @@ pub struct TinySkiaRenderer<D, W> {
 impl<D: HasDisplayHandle, W: HasWindowHandle> TinySkiaRenderer<D, W> {
     pub fn new(display: D, window: W) -> Self {
         let context = softbuffer::Context::new(display).unwrap();
-        let mut surface = softbuffer::Surface::new(&context, window).unwrap();
+        let surface = softbuffer::Surface::new(&context, window).unwrap();
 
         Self {
-            context,
             surface,
             current_width: 0,
             current_height: 0,
@@ -41,8 +39,8 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
         fonts: &mut FontResources,
         text: &mut TextsResources,
     ) {
-        let width = view.size.width as u32;
-        let height = view.size.height as u32;
+        let width = view.size.width;
+        let height = view.size.height;
 
         if self.current_width != width || self.current_height != height {
             self.surface
@@ -66,7 +64,7 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
         let mut pixmap = PixmapMut::from_bytes(surface_buffer_u8, width, height).unwrap();
         pixmap.fill(convert_rgb_color(&fill_color));
 
-        let mut clip_stack: Vec<tiny_skia::Mask> = Vec::new();
+        let clip_stack: Vec<tiny_skia::Mask> = Vec::new();
 
         for command in state.commands() {
             let current_clip = clip_stack.last();
@@ -225,7 +223,8 @@ fn render_oval(
         let mut pb = tiny_skia::PathBuilder::new();
         // Create ellipse using cubic bezier curves
         // Magic constant for circle/ellipse approximation with bezier curves
-        const KAPPA: f32 = 0.5522847498;
+        // const KAPPA: f32 = 0.5522847498;
+        const KAPPA: f32 = 0.552_284_8;
 
         let ox = rx * KAPPA; // control point offset x
         let oy = ry * KAPPA; // control point offset y
@@ -253,8 +252,13 @@ fn render_oval(
 
     // Render border
     if let Some(border_side) = border {
-        let mut stroke = tiny_skia::Stroke::default();
-        stroke.width = border_side.width;
+        let stroke = tiny_skia::Stroke {
+            width: border_side.width,
+            miter_limit: 4.0,
+            line_cap: tiny_skia::LineCap::default(),
+            line_join: tiny_skia::LineJoin::default(),
+            dash: None,
+        };
 
         let mut paint = tiny_skia::Paint::default();
         paint.set_color(convert_rgba_color(&border_side.color));
@@ -341,9 +345,14 @@ fn create_paint_from_fill(fill: &Fill, rect: Rect) -> Option<tiny_skia::Paint<'s
         }
         Fill::Gradient(gradient) => {
             let shader = create_gradient_shader(gradient, rect)?;
-            let mut paint = tiny_skia::Paint::default();
-            paint.shader = shader;
-            paint.anti_alias = true;
+
+            let paint = tiny_skia::Paint {
+                shader,
+                blend_mode: tiny_skia::BlendMode::default(),
+                anti_alias: true,
+                force_hq_pipeline: false,
+            };
+
             Some(paint)
         }
     }
@@ -455,8 +464,13 @@ fn render_border(
             .map(|s| s.color)
             .unwrap_or(ColorRgba::TRANSPARENT);
 
-        let mut stroke = tiny_skia::Stroke::default();
-        stroke.width = max_width;
+        let stroke = tiny_skia::Stroke {
+            width: max_width,
+            miter_limit: 4.0,
+            line_cap: tiny_skia::LineCap::default(),
+            line_join: tiny_skia::LineJoin::default(),
+            dash: None,
+        };
 
         let mut paint = tiny_skia::Paint::default();
         paint.set_color(convert_rgba_color(&color));

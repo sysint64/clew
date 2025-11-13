@@ -25,7 +25,7 @@ impl WidgetId {
     }
 
     #[track_caller]
-    pub(crate) fn auto() -> Self {
+    pub(crate) fn _auto() -> Self {
         let location = std::panic::Location::caller();
 
         Self {
@@ -55,9 +55,9 @@ impl WidgetType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct WidgetRef {
-    pub(crate) widget_type: WidgetType,
-    pub(crate) id: WidgetId,
+pub struct WidgetRef {
+    pub widget_type: WidgetType,
+    pub id: WidgetId,
 }
 
 impl WidgetRef {

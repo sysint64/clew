@@ -5,7 +5,7 @@ members = [
     "tech_paws_ui_desktop",
     "tech_paws_ui_tiny_skia",
     "examples/hello_world"
-, "examples/todo_list_mvu"]
+]
 
 [workspace.dependencies]
 log = "0.4"

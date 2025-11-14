@@ -83,6 +83,17 @@ impl ApplicationDelegate<CounterEvent> for DemoApplication {
                 fill_color: ColorRgb::from_hex(0x121212),
             },
         );
+
+        window_manager.spawn_window(
+            MainWindow::new(),
+            WindowDescriptor {
+                title: "TODO List".to_string(),
+                width: 400,
+                height: 300,
+                resizable: true,
+                fill_color: ColorRgb::from_hex(0x121212),
+            },
+        );
     }
 
     fn create_renderer(window: Arc<winit::window::Window>) -> Box<dyn Renderer> {
@@ -164,126 +175,126 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
-        vstack().spacing(32.).fill_max_size().build(ctx, |ctx| {
-            hstack().fill_max_size().build(ctx, |ctx| {
-                if button("Button 1")
-                    .align_y(AlignY::Center)
-                    .build(ctx)
-                    .clicked()
-                {
-                    log::info!("Button 1 clicked");
-                }
-
-                if button("Button 4")
-                    .width(SizeConstraint::Fill(1.))
-                    .padding(EdgeInsets::symmetric(20., 20.))
-                    .build(ctx)
-                    .clicked()
-                {
-                    log::info!("Button 4 clicked");
-                }
-
-                vstack()
-                    .width(SizeConstraint::Fill(2.))
-                    .build(ctx, |ctx| {
-                        if button("vstack 1").fill_max_width().build(ctx).clicked() {
-                            log::info!("Button 2 clicked");
-                        }
-                        if button("vstack 2")
-                            .width(SizeConstraint::Fill(1.))
-                            .build(ctx)
-                            .clicked()
-                        {
-                            log::info!("Button 3 clicked");
-                        }
-                        if button("vstack 2")
-                            .width(SizeConstraint::Fill(1.))
-                            .build(ctx)
-                            .clicked()
-                        {
-                            log::info!("Button 3 clicked");
-                        }
-                    });
-
-                if button("Button 4").build(ctx).clicked() {
-                    log::info!("Button 4 clicked");
-                }
-            });
-
-            vstack().fill_max_size().build(ctx, |ctx| {
-                button("vstack 2")
-                    .align_x(AlignX::End)
-                    // .width(SizeConstraint::Fill(1.))
-                    .build(ctx);
-            });
-
-            hstack()
-                .width(SizeConstraint::Fill(1.))
-                .build(ctx, |ctx| {
-                    if button("Button 1").build(ctx).clicked() {
-                        log::info!("Button 1 clicked");
-                    }
-
-                    if button("Button 4")
-                        .width(SizeConstraint::Fill(1.))
-                        .build(ctx)
-                        .clicked()
-                    {
-                        log::info!("Button 4 clicked");
-                    }
-
-                    vstack()
-                        .width(SizeConstraint::Fill(1.))
-                        .build(ctx, |ctx| {
-                            if button("vstack 1")
-                                .width(SizeConstraint::Fill(1.))
-                                .build(ctx)
-                                .clicked()
-                            {
-                                log::info!("Button 2 clicked");
-                            }
-                            if button("vstack 2")
-                                .width(SizeConstraint::Fill(1.))
-                                .build(ctx)
-                                .clicked()
-                            {
-                                log::info!("Button 3 clicked");
-                            }
-                        });
-
-                    if button("Button 4").build(ctx).clicked() {
-                        log::info!("Button 4 clicked");
-                    }
-                });
-        });
-
-        // vstack()
-        //     .align_x(AlignX::Center)
-        //     .align_y(AlignY::Center)
-        //     .build(ctx, |ctx| {
-        //         for_each(0..2).build(ctx, |ctx, i| {
-        //             for_each(&mut self.books).build(ctx, |ctx, book| {
-        //                 if button(&format!("{i}: {}", book.title)).build(ctx).clicked() {
-        //                     book.title = "Changed!".to_string();
-        //                     println!("Clicked to book with id id: {}", book.id());
-        //                 }
-        //             });
-        //         });
-
-        //         if button(&format!("Counter: {}", app.counter))
-        //             .id("counter")
+        // vstack().spacing(32.).fill_max_size().build(ctx, |ctx| {
+        //     hstack().fill_max_size().build(ctx, |ctx| {
+        //         if button("Button 1")
+        //             .align_y(AlignY::Center)
         //             .build(ctx)
         //             .clicked()
         //         {
-        //             ctx.broadcast(CounterEvent::Increment);
-        //             ctx.emit(CounterComponentEvent::HelloWorld);
-        //             ctx.spawn(async move {
-        //                 tokio::time::sleep(Duration::from_secs(2)).await;
+        //             log::info!("Button 1 clicked");
+        //         }
 
-        //                 CounterEvent::Increment
+        //         if button("Button 4")
+        //             .width(SizeConstraint::Fill(1.))
+        //             .padding(EdgeInsets::symmetric(20., 20.))
+        //             .build(ctx)
+        //             .clicked()
+        //         {
+        //             log::info!("Button 4 clicked");
+        //         }
+
+        //         vstack()
+        //             .width(SizeConstraint::Fill(2.))
+        //             .build(ctx, |ctx| {
+        //                 if button("vstack 1").fill_max_width().build(ctx).clicked() {
+        //                     log::info!("Button 2 clicked");
+        //                 }
+        //                 if button("vstack 2")
+        //                     .width(SizeConstraint::Fill(1.))
+        //                     .build(ctx)
+        //                     .clicked()
+        //                 {
+        //                     log::info!("Button 3 clicked");
+        //                 }
+        //                 if button("vstack 2")
+        //                     .width(SizeConstraint::Fill(1.))
+        //                     .build(ctx)
+        //                     .clicked()
+        //                 {
+        //                     log::info!("Button 3 clicked");
+        //                 }
         //             });
-        //         };
+
+        //         if button("Button 4").build(ctx).clicked() {
+        //             log::info!("Button 4 clicked");
+        //         }
         //     });
+
+        //     vstack().fill_max_size().build(ctx, |ctx| {
+        //         button("vstack 2")
+        //             .align_x(AlignX::End)
+        //             // .width(SizeConstraint::Fill(1.))
+        //             .build(ctx);
+        //     });
+
+        //     hstack()
+        //         .width(SizeConstraint::Fill(1.))
+        //         .build(ctx, |ctx| {
+        //             if button("Button 1").build(ctx).clicked() {
+        //                 log::info!("Button 1 clicked");
+        //             }
+
+        //             if button("Button 4")
+        //                 .width(SizeConstraint::Fill(1.))
+        //                 .build(ctx)
+        //                 .clicked()
+        //             {
+        //                 log::info!("Button 4 clicked");
+        //             }
+
+        //             vstack()
+        //                 .width(SizeConstraint::Fill(1.))
+        //                 .build(ctx, |ctx| {
+        //                     if button("vstack 1")
+        //                         .width(SizeConstraint::Fill(1.))
+        //                         .build(ctx)
+        //                         .clicked()
+        //                     {
+        //                         log::info!("Button 2 clicked");
+        //                     }
+        //                     if button("vstack 2")
+        //                         .width(SizeConstraint::Fill(1.))
+        //                         .build(ctx)
+        //                         .clicked()
+        //                     {
+        //                         log::info!("Button 3 clicked");
+        //                     }
+        //                 });
+
+        //             if button("Button 4").build(ctx).clicked() {
+        //                 log::info!("Button 4 clicked");
+        //             }
+        //         });
+        // });
+
+        vstack()
+            .align_x(AlignX::Center)
+            .align_y(AlignY::Center)
+            .build(ctx, |ctx| {
+                for_each(0..2).build(ctx, |ctx, i| {
+                    for_each(&mut self.books).build(ctx, |ctx, book| {
+                        if button(&format!("{i}: {}", book.title)).build(ctx).clicked() {
+                            book.title = "Changed!".to_string();
+                            println!("Clicked to book with id id: {}", book.id());
+                        }
+                    });
+                });
+
+                if button(&format!("Counter: {}", app.counter))
+                    .id("counter")
+                    .build(ctx)
+                    .clicked()
+                {
+                    ctx.broadcast(CounterEvent::Increment);
+                    ctx.emit(CounterComponentEvent::HelloWorld);
+                    ctx.spawn(async move {
+                        tokio::time::sleep(Duration::from_secs(2)).await;
+
+                        CounterEvent::Increment
+                    });
+                };
+            });
     }
 }
 

@@ -1,8 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use tech_paws_ui::{
-    ColorRgb, EdgeInsets, PhysicalSize, View, ViewId, render::Renderer, state::UiState,
-    text::TextsResources,
+    ColorRgb, EdgeInsets, PhysicalSize, View, ViewId,
+    render::Renderer,
+    state::UiState,
+    text::{StringId, TextId, TextsResources},
 };
 
 use crate::window::Window;
@@ -32,6 +34,7 @@ pub(crate) struct WindowState<'a, App, Event> {
     pub(crate) window: Box<dyn Window<App, Event>>,
     pub(crate) winit_window: Arc<winit::window::Window>,
     pub(crate) texts: TextsResources<'a>,
+    pub(crate) strings: HashMap<StringId, TextId>,
     pub(crate) ui_state: UiState,
     pub(crate) renderer: Box<dyn Renderer>,
     pub(crate) fill_color: ColorRgb,
@@ -104,6 +107,7 @@ impl<'a, App, Event> WindowManager<'a, App, Event> {
                             window: Box::new(window),
                             winit_window,
                             texts: TextsResources::new(),
+                            strings: HashMap::new(),
                             ui_state,
                             renderer,
                             fill_color: descriptor.fill_color,

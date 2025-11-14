@@ -108,6 +108,10 @@ impl<'a> TextsResources<'a> {
         self.items.get_mut(id).unwrap()
     }
 
+    pub fn get_mut_option(&mut self, id: TextId) -> Option<&mut Text<'a>> {
+        self.items.get_mut(id)
+    }
+
     pub fn clear(&mut self) {
         self.items.clear();
     }

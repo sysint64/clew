@@ -132,10 +132,10 @@ pub fn button(text: &str) -> ButtonBuilder<'_> {
         padding: None,
         zindex: None,
         constraints: Constraints {
-            min_width: Some(100.),
-            min_height: Some(20.),
-            max_width: None,
-            max_height: Some(20.),
+            min_width: 100.,
+            min_height: 20.,
+            max_width: f32::INFINITY,
+            max_height: 20.,
         },
     }
 }

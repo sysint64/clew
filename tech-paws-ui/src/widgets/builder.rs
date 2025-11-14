@@ -158,22 +158,22 @@ macro_rules! impl_size_methods {
         }
 
         pub fn max_width(mut self, value: f32) -> Self {
-            self.constraints.max_width = Some(value);
+            self.constraints.max_width = value;
             self
         }
 
         pub fn max_height(mut self, value: f32) -> Self {
-            self.constraints.max_height = Some(value);
+            self.constraints.max_height = value;
             self
         }
 
         pub fn min_width(mut self, value: f32) -> Self {
-            self.constraints.min_width = Some(value);
+            self.constraints.min_width = value;
             self
         }
 
         pub fn min_height(mut self, value: f32) -> Self {
-            self.constraints.min_height = Some(value);
+            self.constraints.min_height = value;
             self
         }
     };
@@ -205,12 +205,12 @@ macro_rules! impl_width_methods {
         }
 
         pub fn max_width(mut self, value: f32) -> Self {
-            self.constraints.max_width = Some(value);
+            self.constraints.max_width = value;
             self
         }
 
         pub fn min_width(mut self, value: f32) -> Self {
-            self.constraints.min_width = Some(value);
+            self.constraints.min_width = value;
             self
         }
     };

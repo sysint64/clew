@@ -303,41 +303,44 @@ impl EdgeInsets {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Constraints {
-    pub min_width: Option<f32>,
-    pub min_height: Option<f32>,
-    pub max_width: Option<f32>,
-    pub max_height: Option<f32>,
+    pub min_width: f32,
+    pub min_height: f32,
+    pub max_width: f32,
+    pub max_height: f32,
+}
+
+impl Default for Constraints {
+    fn default() -> Self {
+        Self {
+            min_width: 0.,
+            min_height: 0.,
+            max_width: f32::INFINITY,
+            max_height: f32::INFINITY,
+        }
+    }
 }
 
 impl Constraints {
     pub fn expand(&mut self, padding: EdgeInsets) {
-        if let Some(value) = self.min_width {
-            self.min_width = Some(value + padding.horizontal());
-        }
-        if let Some(value) = self.min_height {
-            self.min_height = Some(value + padding.vertical());
-        }
-        if let Some(value) = self.max_width {
-            self.max_width = Some(value + padding.horizontal());
-        }
-        if let Some(value) = self.max_height {
-            self.max_height = Some(value + padding.vertical());
-        }
+        self.min_width += padding.horizontal();
+        self.min_height += padding.vertical();
+        self.max_width += padding.horizontal();
+        self.max_height += padding.vertical();
     }
 
     pub fn exact_size(size: Size) -> Self {
         let width = match size.width {
-            SizeConstraint::Fill(_) => None,
-            SizeConstraint::Wrap => None,
-            SizeConstraint::Fixed(value) => Some(value),
+            SizeConstraint::Fill(_) => f32::INFINITY,
+            SizeConstraint::Wrap => 0.,
+            SizeConstraint::Fixed(value) => value,
         };
 
         let height = match size.height {
-            SizeConstraint::Fill(_) => None,
-            SizeConstraint::Wrap => None,
-            SizeConstraint::Fixed(value) => Some(value),
+            SizeConstraint::Fill(_) => f32::INFINITY,
+            SizeConstraint::Wrap => 0.,
+            SizeConstraint::Fixed(value) => value,
         };
 
         Constraints {

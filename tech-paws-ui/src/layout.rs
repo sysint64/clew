@@ -1,7 +1,6 @@
 use crate::{
     AlignX, AlignY, Constraints, CrossAxisAlignment, EdgeInsets, LayoutDirection,
-    MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetRef,
-    rect_contains_boundary,
+    MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetRef, rect_contains_boundary,
 };
 use glam::Vec2;
 
@@ -134,38 +133,47 @@ pub(crate) struct LayoutState {
 }
 
 impl LayoutState {
+    #[inline]
     fn current_idx(&self) -> usize {
         self.cursor - 1
     }
 
+    #[inline]
     fn set_constraints(&mut self, constraints: Constraints) {
         self.constraints[self.cursor - 1] = constraints;
     }
 
+    #[inline]
     fn set_wrap_size(&mut self, value: Vec2) {
         self.wrap_sizes[self.cursor - 1] = value;
     }
 
+    #[inline]
     fn set_actual_size(&mut self, value: Vec2) {
         self.actual_sizes[self.cursor - 1] = value;
     }
 
+    #[inline]
     fn set_offset(&mut self, value: Vec2) {
         self.offsets[self.cursor - 1] = value;
     }
 
+    #[inline]
     fn set_resize(&mut self, value: Vec2) {
         self.resizes[self.cursor - 1] = value;
     }
 
+    #[inline]
     fn set_flex_x(&mut self, value: f32) {
         self.flex_x[self.cursor - 1] = value;
     }
 
+    #[inline]
     fn set_flex_y(&mut self, value: f32) {
         self.flex_y[self.cursor - 1] = value;
     }
 
+    #[inline]
     fn push_boundary(&mut self) {
         if self.wrap_sizes.len() <= self.cursor {
             self.wrap_sizes.push(Vec2::ZERO);
@@ -194,6 +202,7 @@ impl LayoutState {
         self.cursor += 1;
     }
 
+    #[inline]
     fn push_position(&mut self, position: Vec2) {
         if self.positions.len() <= self.position_cursor {
             self.positions.push(position);
@@ -204,12 +213,14 @@ impl LayoutState {
         self.position_cursor += 1;
     }
 
+    #[inline]
     fn pop_position(&mut self) -> Vec2 {
         self.position_cursor -= 1;
 
         self.positions[self.position_cursor]
     }
 
+    #[inline]
     fn push_align(&mut self, align_x: AlignX, align_y: AlignY) {
         if self.align_x_stack.len() <= self.align_stack_cursor {
             self.align_x_stack.push(align_x);
@@ -222,6 +233,7 @@ impl LayoutState {
         self.align_stack_cursor += 1;
     }
 
+    #[inline]
     fn pop_align(&mut self) -> (AlignX, AlignY) {
         self.align_stack_cursor -= 1;
 
@@ -231,6 +243,7 @@ impl LayoutState {
         )
     }
 
+    #[inline]
     fn get_align(&mut self) -> (AlignX, AlignY) {
         (
             self.align_x_stack[self.align_stack_cursor - 1],
@@ -238,6 +251,7 @@ impl LayoutState {
         )
     }
 
+    #[inline]
     fn push_container(&mut self, container: LayoutContainer) {
         if self.containers_stack.len() <= self.containers_stack_cursor {
             self.containers_stack.push(container);
@@ -248,12 +262,14 @@ impl LayoutState {
         self.containers_stack_cursor += 1;
     }
 
+    #[inline]
     fn pop_container(&mut self) -> LayoutContainer {
         self.containers_stack_cursor -= 1;
 
         self.containers_stack[self.containers_stack_cursor]
     }
 
+    #[inline]
     fn clear(&mut self) {
         self.parent_container = LayoutContainer {
             idx: 0,
@@ -439,49 +455,34 @@ impl LayoutState {
     }
 }
 
+#[inline]
 fn apply_constraints_width(width: f32, constraints: Constraints) -> f32 {
     let mut width = width;
 
-    if let Some(min_width) = constraints.min_width {
-        width = width.max(min_width);
-    }
-    if let Some(max_width) = constraints.max_width {
-        width = width.min(max_width);
-    }
+    width = width.max(constraints.min_width);
+    width = width.min(constraints.max_width);
 
     width
 }
 
+#[inline]
 fn apply_constraints_height(height: f32, constraints: Constraints) -> f32 {
     let mut height = height;
 
-    if let Some(min_height) = constraints.min_height {
-        height = height.max(min_height);
-    }
-    if let Some(max_height) = constraints.max_height {
-        height = height.min(max_height);
-    }
+    height = height.max(constraints.min_height);
+    height = height.min(constraints.max_height);
 
     height
 }
 
+#[inline]
 fn apply_constraints(size: Vec2, constraints: Constraints) -> Vec2 {
-    let mut size = size;
-
-    if let Some(min_width) = constraints.min_width {
-        size.x = size.x.max(min_width);
-    }
-    if let Some(max_width) = constraints.max_width {
-        size.x = size.x.min(max_width);
-    }
-    if let Some(min_height) = constraints.min_height {
-        size.y = size.y.max(min_height);
-    }
-    if let Some(max_height) = constraints.max_height {
-        size.y = size.y.min(max_height);
-    }
-
-    size
+    Vec2::new(
+        size.x.max(constraints.min_width).min(constraints.max_width),
+        size.y
+            .max(constraints.min_height)
+            .min(constraints.max_height),
+    )
 }
 
 pub fn layout(
@@ -646,10 +647,7 @@ pub fn layout(
                 layout_state.add_size(
                     *size,
                     *constraints,
-                    Vec2::new(
-                        constraints.min_width.unwrap_or(0.),
-                        constraints.min_height.unwrap_or(0.),
-                    ),
+                    Vec2::new(constraints.min_width, constraints.min_height),
                 );
             }
             LayoutCommand::Wrap { .. } => todo!(),

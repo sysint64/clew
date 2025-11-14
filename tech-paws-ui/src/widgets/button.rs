@@ -124,7 +124,7 @@ impl<'a> ButtonBuilder<'a> {
 #[track_caller]
 pub fn button(text: &str) -> ButtonBuilder<'_> {
     ButtonBuilder {
-        id: WidgetId::auto_with_seed(text),
+        id: WidgetId::auto(),
         text,
         width: SizeConstraint::Wrap,
         align_x: None,

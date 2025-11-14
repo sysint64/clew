@@ -166,11 +166,13 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
             .align_x(AlignX::Center)
             .align_y(AlignY::Center)
             .build(ctx, |ctx| {
-                for_each(self.books.iter_mut()).build(ctx, |ctx, book| {
-                    if button(&book.title).build(ctx).clicked() {
-                        book.title = "Changed!".to_string();
-                        println!("Clicked to book with id id: {}", book.id());
-                    }
+                for_each(0..2).build(ctx, |ctx, i| {
+                    for_each(&mut self.books).build(ctx, |ctx, book| {
+                        if button(&format!("{i}: {}", book.title)).build(ctx).clicked() {
+                            book.title = "Changed!".to_string();
+                            println!("Clicked to book with id id: {}", book.id());
+                        }
+                    });
                 });
 
                 if button(&format!("Counter: {}", app.counter))

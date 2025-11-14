@@ -1,4 +1,8 @@
-use std::{any::Any, sync::Arc};
+use std::{
+    any::Any,
+    hash::{DefaultHasher, Hash, Hasher},
+    sync::Arc,
+};
 
 use crate::{
     AlignX, AlignY, View, ViewId,
@@ -43,7 +47,18 @@ impl BuildContext<'_, '_> {
         F: FnOnce(&mut BuildContext),
     {
         let last_id_seed = self.id_seed;
-        self.id_seed = Some(seed);
+
+        // Combine with parent seed, to support nested scopes
+        self.id_seed = Some(match last_id_seed {
+            Some(parent) => {
+                let mut hasher = DefaultHasher::new();
+                parent.hash(&mut hasher);
+                seed.hash(&mut hasher);
+                hasher.finish()
+            }
+            None => seed,
+        });
+
         callback(self);
         self.id_seed = last_id_seed;
     }

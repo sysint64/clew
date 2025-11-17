@@ -909,15 +909,29 @@ pub fn layout(
                 }
 
                 if let Some(widget_ref) = parent_container.widget_ref {
-                    if rect_contains_boundary(boundary, Rect::from_pos_size(Vec2::ZERO, root_size))
-                    {
-                        widget_placements.push(WidgetPlacement {
-                            widget_ref: widget_ref,
-                            zindex: parent_container.zindex,
-                            boundary,
-                            rect,
-                        });
-                    }
+                    // if rect_contains_boundary(boundary, Rect::from_pos_size(Vec2::ZERO, root_size))
+                    // {
+                    let container_idx = parent_container.idx;
+                    let container_offset = layout_state.offsets[container_idx];
+                    let container_size = layout_state.actual_sizes[container_idx];
+                    let position = current_position
+                        + container_offset
+                        + Vec2::new(
+                            align_x.position(
+                                layout_state.layout_direction,
+                                container_size.x,
+                                widget_size.x,
+                            ),
+                            align_y.position(container_size.y, widget_size.y),
+                        );
+
+                    widget_placements.push(WidgetPlacement {
+                        widget_ref: widget_ref,
+                        zindex: parent_container.zindex,
+                        boundary: Rect::ZERO,
+                        rect: Rect::from_pos_size(position, widget_size),
+                    });
+                    // }
                 }
             }
             LayoutCommand::Fixed {

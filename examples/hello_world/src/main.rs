@@ -278,10 +278,22 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
                 // });
 
                 colored_box(ColorRgba::from_hex(0xFFCC0000)).build(ctx, |ctx| {
-                    text("Counter:")
-                        .text_align_x(AlignX::Center)
-                        .text_align_y(AlignY::Center)
-                        .build(ctx);
+                    vstack().build(ctx, |ctx| {
+                        vstack().build(ctx, |ctx| {
+                            text("Counter:")
+                                .text_align_x(AlignX::Center)
+                                .text_align_y(AlignY::Center)
+                                .build(ctx);
+                            text(&format!("{}", app.counter))
+                                .text_align_x(AlignX::Center)
+                                .text_align_y(AlignY::Center)
+                                .build(ctx);
+                        });
+                        text(&format!("{}", app.counter))
+                            .text_align_x(AlignX::Center)
+                            .text_align_y(AlignY::Center)
+                            .build(ctx);
+                    });
                 });
 
                 if button(&format!("Counter: {}", app.counter))

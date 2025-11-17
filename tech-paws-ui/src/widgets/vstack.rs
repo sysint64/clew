@@ -48,6 +48,8 @@ impl VStackBuilder {
 
         context.with_align(self.align_x, self.align_y, |context| {
             context.push_layout_command(LayoutCommand::BeginContainer {
+                widget_ref: None,
+                zindex: 0,
                 kind: ContainerKind::VStack {
                     spacing: self.spacing,
                     main_axis_alignment: self.main_axis_alignment,

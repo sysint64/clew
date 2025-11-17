@@ -54,6 +54,8 @@ impl HStackBuilder {
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
 
         context.push_layout_command(LayoutCommand::BeginContainer {
+            widget_ref: None,
+            zindex: 0,
             kind: ContainerKind::HStack {
                 spacing: self.spacing,
                 main_axis_alignment: self.main_axis_alignment,

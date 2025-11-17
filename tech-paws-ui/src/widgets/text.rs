@@ -74,6 +74,8 @@ impl<'a> TextBuilder<'a> {
         let size = Size::new(self.width, SizeConstraint::Fixed(20.0));
         let widget_ref = WidgetRef::new(WidgetType::of::<TextWidget>(), id);
 
+        println!("{}", context.current_zindex);
+
         context.push_layout_command(LayoutCommand::Fixed {
             widget_ref,
             constraints: self.constraints,
@@ -138,6 +140,7 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
         );
 
     ctx.push_command(RenderCommand::Text {
+        zindex: placement.zindex,
         x: text_position.x,
         y: text_position.y,
         text_id,

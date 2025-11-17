@@ -17,9 +17,11 @@ pub struct WidgetPlacement {
 #[derive(Debug, Clone, Copy)]
 pub enum LayoutCommand {
     BeginContainer {
+        widget_ref: Option<WidgetRef>,
         kind: ContainerKind,
         constraints: Constraints,
         size: Size,
+        zindex: i32,
     },
     EndContainer,
     BeginAlign {
@@ -99,6 +101,8 @@ struct LayoutContainerCommand {
 
 #[derive(Debug, Default, Clone, Copy)]
 struct LayoutContainer {
+    widget_ref: Option<WidgetRef>,
+    zindex: i32,
     idx: usize,
     axis: StackAxis,
     command: LayoutContainerCommand,
@@ -273,6 +277,8 @@ impl LayoutState {
     fn clear(&mut self) {
         self.parent_container = LayoutContainer {
             idx: 0,
+            widget_ref: None,
+            zindex: 0,
             axis: StackAxis::None,
             command: Default::default(),
         };
@@ -506,6 +512,9 @@ pub fn layout(
                 kind,
                 constraints,
                 size,
+                zindex,
+                widget_ref,
+                ..
             } => {
                 layout_state.push_container(layout_state.parent_container);
                 layout_state.push_boundary();
@@ -515,6 +524,8 @@ pub fn layout(
                 match kind {
                     ContainerKind::VStack { spacing, .. } => {
                         layout_state.parent_container = LayoutContainer {
+                            widget_ref: None,
+                            zindex: 0,
                             idx: layout_state.current_idx(),
                             axis: StackAxis::Vertical { spacing: *spacing },
                             command: LayoutContainerCommand {
@@ -529,6 +540,8 @@ pub fn layout(
                     } => {
                         layout_state.parent_container = LayoutContainer {
                             idx: layout_state.current_idx(),
+                            zindex: *zindex,
+                            widget_ref: *widget_ref,
                             axis: StackAxis::Horizontal {
                                 spacing: *spacing,
                                 rtl_aware: *rtl_aware,
@@ -543,6 +556,8 @@ pub fn layout(
                     ContainerKind::ZStack => {
                         layout_state.parent_container = LayoutContainer {
                             idx: layout_state.current_idx(),
+                            zindex: *zindex,
+                            widget_ref: *widget_ref,
                             axis: StackAxis::None,
                             command: LayoutContainerCommand {
                                 kind: *kind,
@@ -558,6 +573,8 @@ pub fn layout(
 
                         layout_state.parent_container = LayoutContainer {
                             idx: layout_state.current_idx(),
+                            zindex: *zindex,
+                            widget_ref: *widget_ref,
                             axis: StackAxis::None,
                             command: LayoutContainerCommand {
                                 kind: *kind,
@@ -571,6 +588,8 @@ pub fn layout(
                     } => {
                         layout_state.parent_container = LayoutContainer {
                             idx: layout_state.current_idx(),
+                            zindex: *zindex,
+                            widget_ref: *widget_ref,
                             axis: StackAxis::Horizontal {
                                 spacing: *spacing,
                                 rtl_aware: *rtl_aware,
@@ -681,6 +700,8 @@ pub fn layout(
         idx: 0,
         axis: StackAxis::None,
         command: Default::default(),
+        zindex: 0,
+        widget_ref: None,
     };
     layout_state.push_align(AlignX::Left, AlignY::Top);
 
@@ -786,6 +807,9 @@ pub fn layout(
                 kind,
                 constraints,
                 size,
+                zindex,
+                widget_ref,
+                ..
             } => {
                 layout_state.push_position(current_position);
                 layout_state.push_container(layout_state.parent_container);
@@ -800,6 +824,8 @@ pub fn layout(
                     ContainerKind::VStack { spacing, .. } => {
                         layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
+                            zindex: *zindex,
+                            widget_ref: *widget_ref,
                             axis: StackAxis::Vertical { spacing: *spacing },
                             command,
                         };
@@ -816,6 +842,8 @@ pub fn layout(
 
                         layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
+                            zindex: *zindex,
+                            widget_ref: *widget_ref,
                             axis: StackAxis::Horizontal {
                                 spacing: *spacing,
                                 rtl_aware: *rtl_aware,
@@ -830,6 +858,8 @@ pub fn layout(
                     ContainerKind::ZStack => {
                         layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
+                            zindex: *zindex,
+                            widget_ref: *widget_ref,
                             axis: StackAxis::None,
                             command,
                         };
@@ -840,6 +870,8 @@ pub fn layout(
                     ContainerKind::Padding { .. } => {
                         layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
+                            zindex: *zindex,
+                            widget_ref: *widget_ref,
                             axis: StackAxis::None,
                             command,
                         };
@@ -850,6 +882,7 @@ pub fn layout(
             }
             LayoutCommand::EndContainer => {
                 widget_size = container_size;
+                let parent_container = layout_state.parent_container;
                 layout_state.parent_container = layout_state.pop_container();
                 current_position = layout_state.pop_position();
 
@@ -873,6 +906,18 @@ pub fn layout(
                     //     boundary: Rect::ZERO,
                     //     rect: Rect::from_pos_size(position, widget_size),
                     // });
+                }
+
+                if let Some(widget_ref) = parent_container.widget_ref {
+                    if rect_contains_boundary(boundary, Rect::from_pos_size(Vec2::ZERO, root_size))
+                    {
+                        widget_placements.push(WidgetPlacement {
+                            widget_ref: widget_ref,
+                            zindex: parent_container.zindex,
+                            boundary,
+                            rect,
+                        });
+                    }
                 }
             }
             LayoutCommand::Fixed {

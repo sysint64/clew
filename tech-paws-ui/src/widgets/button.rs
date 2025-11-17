@@ -78,6 +78,8 @@ impl<'a> ButtonBuilder<'a> {
             padding_containts.expand(padding);
 
             context.push_layout_command(LayoutCommand::BeginContainer {
+                widget_ref: None,
+                zindex: 0,
                 kind: ContainerKind::Padding { padding },
                 size,
                 constraints: self.constraints,
@@ -197,6 +199,7 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
     };
 
     ctx.push_command(RenderCommand::Rect {
+        zindex: placement.zindex,
         boundary: placement.rect.offset(0., 1.).px(ctx),
         fill: Fill::Color(ColorRgba::from_hex(0xFF272727)),
         border_radius: BorderRadius::all(3.0.px(ctx)),
@@ -204,6 +207,7 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
     });
 
     ctx.push_command(RenderCommand::Rect {
+        zindex: placement.zindex,
         boundary: placement.rect.px(ctx),
         fill,
         border_radius: BorderRadius::all(3.0.px(ctx)),
@@ -226,6 +230,7 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
         );
 
     ctx.push_command(RenderCommand::Text {
+        zindex: placement.zindex,
         x: text_position.x,
         y: text_position.y,
         text_id,

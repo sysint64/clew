@@ -1,6 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use tech_paws_ui::identifiable::Identifiable;
+use tech_paws_ui::widgets::colored_box::colored_box;
 use tech_paws_ui::widgets::hstack::hstack;
 use tech_paws_ui::widgets::text::text;
 use tech_paws_ui::{
@@ -15,7 +16,7 @@ use tech_paws_ui::{
         vstack::vstack,
     },
 };
-use tech_paws_ui::{EdgeInsets, SizeConstraint};
+use tech_paws_ui::{ColorRgba, EdgeInsets, SizeConstraint};
 use tech_paws_ui_derive::Identifiable;
 use tech_paws_ui_desktop::{
     app::{Application, ApplicationDelegate},
@@ -189,7 +190,99 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
                     });
                 });
 
-                text("Counter:").text_align_y(AlignY::Center).build(ctx);
+                // button()
+                //     .background(ctx, |ctx| {
+                //         let button_state = ctx.state_of::<button::State>();
+
+                //         let border_color = if button_state.is_focused {
+                //             ColorRgba::from_hex(0xFF357CCE)
+                //         } else if button_state.is_active && button_state.is_hot {
+                //             ColorRgba::from_hex(0xFF414141)
+                //         } else if button_state.is_hot {
+                //             ColorRgba::from_hex(0xFF616161)
+                //         } else {
+                //             ColorRgba::from_hex(0xFF414141)
+                //         };
+
+                //         let fill = if button_state.is_active && button_state.is_hot {
+                //             Fill::Gradient(Gradient::Linear(LinearGradient::vertical(vec![
+                //                 ColorRgba::from_hex(0xFF1C1C1C),
+                //                 ColorRgba::from_hex(0xFF212121),
+                //             ])))
+                //         } else if button_state.is_hot {
+                //             Fill::Gradient(Gradient::Linear(LinearGradient::vertical(vec![
+                //                 ColorRgba::from_hex(0xFF383838),
+                //                 ColorRgba::from_hex(0xFF2E2E2E),
+                //             ])))
+                //         } else {
+                //             Fill::Gradient(Gradient::Linear(LinearGradient::vertical(vec![
+                //                 ColorRgba::from_hex(0xFF2F2F2F),
+                //                 ColorRgba::from_hex(0xFF272727),
+                //             ])))
+                //         };
+
+                //         decorated_box()
+                //             .fill(fill)
+                //             .border(Border::all(BorderSide::new(1.0.px(ctx), border_color)))
+                //             .border_radius(BorderRadius::all(3.0.px(ctx)))
+                //             .build(ctx);
+                //     })
+                // .build(ctx, |ctx| {
+                // text(&format!("Counter: {}", app.counter))
+                // .text_align_x(AlignX::Center)
+                // .text_align_y(AlignY::Center)
+                // .build(ctx);
+                // });
+                // button().build(ctx, |ctx| {
+                //     let button_state = ctx.state_of::<button::State>();
+
+                //     let border_color = if button_state.is_focused {
+                //         ColorRgba::from_hex(0xFF357CCE)
+                //     } else if button_state.is_active && button_state.is_hot {
+                //         ColorRgba::from_hex(0xFF414141)
+                //     } else if button_state.is_hot {
+                //         ColorRgba::from_hex(0xFF616161)
+                //     } else {
+                //         ColorRgba::from_hex(0xFF414141)
+                //     };
+
+                //     let fill = if button_state.is_active && button_state.is_hot {
+                //         Fill::Gradient(Gradient::Linear(LinearGradient::vertical(vec![
+                //             ColorRgba::from_hex(0xFF1C1C1C),
+                //             ColorRgba::from_hex(0xFF212121),
+                //         ])))
+                //     } else if button_state.is_hot {
+                //         Fill::Gradient(Gradient::Linear(LinearGradient::vertical(vec![
+                //             ColorRgba::from_hex(0xFF383838),
+                //             ColorRgba::from_hex(0xFF2E2E2E),
+                //         ])))
+                //     } else {
+                //         Fill::Gradient(Gradient::Linear(LinearGradient::vertical(vec![
+                //             ColorRgba::from_hex(0xFF2F2F2F),
+                //             ColorRgba::from_hex(0xFF272727),
+                //         ])))
+                //     };
+
+                //     decorated_box()
+                //         .fill(fill)
+                //         .border(Border::all(BorderSide::new(1.0.px(ctx), border_color)))
+                //         .border_radius(BorderRadius::all(3.0.px(ctx)))
+                //         .build(ctx, |ctx| {
+                //             padding(EdgeInsets::all(8.)).build(ctx, |ctx| {
+                //                 text(&format!("Counter: {}", app.counter))
+                //                     .text_align_x(AlignX::Center)
+                //                     .text_align_y(AlignY::Center)
+                //                     .build(ctx);
+                //             });
+                //         });
+                // });
+
+                colored_box(ColorRgba::from_hex(0xFFCC0000)).build(ctx, |ctx| {
+                    text("Counter:")
+                        .text_align_x(AlignX::Center)
+                        .text_align_y(AlignY::Center)
+                        .build(ctx);
+                });
 
                 if button(&format!("Counter: {}", app.counter))
                     .id("counter")

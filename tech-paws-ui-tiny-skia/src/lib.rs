@@ -75,6 +75,7 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
                     fill,
                     border_radius,
                     border,
+                    ..
                 } => {
                     render_rect(
                         &mut pixmap,
@@ -89,6 +90,7 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
                     boundary,
                     fill,
                     border,
+                    ..
                 } => {
                     render_oval(&mut pixmap, *boundary, fill, border.as_ref(), current_clip);
                 }
@@ -97,6 +99,7 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
                     y: text_position_y,
                     text_id,
                     tint_color,
+                    ..
                 } => {
                     let mut paint = Paint {
                         anti_alias: false,

@@ -6,3 +6,4 @@ pub mod scope;
 pub mod text;
 pub mod view;
 pub mod vstack;
+pub mod colored_box;

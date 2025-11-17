@@ -77,7 +77,7 @@ impl Size {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum AlignX {
     Left,
     Right,
@@ -92,7 +92,7 @@ pub enum AlignX {
     Fraction(f32),
 }
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum AlignY {
     #[default]
     Top,

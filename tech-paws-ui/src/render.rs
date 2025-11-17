@@ -3,7 +3,14 @@ use std::collections::HashMap;
 use glam::Vec2;
 
 use crate::{
-    interaction::{handle_interaction, InteractionState}, io::UserInput, layout::layout, state::UiState, text::{FontResources, StringId, StringInterner, TextId, TextsResources}, widgets, Border, BorderRadius, BorderSide, ColorRgb, ColorRgba, Gradient, LayoutDirection, Rect, View, WidgetType
+    Border, BorderRadius, BorderSide, ColorRgb, ColorRgba, Gradient, LayoutDirection, Rect, View,
+    WidgetType,
+    interaction::{InteractionState, handle_interaction},
+    io::UserInput,
+    layout::layout,
+    state::UiState,
+    text::{FontResources, StringId, StringInterner, TextId, TextsResources},
+    widgets,
 };
 
 #[derive(Debug, Default)]
@@ -169,6 +176,17 @@ pub fn render(
                     state
                         .widgets_states
                         .get_mut::<widgets::button::State>(placement.widget_ref.id)
+                        .unwrap(),
+                );
+            }
+
+            if placement.widget_ref.widget_type == WidgetType::of::<widgets::text::TextWidget>() {
+                widgets::text::render(
+                    &mut render_context,
+                    placement,
+                    state
+                        .widgets_states
+                        .get_mut::<widgets::text::State>(placement.widget_ref.id)
                         .unwrap(),
                 );
             }

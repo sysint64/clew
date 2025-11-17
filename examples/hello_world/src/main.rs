@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use tech_paws_ui::identifiable::Identifiable;
 use tech_paws_ui::widgets::hstack::hstack;
-use tech_paws_ui::{EdgeInsets, SizeConstraint};
+use tech_paws_ui::widgets::text::text;
 use tech_paws_ui::{
     AlignX, AlignY, ColorRgb,
     render::Renderer,
@@ -15,6 +15,7 @@ use tech_paws_ui::{
         vstack::vstack,
     },
 };
+use tech_paws_ui::{EdgeInsets, SizeConstraint};
 use tech_paws_ui_derive::Identifiable;
 use tech_paws_ui_desktop::{
     app::{Application, ApplicationDelegate},
@@ -84,16 +85,16 @@ impl ApplicationDelegate<CounterEvent> for DemoApplication {
             },
         );
 
-        window_manager.spawn_window(
-            MainWindow::new(),
-            WindowDescriptor {
-                title: "TODO List".to_string(),
-                width: 400,
-                height: 300,
-                resizable: true,
-                fill_color: ColorRgb::from_hex(0x121212),
-            },
-        );
+        // window_manager.spawn_window(
+        //     MainWindow::new(),
+        //     WindowDescriptor {
+        //         title: "TODO List".to_string(),
+        //         width: 400,
+        //         height: 300,
+        //         resizable: true,
+        //         fill_color: ColorRgb::from_hex(0x121212),
+        //     },
+        // );
     }
 
     fn create_renderer(window: Arc<winit::window::Window>) -> Box<dyn Renderer> {
@@ -175,99 +176,6 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
-        // vstack().spacing(32.).fill_max_size().build(ctx, |ctx| {
-        //     hstack().fill_max_size().build(ctx, |ctx| {
-        //         if button("Button 1")
-        //             .align_y(AlignY::Center)
-        //             .build(ctx)
-        //             .clicked()
-        //         {
-        //             log::info!("Button 1 clicked");
-        //         }
-
-        //         if button("Button 4")
-        //             .width(SizeConstraint::Fill(1.))
-        //             .padding(EdgeInsets::symmetric(20., 20.))
-        //             .build(ctx)
-        //             .clicked()
-        //         {
-        //             log::info!("Button 4 clicked");
-        //         }
-
-        //         vstack()
-        //             .width(SizeConstraint::Fill(2.))
-        //             .build(ctx, |ctx| {
-        //                 if button("vstack 1").fill_max_width().build(ctx).clicked() {
-        //                     log::info!("Button 2 clicked");
-        //                 }
-        //                 if button("vstack 2")
-        //                     .width(SizeConstraint::Fill(1.))
-        //                     .build(ctx)
-        //                     .clicked()
-        //                 {
-        //                     log::info!("Button 3 clicked");
-        //                 }
-        //                 if button("vstack 2")
-        //                     .width(SizeConstraint::Fill(1.))
-        //                     .build(ctx)
-        //                     .clicked()
-        //                 {
-        //                     log::info!("Button 3 clicked");
-        //                 }
-        //             });
-
-        //         if button("Button 4").build(ctx).clicked() {
-        //             log::info!("Button 4 clicked");
-        //         }
-        //     });
-
-        //     vstack().fill_max_size().build(ctx, |ctx| {
-        //         button("vstack 2")
-        //             .align_x(AlignX::End)
-        //             // .width(SizeConstraint::Fill(1.))
-        //             .build(ctx);
-        //     });
-
-        //     hstack()
-        //         .width(SizeConstraint::Fill(1.))
-        //         .build(ctx, |ctx| {
-        //             if button("Button 1").build(ctx).clicked() {
-        //                 log::info!("Button 1 clicked");
-        //             }
-
-        //             if button("Button 4")
-        //                 .width(SizeConstraint::Fill(1.))
-        //                 .build(ctx)
-        //                 .clicked()
-        //             {
-        //                 log::info!("Button 4 clicked");
-        //             }
-
-        //             vstack()
-        //                 .width(SizeConstraint::Fill(1.))
-        //                 .build(ctx, |ctx| {
-        //                     if button("vstack 1")
-        //                         .width(SizeConstraint::Fill(1.))
-        //                         .build(ctx)
-        //                         .clicked()
-        //                     {
-        //                         log::info!("Button 2 clicked");
-        //                     }
-        //                     if button("vstack 2")
-        //                         .width(SizeConstraint::Fill(1.))
-        //                         .build(ctx)
-        //                         .clicked()
-        //                     {
-        //                         log::info!("Button 3 clicked");
-        //                     }
-        //                 });
-
-        //             if button("Button 4").build(ctx).clicked() {
-        //                 log::info!("Button 4 clicked");
-        //             }
-        //         });
-        // });
-
         vstack()
             .align_x(AlignX::Center)
             .align_y(AlignY::Center)
@@ -280,6 +188,8 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
                         }
                     });
                 });
+
+                text("Counter:").text_align_y(AlignY::Center).build(ctx);
 
                 if button(&format!("Counter: {}", app.counter))
                     .id("counter")

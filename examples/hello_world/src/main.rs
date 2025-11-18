@@ -18,8 +18,7 @@ use tech_paws_ui::{
     },
 };
 use tech_paws_ui::{
-    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, EdgeInsets, Gradient, LinearGradient,
-    SizeConstraint,
+    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, EdgeInsets, Gradient, LinearGradient, RadialGradient, SizeConstraint
 };
 use tech_paws_ui_derive::Identifiable;
 use tech_paws_ui_desktop::{
@@ -290,14 +289,14 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
                         1.,
                         ColorRgba::from_hex(0xFF00CC00),
                     )))
-                    .add_gradient(Gradient::Linear(LinearGradient::vertical(vec![
+                    .add_linear_gradient(LinearGradient::vertical(vec![
                         ColorRgba::from_hex(0xFF2F2F2F),
                         ColorRgba::from_hex(0xFF272727),
-                    ])))
-                    .add_gradient(Gradient::Linear(LinearGradient::vertical(vec![
+                    ]))
+                    .add_radial_gradient(RadialGradient::circle(vec![
                         ColorRgba::from_hex(0x00000000),
                         ColorRgba::from_hex(0xFFFF0000),
-                    ])))
+                    ]))
                     .build(ctx, |ctx| {
                         vstack().build(ctx, |ctx| {
                             vstack().build(ctx, |ctx| {

@@ -4,7 +4,8 @@ use glam::Vec2;
 
 use crate::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, BoxShape, ColorRgba, Constraints, Gradient,
-    Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_width_methods,
+    LinearGradient, RadialGradient, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType,
+    impl_width_methods,
     layout::{ContainerKind, LayoutCommand, WidgetPlacement},
     render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
     state::WidgetState,
@@ -73,6 +74,18 @@ impl DecoratedBoxBuilder {
 
     pub fn add_gradient(mut self, gradient: Gradient) -> Self {
         self.gradients.push(gradient);
+
+        self
+    }
+
+    pub fn add_linear_gradient(mut self, gradient: LinearGradient) -> Self {
+        self.gradients.push(Gradient::Linear(gradient));
+
+        self
+    }
+
+    pub fn add_radial_gradient(mut self, gradient: RadialGradient) -> Self {
+        self.gradients.push(Gradient::Radial(gradient));
 
         self
     }

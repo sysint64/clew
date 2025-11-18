@@ -1,10 +1,11 @@
 use std::any::Any;
+use std::hash::Hash;
 
 use glam::Vec2;
 
 use crate::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, Size, SizeConstraint,
-    WidgetId, WidgetRef, WidgetType, impl_width_methods,
+    WidgetId, WidgetRef, WidgetType, impl_id, impl_width_methods,
     layout::{ContainerKind, LayoutCommand, WidgetPlacement},
     render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
     state::WidgetState,
@@ -39,6 +40,8 @@ impl WidgetState for State {
 }
 
 impl ColoredBoxBuilder {
+    impl_id!();
+
     pub fn build<F>(&self, context: &mut BuildContext, callback: F)
     where
         F: FnOnce(&mut BuildContext),
@@ -65,9 +68,9 @@ impl ColoredBoxBuilder {
         context.current_zindex = last_zindex;
         context.widgets_states.accessed_this_frame.insert(id);
 
-        let state = context
+        context
             .widgets_states
-            .get_or_insert::<State, _>(id, || State { color: self.color });
+            .replace(id, State { color: self.color });
     }
 }
 

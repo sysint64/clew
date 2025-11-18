@@ -1,5 +1,6 @@
 use std::{
     any::Any,
+    collections::VecDeque,
     hash::{DefaultHasher, Hash, Hasher},
     sync::Arc,
 };
@@ -35,11 +36,33 @@ pub struct BuildContext<'a, 'b> {
     pub broadcast_async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     pub event_loop_proxy: Arc<dyn ApplicationEventLoopProxy>,
     pub id_seed: Option<u64>,
+    pub user_data: Vec<Box<dyn Any + Send>>,
 }
 
 impl BuildContext<'_, '_> {
+    pub fn of<T: 'static>(&self) -> Option<&T> {
+        for data in self.user_data.iter().rev() {
+            let data = data.downcast_ref::<T>();
+
+            if data.is_some() {
+                return data;
+            }
+        }
+
+        None
+    }
+
     pub fn push_layout_command(&mut self, command: LayoutCommand) {
         self.layout_commands.push(command);
+    }
+
+    pub fn with_user_data<F, T: Any + Send + 'static>(&mut self, data: T, callback: F)
+    where
+        F: FnOnce(&mut BuildContext),
+    {
+        self.user_data.push(Box::new(data));
+        callback(self);
+        self.user_data.pop();
     }
 
     pub fn with_id_seed<F>(&mut self, seed: u64, callback: F)

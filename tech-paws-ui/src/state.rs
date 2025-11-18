@@ -85,7 +85,6 @@ impl WidgetsStates {
     where
         F: FnOnce() -> T,
     {
-        self.accessed_this_frame.insert(id);
         self.data.entry(id).or_insert_with(|| Box::new(create()));
 
         self.data
@@ -94,6 +93,21 @@ impl WidgetsStates {
             .as_any_mut()
             .downcast_mut::<T>()
             .unwrap()
+    }
+
+    pub fn replace<T: WidgetState>(&mut self, id: WidgetId, state: T) {
+        self.data.insert(id, Box::new(state));
+
+        // self.data.entry(id).or_insert(|| Box::new(create()));
+        // self.accessed_this_frame.insert(id);
+        // self.data.entry(id).or_insert_with(|| Box::new(create()));
+
+        // self.data
+        //     .get_mut(&id)
+        //     .unwrap()
+        //     .as_any_mut()
+        //     .downcast_mut::<T>()
+        //     .unwrap()
     }
 
     pub fn get_mut<T: WidgetState>(&mut self, id: WidgetId) -> Option<&mut T> {

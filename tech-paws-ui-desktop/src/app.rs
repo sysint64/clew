@@ -98,6 +98,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         broadcast_async_tx,
         event_loop_proxy,
         id_seed: None,
+        user_data: Vec::new(),
     };
 
     window_state.window.build(app, &mut build_context);

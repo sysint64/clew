@@ -1,10 +1,11 @@
 use std::any::Any;
+use std::hash::Hash;
 
 use glam::Vec2;
 
 use crate::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, BoxShape, ColorRgba, Constraints, Gradient,
-    LinearGradient, RadialGradient, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType,
+    LinearGradient, RadialGradient, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
     impl_width_methods,
     layout::{ContainerKind, LayoutCommand, WidgetPlacement},
     render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
@@ -48,6 +49,8 @@ impl WidgetState for State {
 }
 
 impl DecoratedBoxBuilder {
+    impl_id!();
+
     pub fn color(mut self, color: ColorRgba) -> Self {
         self.color = Some(color);
 
@@ -122,15 +125,16 @@ impl DecoratedBoxBuilder {
         context.current_zindex = last_zindex;
         context.widgets_states.accessed_this_frame.insert(id);
 
-        let state = context
-            .widgets_states
-            .get_or_insert::<State, _>(id, || State {
+        context.widgets_states.replace(
+            id,
+            State {
                 color: self.color,
                 shape: self.shape,
                 gradients: self.gradients,
                 border_radius: self.border_radius,
                 border: self.border,
-            });
+            },
+        );
     }
 }
 

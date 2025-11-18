@@ -12,7 +12,7 @@ use crate::{
     state::WidgetState,
     text::StringId,
 };
-use std::{any::Any, hash::Hash};
+use std::{any::Any, hash::Hash, rc::Rc};
 
 pub struct ButtonBuilder<'a> {
     id: WidgetId,
@@ -108,7 +108,7 @@ impl<'a> ButtonBuilder<'a> {
 
         context.widgets_states.accessed_this_frame.insert(id);
 
-        let state = context
+        let mut state = context
             .widgets_states
             .get_or_insert::<State, _>(id, || State {
                 clicked: false,
@@ -201,17 +201,17 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
     ctx.push_command(RenderCommand::Rect {
         zindex: placement.zindex,
         boundary: placement.rect.offset(0., 1.).px(ctx),
-        fill: Fill::Color(ColorRgba::from_hex(0xFF272727)),
-        border_radius: BorderRadius::all(3.0.px(ctx)),
-        border: Border::all(BorderSide::new(0.0, border_color)),
+        fill: Some(Fill::Color(ColorRgba::from_hex(0xFF272727))),
+        border_radius: Some(BorderRadius::all(3.0.px(ctx))),
+        border: None,
     });
 
     ctx.push_command(RenderCommand::Rect {
         zindex: placement.zindex,
         boundary: placement.rect.px(ctx),
-        fill,
-        border_radius: BorderRadius::all(3.0.px(ctx)),
-        border: Border::all(BorderSide::new(1.0.px(ctx), border_color)),
+        fill: Some(fill),
+        border_radius: Some(BorderRadius::all(3.0.px(ctx))),
+        border: Some(Border::all(BorderSide::new(1.0.px(ctx), border_color))),
     });
 
     let text_id = cache_string(ctx, state.text, |ctx| {

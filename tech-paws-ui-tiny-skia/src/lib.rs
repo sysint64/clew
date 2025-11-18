@@ -80,9 +80,9 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
                     render_rect(
                         &mut pixmap,
                         *boundary,
-                        fill,
-                        border_radius,
-                        border,
+                        fill.as_ref(),
+                        border_radius.as_ref(),
+                        border.as_ref(),
                         current_clip,
                     );
                 }
@@ -92,7 +92,13 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
                     border,
                     ..
                 } => {
-                    render_oval(&mut pixmap, *boundary, fill, border.as_ref(), current_clip);
+                    render_oval(
+                        &mut pixmap,
+                        *boundary,
+                        fill.as_ref(),
+                        border.as_ref(),
+                        current_clip,
+                    );
                 }
                 RenderCommand::Text {
                     x: text_position_x,
@@ -173,17 +179,12 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
 fn render_rect(
     pixmap: &mut PixmapMut,
     boundary: Rect,
-    fill: &Fill,
-    border_radius: &BorderRadius,
-    border: &Border,
+    fill: Option<&Fill>,
+    border_radius: Option<&BorderRadius>,
+    border: Option<&Border>,
     clip_mask: Option<&tiny_skia::Mask>,
 ) {
-    let has_radius = border_radius.top_left > 0.0
-        || border_radius.top_right > 0.0
-        || border_radius.bottom_left > 0.0
-        || border_radius.bottom_right > 0.0;
-
-    let path = if has_radius {
+    let path = if let Some(border_radius) = border_radius {
         create_rounded_rect_path(boundary, border_radius)
     } else {
         let mut pb = tiny_skia::PathBuilder::new();
@@ -195,25 +196,29 @@ fn render_rect(
         pb.finish().unwrap()
     };
 
-    // Render fill
-    if let Some(paint) = create_paint_from_fill(fill, boundary) {
-        pixmap.fill_path(
-            &path,
-            &paint,
-            tiny_skia::FillRule::Winding,
-            tiny_skia::Transform::identity(),
-            clip_mask,
-        );
+    if let Some(fill) = fill {
+        // Render fill
+        if let Some(paint) = create_paint_from_fill(fill, boundary) {
+            pixmap.fill_path(
+                &path,
+                &paint,
+                tiny_skia::FillRule::Winding,
+                tiny_skia::Transform::identity(),
+                clip_mask,
+            );
+        }
     }
 
-    // Render border
-    render_border(pixmap, &path, border, clip_mask);
+    if let Some(border) = border {
+        // Render border
+        render_border(pixmap, &path, border, clip_mask);
+    }
 }
 
 fn render_oval(
     pixmap: &mut PixmapMut,
     boundary: Rect,
-    fill: &Fill,
+    fill: Option<&Fill>,
     border: Option<&BorderSide>,
     clip_mask: Option<&tiny_skia::Mask>,
 ) {
@@ -242,15 +247,17 @@ fn render_oval(
         pb.finish().unwrap()
     };
 
-    // Render fill
-    if let Some(paint) = create_paint_from_fill(fill, boundary) {
-        pixmap.fill_path(
-            &path,
-            &paint,
-            tiny_skia::FillRule::Winding,
-            tiny_skia::Transform::identity(),
-            clip_mask,
-        );
+    if let Some(fill) = fill {
+        // Render fill
+        if let Some(paint) = create_paint_from_fill(fill, boundary) {
+            pixmap.fill_path(
+                &path,
+                &paint,
+                tiny_skia::FillRule::Winding,
+                tiny_skia::Transform::identity(),
+                clip_mask,
+            );
+        }
     }
 
     // Render border

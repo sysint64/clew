@@ -88,8 +88,8 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
     ctx.push_command(RenderCommand::Rect {
         zindex: placement.zindex,
         boundary: placement.rect.px(ctx),
-        fill: Fill::Color(state.color),
-        border_radius: BorderRadius::all(0.0.px(ctx)),
-        border: Border::all(BorderSide::new(0.0, ColorRgba::transparent())),
+        fill: Some(Fill::Color(state.color)),
+        border_radius: None,
+        border: None,
     });
 }

@@ -1073,3 +1073,9 @@ impl From<ColorRgba> for cosmic_text::Color {
         )
     }
 }
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum BoxShape {
+    rect,
+    oval,
+}

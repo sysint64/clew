@@ -58,14 +58,14 @@ pub enum RenderCommand {
     Rect {
         zindex: i32,
         boundary: Rect,
-        fill: Fill,
-        border_radius: BorderRadius,
-        border: Border,
+        fill: Option<Fill>,
+        border_radius: Option<BorderRadius>,
+        border: Option<Border>,
     },
     Oval {
         zindex: i32,
         boundary: Rect,
-        fill: Fill,
+        fill: Option<Fill>,
         border: Option<BorderSide>,
     },
     Text {
@@ -117,6 +117,37 @@ impl PixelExtension<Vec2> for Vec2 {
 impl PixelExtension<Rect> for Rect {
     fn px(self, ctx: &RenderContext) -> Rect {
         self * ctx.view.scale_factor.ceil()
+    }
+}
+
+impl PixelExtension<BorderRadius> for BorderRadius {
+    fn px(self, ctx: &RenderContext) -> BorderRadius {
+        BorderRadius {
+            top_left: self.top_left * ctx.view.scale_factor,
+            top_right: self.top_right * ctx.view.scale_factor,
+            bottom_left: self.bottom_left * ctx.view.scale_factor,
+            bottom_right: self.bottom_right * ctx.view.scale_factor,
+        }
+    }
+}
+
+impl PixelExtension<BorderSide> for BorderSide {
+    fn px(self, ctx: &RenderContext) -> BorderSide {
+        BorderSide {
+            width: self.width * ctx.view.scale_factor,
+            color: self.color,
+        }
+    }
+}
+
+impl PixelExtension<Border> for Border {
+    fn px(self, ctx: &RenderContext) -> Border {
+        Border {
+            top: self.top.map(|border_side| border_side.px(ctx)),
+            right: self.right.map(|border_side| border_side.px(ctx)),
+            bottom: self.bottom.map(|border_side| border_side.px(ctx)),
+            left: self.left.map(|border_side| border_side.px(ctx)),
+        }
     }
 }
 
@@ -215,6 +246,19 @@ pub fn render(
                     state
                         .widgets_states
                         .get_mut::<widgets::colored_box::State>(placement.widget_ref.id)
+                        .unwrap(),
+                );
+            }
+
+            if placement.widget_ref.widget_type
+                == WidgetType::of::<widgets::decorated_box::DecoratedBox>()
+            {
+                widgets::decorated_box::render(
+                    &mut render_context,
+                    placement,
+                    state
+                        .widgets_states
+                        .get_mut::<widgets::decorated_box::State>(placement.widget_ref.id)
                         .unwrap(),
                 );
             }

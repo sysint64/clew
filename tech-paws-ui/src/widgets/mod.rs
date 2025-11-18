@@ -1,9 +1,11 @@
 pub mod builder;
 pub mod button;
+pub mod colored_box;
+pub mod decorated_box;
 pub mod for_each;
+pub mod gesture_detector;
 pub mod hstack;
 pub mod scope;
 pub mod text;
 pub mod view;
 pub mod vstack;
-pub mod colored_box;

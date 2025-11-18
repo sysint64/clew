@@ -2,6 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use tech_paws_ui::identifiable::Identifiable;
 use tech_paws_ui::widgets::colored_box::colored_box;
+use tech_paws_ui::widgets::decorated_box::decorated_box;
 use tech_paws_ui::widgets::hstack::hstack;
 use tech_paws_ui::widgets::text::text;
 use tech_paws_ui::{
@@ -16,7 +17,10 @@ use tech_paws_ui::{
         vstack::vstack,
     },
 };
-use tech_paws_ui::{ColorRgba, EdgeInsets, SizeConstraint};
+use tech_paws_ui::{
+    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, EdgeInsets, Gradient, LinearGradient,
+    SizeConstraint,
+};
 use tech_paws_ui_derive::Identifiable;
 use tech_paws_ui_desktop::{
     app::{Application, ApplicationDelegate},
@@ -277,24 +281,41 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
                 //         });
                 // });
 
-                colored_box(ColorRgba::from_hex(0xFFCC0000)).build(ctx, |ctx| {
-                    vstack().build(ctx, |ctx| {
+                // colored_box(ColorRgba::from_hex(0xFFCC0000)).build(ctx, |ctx| {
+                decorated_box()
+                    .color(ColorRgba::from_hex(0xFFCC0000))
+                    .shape(BoxShape::oval)
+                    .border_radius(BorderRadius::all(8.))
+                    .border(Border::all(BorderSide::new(
+                        1.,
+                        ColorRgba::from_hex(0xFF00CC00),
+                    )))
+                    .add_gradient(Gradient::Linear(LinearGradient::vertical(vec![
+                        ColorRgba::from_hex(0xFF2F2F2F),
+                        ColorRgba::from_hex(0xFF272727),
+                    ])))
+                    .add_gradient(Gradient::Linear(LinearGradient::vertical(vec![
+                        ColorRgba::from_hex(0x00000000),
+                        ColorRgba::from_hex(0xFFFF0000),
+                    ])))
+                    .build(ctx, |ctx| {
                         vstack().build(ctx, |ctx| {
-                            text("Counter:")
-                                .text_align_x(AlignX::Center)
-                                .text_align_y(AlignY::Center)
-                                .build(ctx);
+                            vstack().build(ctx, |ctx| {
+                                text("Counter:")
+                                    .text_align_x(AlignX::Center)
+                                    .text_align_y(AlignY::Center)
+                                    .build(ctx);
+                                text(&format!("{}", app.counter))
+                                    .text_align_x(AlignX::Center)
+                                    .text_align_y(AlignY::Center)
+                                    .build(ctx);
+                            });
                             text(&format!("{}", app.counter))
                                 .text_align_x(AlignX::Center)
                                 .text_align_y(AlignY::Center)
                                 .build(ctx);
                         });
-                        text(&format!("{}", app.counter))
-                            .text_align_x(AlignX::Center)
-                            .text_align_y(AlignY::Center)
-                            .build(ctx);
                     });
-                });
 
                 if button(&format!("Counter: {}", app.counter))
                     .id("counter")

@@ -94,7 +94,7 @@ impl<'a> ButtonBuilder<'a> {
 
             context.with_align(self.align_x, self.align_y, |context| {
                 context.push_layout_command(LayoutCommand::Child {
-                    widget_ref,
+                    widget_refs: vec![widget_ref],
                     constraints: self.constraints,
                     size,
                     zindex: self.zindex.unwrap_or(context.current_zindex),
@@ -109,7 +109,7 @@ impl<'a> ButtonBuilder<'a> {
         } else {
             context.with_align(self.align_x, self.align_y, |context| {
                 context.push_layout_command(LayoutCommand::Child {
-                    widget_ref,
+                    widget_refs: vec![widget_ref],
                     constraints: self.constraints,
                     size,
                     derive_wrap_size: DeriveWrapSize::Text {

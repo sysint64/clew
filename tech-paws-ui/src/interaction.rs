@@ -9,7 +9,7 @@ use crate::{
     point_with_rect_hit_test,
     state::WidgetsStates,
     text::{FontResources, TextsResources},
-    widgets,
+    widgets::{self, gesture_detector::GestureDetector},
 };
 
 #[derive(Default, Clone, PartialEq)]
@@ -22,7 +22,7 @@ pub struct InteractionState {
 }
 
 impl InteractionState {
-    pub fn _is_hover(&self, id: &WidgetId) -> bool {
+    pub fn is_hover(&self, id: &WidgetId) -> bool {
         self.hover.contains(id)
     }
 
@@ -79,23 +79,19 @@ pub fn handle_interaction(
     interaction_state.hover.clear();
 
     for placement in widget_placements.iter() {
-        if placement.widget_ref.widget_type == WidgetType::of::<LayoutWidget>() {
-            continue;
-        }
-
-        if point_with_rect_hit_test(mouse_point, placement.rect) {
-            interaction_state.hover.insert(placement.widget_ref.id);
+        if placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>() {
+            if point_with_rect_hit_test(mouse_point, placement.rect) {
+                interaction_state.hover.insert(placement.widget_ref.id);
+            }
         }
     }
 
     for placement in widget_placements.iter().rev() {
-        if placement.widget_ref.widget_type == WidgetType::of::<LayoutWidget>() {
-            continue;
-        }
-
-        if point_with_rect_hit_test(mouse_point, placement.rect) {
-            interaction_state.hot = Some(placement.widget_ref.id);
-            break;
+        if placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>() {
+            if point_with_rect_hit_test(mouse_point, placement.rect) {
+                interaction_state.hot = Some(placement.widget_ref.id);
+                break;
+            }
         }
     }
 

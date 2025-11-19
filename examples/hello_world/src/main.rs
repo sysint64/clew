@@ -288,10 +288,10 @@ fn ui_benchmark(ctx: &mut BuildContext) {
     vstack().fill_max_width().build(ctx, |ctx| {
         // gap().height(128.).show(ctx);
 
-        for i in 0..50 {
+        for i in 0..10 {
             // 100 buttons
             hstack().fill_max_width().build(ctx, |ctx| {
-                for j in 0..10 {
+                for j in 0..1000 {
                     // hstack().show(ctx, |ctx| {});
                     // 10 buttons per row
                     if button(&format!("Button {i}_{j}"))

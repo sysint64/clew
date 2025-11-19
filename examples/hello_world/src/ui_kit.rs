@@ -146,8 +146,8 @@ pub fn button(text: &str) -> ButtonBuilder<'_> {
     ButtonBuilder {
         id: WidgetId::auto(),
         text,
-        // width: SizeConstraint::Fixed(100.),
-        width: SizeConstraint::Wrap,
+        width: SizeConstraint::Fixed(100.),
+        // width: SizeConstraint::Wrap,
         align_x: None,
         align_y: None,
         padding: None,

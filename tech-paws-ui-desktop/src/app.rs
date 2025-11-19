@@ -100,6 +100,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         id_seed: None,
         user_data: Vec::new(),
         strings: &mut window_state.strings,
+        decorators: Vec::new(),
     };
 
     window_state.window.build(app, &mut build_context);

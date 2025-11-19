@@ -6,10 +6,7 @@ use std::{
 };
 
 use crate::{
-    AlignX, AlignY, View, ViewId,
-    layout::LayoutCommand,
-    state::WidgetsStates,
-    text::{FontResources, StringId, StringInterner, TextId, TextsResources},
+    layout::LayoutCommand, state::WidgetsStates, text::{FontResources, StringId, StringInterner, TextId, TextsResources}, AlignX, AlignY, View, ViewId, WidgetRef
 };
 
 #[derive(Debug)]
@@ -38,6 +35,7 @@ pub struct BuildContext<'a, 'b> {
     pub event_loop_proxy: Arc<dyn ApplicationEventLoopProxy>,
     pub id_seed: Option<u64>,
     pub user_data: Vec<Box<dyn Any + Send>>,
+    pub decorators: Vec<WidgetRef>,
 }
 
 impl BuildContext<'_, '_> {

@@ -15,7 +15,7 @@ pub struct WidgetPlacement {
     pub rect: Rect,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum LayoutCommand {
     BeginContainer {
         widget_ref: Option<WidgetRef>,
@@ -31,7 +31,7 @@ pub enum LayoutCommand {
     },
     EndAlign,
     Child {
-        widget_ref: WidgetRef,
+        widget_refs: Vec<WidgetRef>,
         constraints: Constraints,
         size: Size,
         derive_wrap_size: DeriveWrapSize,
@@ -957,16 +957,20 @@ pub fn layout(
                 }
             }
             LayoutCommand::Child {
-                widget_ref, zindex, ..
+                widget_refs,
+                zindex,
+                ..
             } => {
                 // Don't render anything outside the screen view
                 if rect_contains_boundary(boundary, Rect::from_pos_size(Vec2::ZERO, root_size)) {
-                    widget_placements.push(WidgetPlacement {
-                        widget_ref: *widget_ref,
-                        zindex: *zindex,
-                        boundary,
-                        rect,
-                    });
+                    for widget_ref in widget_refs {
+                        widget_placements.push(WidgetPlacement {
+                            widget_ref: *widget_ref,
+                            zindex: *zindex,
+                            boundary,
+                            rect,
+                        });
+                    }
                 }
 
                 current_idx += 1;

@@ -3,7 +3,12 @@ use std::any::Any;
 use glam::Vec2;
 
 use crate::{
-    impl_size_methods, impl_width_methods, layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement}, render::{cache_string, PixelExtension, RenderCommand, RenderContext}, state::WidgetState, text::{StringId, TextId}, AlignX, AlignY, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType
+    AlignX, AlignY, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef,
+    WidgetType, impl_size_methods, impl_width_methods,
+    layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
+    render::{PixelExtension, RenderCommand, RenderContext, cache_string},
+    state::WidgetState,
+    text::{StringId, TextId},
 };
 
 use super::builder::BuildContext;
@@ -75,8 +80,11 @@ impl<'a> TextBuilder<'a> {
                 })
         });
 
+        let mut widget_refs = std::mem::take(&mut context.decorators);
+        widget_refs.push(widget_ref);
+
         context.push_layout_command(LayoutCommand::Child {
-            widget_ref,
+            widget_refs: widget_refs,
             constraints: self.constraints,
             size: self.size,
             zindex: self.zindex.unwrap_or(context.current_zindex),

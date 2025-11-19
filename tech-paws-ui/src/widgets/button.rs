@@ -85,7 +85,7 @@ impl<'a> ButtonBuilder<'a> {
             padding_containts.expand(padding);
 
             context.push_layout_command(LayoutCommand::BeginContainer {
-                widget_ref: None,
+                widget_ref: vec![],
                 zindex: 0,
                 kind: ContainerKind::Padding { padding },
                 size,

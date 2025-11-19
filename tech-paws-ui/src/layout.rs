@@ -18,7 +18,7 @@ pub struct WidgetPlacement {
 #[derive(Debug, Clone)]
 pub enum LayoutCommand {
     BeginContainer {
-        widget_ref: Option<WidgetRef>,
+        widget_ref: Vec<WidgetRef>,
         kind: ContainerKind,
         constraints: Constraints,
         size: Size,
@@ -103,9 +103,9 @@ struct LayoutContainerCommand {
     size: Size,
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone)]
 struct LayoutContainer {
-    widget_ref: Option<WidgetRef>,
+    widget_ref: Vec<WidgetRef>,
     zindex: i32,
     idx: usize,
     axis: StackAxis,
@@ -274,14 +274,14 @@ impl LayoutState {
     fn pop_container(&mut self) -> LayoutContainer {
         self.containers_stack_cursor -= 1;
 
-        self.containers_stack[self.containers_stack_cursor]
+        self.containers_stack[self.containers_stack_cursor].clone()
     }
 
     #[inline]
     fn clear(&mut self) {
         self.parent_container = LayoutContainer {
             idx: 0,
-            widget_ref: None,
+            widget_ref: vec![],
             zindex: 0,
             axis: StackAxis::None,
             command: Default::default(),
@@ -521,7 +521,7 @@ pub fn layout(
                 widget_ref,
                 ..
             } => {
-                layout_state.push_container(layout_state.parent_container);
+                layout_state.push_container(layout_state.parent_container.clone());
                 layout_state.push_boundary();
                 layout_state.add_flex_sum(*size);
                 layout_state.set_constraints(*constraints);
@@ -529,7 +529,7 @@ pub fn layout(
                 match kind {
                     ContainerKind::VStack { spacing, .. } => {
                         layout_state.parent_container = LayoutContainer {
-                            widget_ref: None,
+                            widget_ref: vec![],
                             zindex: 0,
                             idx: layout_state.current_idx(),
                             axis: StackAxis::Vertical { spacing: *spacing },
@@ -546,7 +546,7 @@ pub fn layout(
                         layout_state.parent_container = LayoutContainer {
                             idx: layout_state.current_idx(),
                             zindex: *zindex,
-                            widget_ref: *widget_ref,
+                            widget_ref: widget_ref.clone(),
                             axis: StackAxis::Horizontal {
                                 spacing: *spacing,
                                 rtl_aware: *rtl_aware,
@@ -562,7 +562,7 @@ pub fn layout(
                         layout_state.parent_container = LayoutContainer {
                             idx: layout_state.current_idx(),
                             zindex: *zindex,
-                            widget_ref: *widget_ref,
+                            widget_ref: widget_ref.clone(),
                             axis: StackAxis::None,
                             command: LayoutContainerCommand {
                                 kind: *kind,
@@ -579,7 +579,7 @@ pub fn layout(
                         layout_state.parent_container = LayoutContainer {
                             idx: layout_state.current_idx(),
                             zindex: *zindex,
-                            widget_ref: *widget_ref,
+                            widget_ref: widget_ref.clone(),
                             axis: StackAxis::None,
                             command: LayoutContainerCommand {
                                 kind: *kind,
@@ -594,7 +594,7 @@ pub fn layout(
                         layout_state.parent_container = LayoutContainer {
                             idx: layout_state.current_idx(),
                             zindex: *zindex,
-                            widget_ref: *widget_ref,
+                            widget_ref: widget_ref.clone(),
                             axis: StackAxis::Horizontal {
                                 spacing: *spacing,
                                 rtl_aware: *rtl_aware,
@@ -721,7 +721,7 @@ pub fn layout(
         axis: StackAxis::None,
         command: Default::default(),
         zindex: 0,
-        widget_ref: None,
+        widget_ref: vec![],
     };
     layout_state.push_align(AlignX::Left, AlignY::Top);
 
@@ -832,7 +832,7 @@ pub fn layout(
                 ..
             } => {
                 layout_state.push_position(current_position);
-                layout_state.push_container(layout_state.parent_container);
+                layout_state.push_container(layout_state.parent_container.clone());
                 current_position = position;
                 let command = LayoutContainerCommand {
                     kind: *kind,
@@ -845,7 +845,7 @@ pub fn layout(
                         layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
-                            widget_ref: *widget_ref,
+                            widget_ref: widget_ref.clone(),
                             axis: StackAxis::Vertical { spacing: *spacing },
                             command,
                         };
@@ -863,7 +863,7 @@ pub fn layout(
                         layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
-                            widget_ref: *widget_ref,
+                            widget_ref: widget_ref.clone(),
                             axis: StackAxis::Horizontal {
                                 spacing: *spacing,
                                 rtl_aware: *rtl_aware,
@@ -879,7 +879,7 @@ pub fn layout(
                         layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
-                            widget_ref: *widget_ref,
+                            widget_ref: widget_ref.clone(),
                             axis: StackAxis::None,
                             command,
                         };
@@ -891,7 +891,7 @@ pub fn layout(
                         layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
-                            widget_ref: *widget_ref,
+                            widget_ref: widget_ref.clone(),
                             axis: StackAxis::None,
                             command,
                         };
@@ -902,7 +902,7 @@ pub fn layout(
             }
             LayoutCommand::EndContainer => {
                 widget_size = container_size;
-                let parent_container = layout_state.parent_container;
+                let parent_container = layout_state.parent_container.clone();
                 layout_state.parent_container = layout_state.pop_container();
                 current_position = layout_state.pop_position();
 
@@ -928,7 +928,8 @@ pub fn layout(
                     // });
                 }
 
-                if let Some(widget_ref) = parent_container.widget_ref {
+                // if let Some(widget_ref) = parent_container.widget_ref {
+                for widget_ref in &parent_container.widget_ref {
                     let container_idx = parent_container.idx;
                     let container_offset = layout_state.offsets[container_idx];
                     let container_size = layout_state.actual_sizes[container_idx];
@@ -948,7 +949,7 @@ pub fn layout(
                         Rect::from_pos_size(Vec2::ZERO, root_size),
                     ) {
                         widget_placements.push(WidgetPlacement {
-                            widget_ref: widget_ref,
+                            widget_ref: *widget_ref,
                             zindex: parent_container.zindex,
                             boundary: Rect::ZERO,
                             rect: Rect::from_pos_size(position, widget_size),

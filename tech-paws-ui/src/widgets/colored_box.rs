@@ -55,15 +55,16 @@ impl ColoredBoxBuilder {
         let size = Size::new(SizeConstraint::Wrap, SizeConstraint::Wrap);
         let widget_ref = WidgetRef::new(WidgetType::of::<ColoredBox>(), id);
 
-        context.push_layout_command(LayoutCommand::BeginContainer {
-            widget_ref: Some(widget_ref),
-            zindex: context.current_zindex - 1,
-            kind: ContainerKind::ZStack,
-            size,
-            constraints: Constraints::default(),
-        });
+        // context.push_layout_command(LayoutCommand::BeginContainer {
+        //     widget_ref: Some(widget_ref),
+        //     zindex: context.current_zindex - 1,
+        //     kind: ContainerKind::ZStack,
+        //     size,
+        //     constraints: Constraints::default(),
+        // });
+        context.decorators.push(widget_ref);
         callback(context);
-        context.push_layout_command(LayoutCommand::EndContainer);
+        // context.push_layout_command(LayoutCommand::EndContainer);
 
         context.current_zindex = last_zindex;
         context.widgets_states.accessed_this_frame.insert(id);

@@ -52,9 +52,10 @@ impl HStackBuilder {
     {
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
+        let widget_refs = std::mem::take(&mut context.decorators);
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            widget_ref: None,
+            widget_ref: widget_refs,
             zindex: 0,
             kind: ContainerKind::HStack {
                 spacing: self.spacing,

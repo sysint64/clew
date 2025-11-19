@@ -10,7 +10,7 @@ pub struct WidgetId {
 
 impl WidgetId {
     #[track_caller]
-    pub(crate) fn auto_with_seed(seed: impl Hash) -> Self {
+    pub fn auto_with_seed(seed: impl Hash) -> Self {
         let location = std::panic::Location::caller();
 
         let mut hasher = DefaultHasher::new();
@@ -24,7 +24,7 @@ impl WidgetId {
         }
     }
 
-    pub(crate) fn with_seed(mut self, seed: Option<u64>) -> Self {
+    pub fn with_seed(mut self, seed: Option<u64>) -> Self {
         if self.seed.is_none() {
             self.seed = seed;
         }
@@ -33,7 +33,7 @@ impl WidgetId {
     }
 
     #[track_caller]
-    pub(crate) fn auto() -> Self {
+    pub fn auto() -> Self {
         let location = std::panic::Location::caller();
 
         Self {

@@ -99,6 +99,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         event_loop_proxy,
         id_seed: None,
         user_data: Vec::new(),
+        strings: &mut window_state.strings,
     };
 
     window_state.window.build(app, &mut build_context);

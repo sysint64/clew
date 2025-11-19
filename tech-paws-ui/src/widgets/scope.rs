@@ -7,11 +7,11 @@ pub struct ScopeBuilder {
 }
 
 impl ScopeBuilder {
-    pub fn build<F>(&self, context: &mut BuildContext, callback: F)
+    pub fn build<F, T>(&self, context: &mut BuildContext, callback: F) -> T
     where
-        F: FnOnce(&mut BuildContext),
+        F: FnOnce(&mut BuildContext) -> T,
     {
-        context.with_id_seed(self.key, callback);
+        context.with_id_seed(self.key, callback)
     }
 }
 

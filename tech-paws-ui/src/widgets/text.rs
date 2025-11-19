@@ -3,12 +3,7 @@ use std::any::Any;
 use glam::Vec2;
 
 use crate::{
-    AlignX, AlignY, ColorRgba, Constraints, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType,
-    impl_width_methods,
-    layout::{LayoutCommand, WidgetPlacement},
-    render::{PixelExtension, RenderCommand, RenderContext, cache_string},
-    state::WidgetState,
-    text::StringId,
+    impl_size_methods, impl_width_methods, layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement}, render::{cache_string, PixelExtension, RenderCommand, RenderContext}, state::WidgetState, text::{StringId, TextId}, AlignX, AlignY, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType
 };
 
 use super::builder::BuildContext;
@@ -18,7 +13,7 @@ pub struct TextWidget;
 pub struct TextBuilder<'a> {
     id: WidgetId,
     text: &'a str,
-    width: SizeConstraint,
+    size: Size,
     constraints: Constraints,
     zindex: Option<i32>,
     color: ColorRgba,
@@ -28,7 +23,7 @@ pub struct TextBuilder<'a> {
 
 #[derive(Clone, PartialEq)]
 pub struct State {
-    pub(crate) text: StringId,
+    pub(crate) text_id: TextId,
     pub(crate) color: ColorRgba,
     pub(crate) text_align_x: AlignX,
     pub(crate) text_align_y: AlignY,
@@ -47,7 +42,7 @@ impl WidgetState for State {
 }
 
 impl<'a> TextBuilder<'a> {
-    impl_width_methods!();
+    impl_size_methods!();
 
     pub fn color(mut self, color: ColorRgba) -> Self {
         self.color = color;
@@ -71,14 +66,24 @@ impl<'a> TextBuilder<'a> {
         let id = self.id.with_seed(context.id_seed);
 
         let text = context.string_interner.get_or_intern(self.text);
-        let size = Size::new(self.width, SizeConstraint::Fixed(20.0));
         let widget_ref = WidgetRef::new(WidgetType::of::<TextWidget>(), id);
+        let text_id = cache_string(context, text, |ctx| {
+            let text = ctx.string_interner.resolve(text).unwrap();
+            ctx.text
+                .add_text(ctx.view, ctx.fonts, 12., 12., |fonts, text_res| {
+                    text_res.set_text(fonts, text)
+                })
+        });
 
-        context.push_layout_command(LayoutCommand::Fixed {
+        context.push_layout_command(LayoutCommand::Child {
             widget_ref,
             constraints: self.constraints,
-            size,
+            size: self.size,
             zindex: self.zindex.unwrap_or(context.current_zindex),
+            derive_wrap_size: DeriveWrapSize::Text {
+                padding: EdgeInsets::ZERO,
+                text_id,
+            },
         });
 
         context.widgets_states.accessed_this_frame.insert(id);
@@ -86,13 +91,13 @@ impl<'a> TextBuilder<'a> {
         let state = context
             .widgets_states
             .get_or_insert::<State, _>(id, || State {
-                text,
+                text_id: text_id,
                 color: self.color,
                 text_align_x: self.text_align_x,
                 text_align_y: self.text_align_y,
             });
 
-        state.text = text;
+        state.text_id = text_id;
     }
 }
 
@@ -102,7 +107,7 @@ pub fn text(text: &str) -> TextBuilder<'_> {
         id: WidgetId::auto(),
         text,
         color: ColorRgba::from_hex(0xFFFFFFFF),
-        width: SizeConstraint::Wrap,
+        size: Size::default(),
         zindex: None,
         constraints: Constraints {
             min_width: 100.,
@@ -120,15 +125,7 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
     let size = placement.rect.size().px(ctx);
     let position = placement.rect.position().px(ctx);
 
-    let text_id = cache_string(ctx, state.text, |ctx| {
-        let text = ctx.string_interner.resolve(state.text).unwrap();
-        ctx.text
-            .add_text(ctx.view, ctx.fonts, 12., 12., |fonts, text_res| {
-                text_res.set_text(fonts, text)
-            })
-    });
-
-    let text_size = ctx.text.get_mut(text_id).layout();
+    let text_size = ctx.text.get_mut(state.text_id).layout();
     let text_position = position
         + Vec2::new(
             state
@@ -141,7 +138,7 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
         zindex: placement.zindex,
         x: text_position.x,
         y: text_position.y,
-        text_id,
+        text_id: state.text_id,
         tint_color: Some(state.color),
     });
 }

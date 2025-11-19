@@ -7,10 +7,10 @@ use crate::{
     impl_position_methods, impl_width_methods,
     interaction::InteractionState,
     io::UserInput,
-    layout::{ContainerKind, LayoutCommand, WidgetPlacement},
+    layout::{ContainerKind, DeriveWrapSize, LayoutCommand, WidgetPlacement},
     render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
     state::WidgetState,
-    text::StringId,
+    text::{StringId, TextId},
 };
 use std::{any::Any, hash::Hash, rc::Rc};
 
@@ -37,7 +37,7 @@ impl ButtonResponse {
 
 #[derive(Clone, PartialEq)]
 pub struct State {
-    pub(crate) text: StringId,
+    pub(crate) text_id: TextId,
     pub(crate) clicked: bool,
 }
 
@@ -70,8 +70,15 @@ impl<'a> ButtonBuilder<'a> {
         let id = self.id.with_seed(context.id_seed);
 
         let text = context.string_interner.get_or_intern(self.text);
-        let size = Size::new(self.width, SizeConstraint::Fixed(20.0));
+        let size = Size::new(self.width, SizeConstraint::Wrap);
         let widget_ref = WidgetRef::new(WidgetType::of::<ButtonWidget>(), id);
+        let text_id = cache_string(context, text, |ctx| {
+            let text = ctx.string_interner.resolve(text).unwrap();
+            ctx.text
+                .add_text(ctx.view, ctx.fonts, 12., 12., |fonts, text_res| {
+                    text_res.set_text(fonts, text)
+                })
+        });
 
         if let Some(padding) = self.padding {
             let mut padding_containts = self.constraints;
@@ -86,21 +93,29 @@ impl<'a> ButtonBuilder<'a> {
             });
 
             context.with_align(self.align_x, self.align_y, |context| {
-                context.push_layout_command(LayoutCommand::Fixed {
+                context.push_layout_command(LayoutCommand::Child {
                     widget_ref,
                     constraints: self.constraints,
                     size,
                     zindex: self.zindex.unwrap_or(context.current_zindex),
+                    derive_wrap_size: DeriveWrapSize::Text {
+                        padding: EdgeInsets::symmetric(8., 4.),
+                        text_id,
+                    },
                 });
             });
 
             context.push_layout_command(LayoutCommand::EndContainer);
         } else {
             context.with_align(self.align_x, self.align_y, |context| {
-                context.push_layout_command(LayoutCommand::Fixed {
+                context.push_layout_command(LayoutCommand::Child {
                     widget_ref,
                     constraints: self.constraints,
                     size,
+                    derive_wrap_size: DeriveWrapSize::Text {
+                        padding: EdgeInsets::symmetric(8., 4.),
+                        text_id,
+                    },
                     zindex: self.zindex.unwrap_or(context.current_zindex),
                 });
             });
@@ -112,10 +127,10 @@ impl<'a> ButtonBuilder<'a> {
             .widgets_states
             .get_or_insert::<State, _>(id, || State {
                 clicked: false,
-                text,
+                text_id,
             });
 
-        state.text = text;
+        state.text_id = text_id;
 
         ButtonResponse {
             clicked: state.clicked,
@@ -129,15 +144,16 @@ pub fn button(text: &str) -> ButtonBuilder<'_> {
         id: WidgetId::auto(),
         text,
         width: SizeConstraint::Wrap,
+        // width: SizeConstraint::Fixed(100.),
         align_x: None,
         align_y: None,
         padding: None,
         zindex: None,
         constraints: Constraints {
-            min_width: 100.,
+            min_width: 20.,
             min_height: 20.,
             max_width: f32::INFINITY,
-            max_height: 20.,
+            max_height: f32::INFINITY,
         },
     }
 }
@@ -214,15 +230,7 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
         border: Some(Border::all(BorderSide::new(1.0.px(ctx), border_color))),
     });
 
-    let text_id = cache_string(ctx, state.text, |ctx| {
-        let text = ctx.string_interner.resolve(state.text).unwrap();
-        ctx.text
-            .add_text(ctx.view, ctx.fonts, 12., 12., |fonts, text_res| {
-                text_res.set_text(fonts, text)
-            })
-    });
-
-    let text_size = ctx.text.get_mut(text_id).layout();
+    let text_size = ctx.text.get_mut(state.text_id).layout();
     let text_position = position
         + Vec2::new(
             AlignX::Center.position(ctx.layout_direction, size.x, text_size.x),
@@ -233,7 +241,7 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
         zindex: placement.zindex,
         x: text_position.x,
         y: text_position.y,
-        text_id,
+        text_id: state.text_id,
         tint_color: Some(ColorRgba::from_hex(0xFFFFFFFF)),
     });
 }

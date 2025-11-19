@@ -39,6 +39,8 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
         fonts: &mut FontResources,
         text: &mut TextsResources,
     ) {
+        let render_time = std::time::Instant::now();
+
         let width = view.size.width;
         let height = view.size.height;
 
@@ -172,7 +174,12 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
             }
         }
 
+        println!("RENDER COMMANDS: {:?}", render_time.elapsed());
+
+        let compose_time = std::time::Instant::now();
         surface_buffer.present().unwrap();
+
+        println!("SOFTBUFFER PRESENT: {:?}", compose_time.elapsed());
     }
 }
 

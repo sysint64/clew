@@ -1,6 +1,6 @@
 use std::{
     any::Any,
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     hash::{DefaultHasher, Hash, Hasher},
     sync::Arc,
 };
@@ -9,7 +9,7 @@ use crate::{
     AlignX, AlignY, View, ViewId,
     layout::LayoutCommand,
     state::WidgetsStates,
-    text::{FontResources, StringInterner, TextsResources},
+    text::{FontResources, StringId, StringInterner, TextId, TextsResources},
 };
 
 #[derive(Debug)]
@@ -32,6 +32,7 @@ pub struct BuildContext<'a, 'b> {
     pub fonts: &'a mut FontResources,
     pub view: &'a View,
     pub string_interner: &'a mut StringInterner,
+    pub strings: &'a mut HashMap<StringId, TextId>,
     pub async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     pub broadcast_async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     pub event_loop_proxy: Arc<dyn ApplicationEventLoopProxy>,
@@ -65,9 +66,9 @@ impl BuildContext<'_, '_> {
         self.user_data.pop();
     }
 
-    pub fn with_id_seed<F>(&mut self, seed: u64, callback: F)
+    pub fn with_id_seed<F, T>(&mut self, seed: u64, callback: F) -> T
     where
-        F: FnOnce(&mut BuildContext),
+        F: FnOnce(&mut BuildContext) -> T,
     {
         let last_id_seed = self.id_seed;
 
@@ -82,8 +83,10 @@ impl BuildContext<'_, '_> {
             None => seed,
         });
 
-        callback(self);
+        let result = callback(self);
         self.id_seed = last_id_seed;
+
+        result
     }
 
     pub fn with_align<F>(&mut self, align_x: Option<AlignX>, align_y: Option<AlignY>, callback: F)

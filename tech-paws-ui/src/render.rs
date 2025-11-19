@@ -10,7 +10,7 @@ use crate::{
     layout::layout,
     state::UiState,
     text::{FontResources, StringId, StringInterner, TextId, TextsResources},
-    widgets,
+    widgets::{self, builder::BuildContext},
 };
 
 #[derive(Debug, Default)]
@@ -151,9 +151,9 @@ impl PixelExtension<Border> for Border {
     }
 }
 
-pub fn cache_string<F>(ctx: &mut RenderContext, symbol: StringId, create_text_id: F) -> TextId
+pub fn cache_string<F>(ctx: &mut BuildContext, symbol: StringId, create_text_id: F) -> TextId
 where
-    F: FnOnce(&mut RenderContext) -> TextId,
+    F: FnOnce(&mut BuildContext) -> TextId,
 {
     match ctx.strings.get(&symbol) {
         Some(text_id) => *text_id,
@@ -174,15 +174,23 @@ pub fn render(
     strings: &mut HashMap<StringId, TextId>,
     force_redraw: bool,
 ) -> bool {
-    let _start = std::time::Instant::now();
     let mut need_to_redraw = false;
 
+    let layout_time = std::time::Instant::now();
     layout(
         &mut state.layout_state,
         &state.view,
         &state.layout_commands,
         &mut state.widget_placements,
+        text,
     );
+    println!(
+        "LAYOUT TIME FOR {} COMMANDS: {:?}",
+        state.layout_commands.len(),
+        layout_time.elapsed()
+    );
+
+    let interaction_time = std::time::Instant::now();
 
     need_to_redraw = need_to_redraw
         || handle_interaction(
@@ -198,8 +206,12 @@ pub fn render(
     need_to_redraw = need_to_redraw || state.interaction_state != state.last_interaction_state;
     state.last_interaction_state = state.interaction_state.clone();
 
+    println!("INTERACTION TIME: {:?}", interaction_time.elapsed());
+
     if force_redraw || need_to_redraw {
         println!("REDRAW");
+
+        let render_time = std::time::Instant::now();
 
         for placement in &state.widget_placements {
             let mut render_context = RenderContext {
@@ -263,15 +275,27 @@ pub fn render(
                 );
             }
         }
+
+        println!(
+            "RENDER COMMAND CREATED FOR {} PLACEMENTS: {:?}",
+            state.widget_placements.len(),
+            render_time.elapsed()
+        );
     }
+
+    let clean_up_time = std::time::Instant::now();
 
     state.widgets_states.sweep(&mut state.interaction_state);
     state.user_input.clear_frame_events();
 
+    println!("CLEAN UP TIME: {:?}", clean_up_time.elapsed());
+
+    let commands_sort_time = std::time::Instant::now();
     state
         .render_state
         .commands
         .sort_by_key(|cmd| cmd.zindex().unwrap_or(i32::MAX));
+    println!("COMMANDS SORT TIME: {:?}", commands_sort_time.elapsed());
 
     force_redraw || need_to_redraw
 }

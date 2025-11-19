@@ -29,6 +29,16 @@ pub enum SizeConstraint {
     Fixed(f32),
 }
 
+impl SizeConstraint {
+    pub fn constrained(&self) -> bool {
+        match self {
+            SizeConstraint::Fill(_) => true,
+            SizeConstraint::Wrap => false,
+            SizeConstraint::Fixed(_) => true,
+        }
+    }
+}
+
 impl From<f32> for SizeConstraint {
     fn from(value: f32) -> Self {
         SizeConstraint::Fixed(value)

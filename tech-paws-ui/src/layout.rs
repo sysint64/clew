@@ -1,6 +1,7 @@
 use crate::{
     AlignX, AlignY, Constraints, CrossAxisAlignment, EdgeInsets, LayoutDirection,
     MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetRef, rect_contains_boundary,
+    text::{TextId, TextsResources},
 };
 use glam::Vec2;
 
@@ -29,22 +30,25 @@ pub enum LayoutCommand {
         align_y: AlignY,
     },
     EndAlign,
-    Fixed {
+    Child {
         widget_ref: WidgetRef,
         constraints: Constraints,
         size: Size,
+        derive_wrap_size: DeriveWrapSize,
         zindex: i32,
-    },
-    Wrap {
-        widget_ref: WidgetRef,
-        constraints: Constraints,
-        size: Size,
-        zindex: i32,
-        wrap: WrapKind,
     },
     Spacer {
         constraints: Constraints,
         size: Size,
+    },
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum DeriveWrapSize {
+    Constraints,
+    Text {
+        padding: EdgeInsets,
+        text_id: TextId,
     },
 }
 
@@ -496,6 +500,7 @@ pub fn layout(
     view: &View,
     commands: &[LayoutCommand],
     widget_placements: &mut Vec<WidgetPlacement>,
+    text: &mut TextsResources,
 ) {
     layout_state.clear();
 
@@ -656,20 +661,35 @@ pub fn layout(
                 layout_state.actual_sizes[current_container_idx] =
                     apply_constraints(size, constraints);
             }
-            LayoutCommand::Fixed {
-                constraints, size, ..
+            LayoutCommand::Child {
+                constraints,
+                size,
+                derive_wrap_size,
+                ..
             } => {
                 layout_state.push_boundary();
                 layout_state.set_constraints(*constraints);
                 layout_state.add_flex_sum_x(size.width);
                 layout_state.add_flex_sum_y(size.height);
-                layout_state.add_size(
-                    *size,
-                    *constraints,
-                    Vec2::new(constraints.min_width, constraints.min_height),
-                );
+
+                let wrap_size = match derive_wrap_size {
+                    DeriveWrapSize::Constraints => {
+                        Vec2::new(constraints.min_width, constraints.min_height)
+                    }
+                    DeriveWrapSize::Text { padding, text_id } => {
+                        if size.width.constrained() && size.height.constrained() {
+                            Vec2::new(constraints.min_width, constraints.min_height)
+                        } else {
+                            let text_size = text.get_mut(*text_id).layout();
+
+                            (text_size / view.scale_factor)
+                                + Vec2::new(padding.horizontal(), padding.vertical())
+                        }
+                    }
+                };
+
+                layout_state.add_size(*size, *constraints, wrap_size);
             }
-            LayoutCommand::Wrap { .. } => todo!(),
             LayoutCommand::Spacer { constraints, size } => {
                 layout_state.push_boundary();
                 layout_state.set_constraints(*constraints);
@@ -909,8 +929,6 @@ pub fn layout(
                 }
 
                 if let Some(widget_ref) = parent_container.widget_ref {
-                    // if rect_contains_boundary(boundary, Rect::from_pos_size(Vec2::ZERO, root_size))
-                    // {
                     let container_idx = parent_container.idx;
                     let container_offset = layout_state.offsets[container_idx];
                     let container_size = layout_state.actual_sizes[container_idx];
@@ -925,19 +943,20 @@ pub fn layout(
                             align_y.position(container_size.y, widget_size.y),
                         );
 
-                    widget_placements.push(WidgetPlacement {
-                        widget_ref: widget_ref,
-                        zindex: parent_container.zindex,
-                        boundary: Rect::ZERO,
-                        rect: Rect::from_pos_size(position, widget_size),
-                    });
-                    // }
+                    if rect_contains_boundary(
+                        Rect::from_pos_size(position, widget_size),
+                        Rect::from_pos_size(Vec2::ZERO, root_size),
+                    ) {
+                        widget_placements.push(WidgetPlacement {
+                            widget_ref: widget_ref,
+                            zindex: parent_container.zindex,
+                            boundary: Rect::ZERO,
+                            rect: Rect::from_pos_size(position, widget_size),
+                        });
+                    }
                 }
             }
-            LayoutCommand::Fixed {
-                widget_ref, zindex, ..
-            }
-            | LayoutCommand::Wrap {
+            LayoutCommand::Child {
                 widget_ref, zindex, ..
             } => {
                 // Don't render anything outside the screen view

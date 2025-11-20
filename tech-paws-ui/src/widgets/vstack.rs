@@ -1,11 +1,14 @@
 use crate::{
-    impl_position_methods, impl_size_methods, layout::{ContainerKind, LayoutCommand}, AlignX, AlignY, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, Size, SizeConstraint
+    AlignX, AlignY, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, Size,
+    SizeConstraint, impl_position_methods, impl_size_methods,
+    layout::{ContainerKind, LayoutCommand},
 };
 
 use super::builder::BuildContext;
 
 pub struct VStackBuilder {
     size: Size,
+    rtl_aware: bool,
     spacing: f32,
     constraints: Constraints,
     align_x: Option<AlignX>,
@@ -22,6 +25,12 @@ impl VStackBuilder {
 
     pub fn padding(mut self, padding: EdgeInsets) -> Self {
         self.padding = padding;
+
+        self
+    }
+
+    pub fn rtl_aware(mut self, rtl_aware: bool) -> Self {
+        self.rtl_aware = rtl_aware;
 
         self
     }
@@ -50,25 +59,23 @@ impl VStackBuilder {
     {
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
+        let widget_refs = std::mem::take(&mut context.decorators);
 
-        context.with_align(self.align_x, self.align_y, |context| {
-            let widget_refs = std::mem::take(&mut context.decorators);
-
-            context.push_layout_command(LayoutCommand::BeginContainer {
-                widget_ref: widget_refs,
-                zindex: 0,
-                padding: self.padding,
-                kind: ContainerKind::VStack {
-                    spacing: self.spacing,
-                    main_axis_alignment: self.main_axis_alignment,
-                    cross_axis_alignment: self.cross_axis_alignment,
-                },
-                size: self.size,
-                constraints: self.constraints,
-            });
-            callback(context);
-            context.push_layout_command(LayoutCommand::EndContainer);
+        context.push_layout_command(LayoutCommand::BeginContainer {
+            widget_ref: widget_refs,
+            zindex: 0,
+            padding: self.padding,
+            kind: ContainerKind::VStack {
+                spacing: self.spacing,
+                rtl_aware: self.rtl_aware,
+                main_axis_alignment: self.main_axis_alignment,
+                cross_axis_alignment: self.cross_axis_alignment,
+            },
+            size: self.size,
+            constraints: self.constraints,
         });
+        callback(context);
+        context.push_layout_command(LayoutCommand::EndContainer);
 
         context.current_zindex = last_zindex;
     }
@@ -79,6 +86,7 @@ pub fn vstack() -> VStackBuilder {
         size: Size::default(),
         constraints: Constraints::default(),
         spacing: 5.,
+        rtl_aware: false,
         zindex: None,
         align_x: None,
         align_y: None,

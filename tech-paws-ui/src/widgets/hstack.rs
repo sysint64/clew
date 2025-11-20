@@ -53,7 +53,7 @@ impl HStackBuilder {
         self
     }
 
-    pub fn build<F>(&self, context: &mut BuildContext, callback: F)
+    pub fn build<F>(self, context: &mut BuildContext, callback: F)
     where
         F: FnOnce(&mut BuildContext),
     {
@@ -67,9 +67,9 @@ impl HStackBuilder {
             padding: self.padding,
             kind: ContainerKind::HStack {
                 spacing: self.spacing,
+                rtl_aware: self.rtl_aware,
                 main_axis_alignment: self.main_axis_alignment,
                 cross_axis_alignment: self.cross_axis_alignment,
-                rtl_aware: self.rtl_aware,
             },
             size: self.size,
             constraints: self.constraints,

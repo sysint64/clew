@@ -67,6 +67,7 @@ pub enum ContainerKind {
         spacing: f32,
         main_axis_alignment: MainAxisAlignment,
         cross_axis_alignment: CrossAxisAlignment,
+        rtl_aware: bool,
     },
     HStack {
         spacing: f32,
@@ -107,6 +108,7 @@ enum StackAxisPass2 {
         cross_axis_alignment: CrossAxisAlignment,
     },
     Vertical {
+        rtl_aware: bool,
         spacing: f32,
         main_axis_alignment: MainAxisAlignment,
         cross_axis_alignment: CrossAxisAlignment,
@@ -811,29 +813,30 @@ pub fn layout(
         let mut widget_size = layout_state.actual_sizes[current_idx];
 
         let (boundary_position, boundary_size) = match layout_state.pass2_parent_container.axis {
-            StackAxisPass2::None => (container_position, container_size),
+            StackAxisPass2::None => (
+                container_position,
+                Vec2::new(
+                    container_size.x - layout_state.pass2_parent_container.padding.horizontal(),
+                    container_size.y - layout_state.pass2_parent_container.padding.vertical(),
+                ),
+            ),
             StackAxisPass2::Horizontal { .. } => (
-                Vec2::new(current_position.x, container_position.y),
-                Vec2::new(widget_size.x, container_size.y),
+                Vec2::new(current_position.x, current_position.y),
+                Vec2::new(
+                    widget_size.x,
+                    container_size.y - layout_state.pass2_parent_container.padding.vertical(),
+                ),
             ),
             StackAxisPass2::Vertical { .. } => (
-                Vec2::new(container_position.x, current_position.y),
-                Vec2::new(container_size.x, widget_size.y),
+                Vec2::new(current_position.x, current_position.y),
+                Vec2::new(
+                    container_size.x - layout_state.pass2_parent_container.padding.horizontal(),
+                    widget_size.y,
+                ),
             ),
         };
 
         let mut boundary = Rect::from_pos_size(boundary_position, boundary_size);
-        // let (align_x, align_y) = layout_state.get_align();
-        // let mut position = current_position
-        //     + container_offset
-        //     + Vec2::new(
-        //         align_x.position(
-        //             layout_state.layout_direction,
-        //             boundary_size.x,
-        //             widget_size.x,
-        //         ),
-        //         align_y.position(boundary_size.y, widget_size.y),
-        //     );
         let mut position = current_position;
 
         if let StackAxisPass2::Horizontal { rtl_aware, .. } =
@@ -854,8 +857,7 @@ pub fn layout(
                 cross_axis_alignment,
             } => {
                 if cross_axis_alignment == CrossAxisAlignment::Stretch {
-                    let height =
-                        boundary.size().x - layout_state.pass2_parent_container.padding.vertical();
+                    let height = boundary.height;
                     widget_size.y = height.max(layout_state.actual_sizes[current_idx].y);
                 }
             }
@@ -863,16 +865,14 @@ pub fn layout(
                 spacing,
                 main_axis_alignment,
                 cross_axis_alignment,
+                ..
             } => {
                 if cross_axis_alignment == CrossAxisAlignment::Stretch {
-                    let width = boundary.size().x
-                        - layout_state.pass2_parent_container.padding.horizontal();
+                    let width = boundary.width;
                     widget_size.x = width.max(layout_state.actual_sizes[current_idx].x);
                 }
             }
         }
-
-        let rect = Rect::from_pos_size(position, widget_size);
 
         match command {
             LayoutCommand::BeginAlign { align_x, align_y } => {
@@ -895,15 +895,124 @@ pub fn layout(
                 layout_state.push_position(current_position);
                 layout_state.push_pass2_container(layout_state.pass2_parent_container.clone());
 
+                layout_state.actual_sizes[current_idx] = widget_size;
                 current_position = position;
+
+                let align_x = match layout_state.pass2_parent_container.axis {
+                    StackAxisPass2::None => AlignX::Start,
+                    StackAxisPass2::Horizontal {
+                        rtl_aware,
+                        spacing,
+                        main_axis_alignment,
+                        cross_axis_alignment,
+                    } => AlignX::Start,
+                    StackAxisPass2::Vertical {
+                        rtl_aware,
+                        spacing,
+                        main_axis_alignment,
+                        cross_axis_alignment,
+                    } => match cross_axis_alignment {
+                        CrossAxisAlignment::Start => {
+                            if rtl_aware {
+                                AlignX::Start
+                            } else {
+                                AlignX::Left
+                            }
+                        }
+                        CrossAxisAlignment::End => {
+                            if rtl_aware {
+                                AlignX::End
+                            } else {
+                                AlignX::Right
+                            }
+                        }
+                        CrossAxisAlignment::Center => AlignX::Center,
+                        CrossAxisAlignment::Stretch => AlignX::Start,
+                        CrossAxisAlignment::Baseline => {
+                            panic!("Baseline align is not supported for vstack")
+                        }
+                    },
+                };
+
+                let align_y = match layout_state.pass2_parent_container.axis {
+                    StackAxisPass2::None => AlignY::Top,
+                    StackAxisPass2::Horizontal {
+                        rtl_aware,
+                        spacing,
+                        main_axis_alignment,
+                        cross_axis_alignment,
+                    } => match cross_axis_alignment {
+                        CrossAxisAlignment::Start => AlignY::Top,
+                        CrossAxisAlignment::End => AlignY::Bottom,
+                        CrossAxisAlignment::Center => AlignY::Center,
+                        CrossAxisAlignment::Stretch => AlignY::Top,
+                        CrossAxisAlignment::Baseline => {
+                            todo!()
+                        }
+                    },
+                    StackAxisPass2::Vertical {
+                        rtl_aware,
+                        spacing,
+                        main_axis_alignment,
+                        cross_axis_alignment,
+                    } => AlignY::Top,
+                };
+
+                current_position += Vec2::new(
+                    align_x.position(layout_state.layout_direction, boundary.width, widget_size.x),
+                    align_y.position(boundary.height, widget_size.y),
+                );
+
+                if RENDER_DEBUG_BOUNDARIES {
+                    if rect_contains_boundary(
+                        Rect::from_pos_size(position, widget_size),
+                        Rect::from_pos_size(Vec2::ZERO, root_size),
+                    ) {
+                        widget_placements.push(WidgetPlacement {
+                            widget_ref: WidgetRef {
+                                widget_type: WidgetType::of::<DebugBoundary>(),
+                                id: WidgetId::auto(),
+                            },
+                            zindex: i32::MAX,
+                            boundary: Rect::ZERO,
+                            rect: Rect::from_pos_size(current_position, widget_size),
+                        });
+
+                        widget_placements.push(WidgetPlacement {
+                            widget_ref: WidgetRef {
+                                widget_type: WidgetType::of::<DebugBoundary>(),
+                                id: WidgetId::auto(),
+                            },
+                            zindex: i32::MAX,
+                            boundary: Rect::ZERO,
+                            rect: boundary,
+                        });
+                    }
+                }
+
                 current_position.x += padding.left;
                 current_position.y += padding.top;
+
+                for widget_ref in widget_ref {
+                    if rect_contains_boundary(
+                        Rect::from_pos_size(position, widget_size),
+                        Rect::from_pos_size(Vec2::ZERO, root_size),
+                    ) {
+                        widget_placements.push(WidgetPlacement {
+                            widget_ref: *widget_ref,
+                            zindex: *zindex,
+                            boundary: Rect::ZERO,
+                            rect: Rect::from_pos_size(current_position, widget_size),
+                        });
+                    }
+                }
 
                 match kind {
                     ContainerKind::VStack {
                         spacing,
                         main_axis_alignment,
                         cross_axis_alignment,
+                        rtl_aware,
                     } => {
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             idx: current_idx,
@@ -912,6 +1021,7 @@ pub fn layout(
                             padding: *padding,
                             axis: StackAxisPass2::Vertical {
                                 spacing: *spacing,
+                                rtl_aware: *rtl_aware,
                                 main_axis_alignment: *main_axis_alignment,
                                 cross_axis_alignment: *cross_axis_alignment,
                             },
@@ -963,51 +1073,9 @@ pub fn layout(
             }
             LayoutCommand::EndContainer => {
                 widget_size = container_size;
-                let parent_container = layout_state.pass2_parent_container.clone();
+                let container = layout_state.pass2_parent_container.clone();
                 layout_state.pass2_parent_container = layout_state.pop_pass2_container();
                 current_position = layout_state.pop_position();
-
-                let container_idx = parent_container.idx;
-                let container_offset = layout_state.offsets[container_idx];
-                let container_size = layout_state.actual_sizes[container_idx];
-                let position = current_position;
-                // let position = current_position
-                //     + container_offset
-                //     + Vec2::new(
-                //         align_x.position(
-                //             layout_state.layout_direction,
-                //             container_size.x,
-                //             widget_size.x,
-                //         ),
-                //         align_y.position(container_size.y, widget_size.y),
-                //     );
-
-                if RENDER_DEBUG_BOUNDARIES {
-                    widget_placements.push(WidgetPlacement {
-                        widget_ref: WidgetRef {
-                            widget_type: WidgetType::of::<DebugBoundary>(),
-                            id: WidgetId::auto(),
-                        },
-
-                        zindex: i32::MAX,
-                        boundary: Rect::ZERO,
-                        rect: Rect::from_pos_size(position, widget_size),
-                    });
-                }
-
-                for widget_ref in &parent_container.widget_ref {
-                    if rect_contains_boundary(
-                        Rect::from_pos_size(position, widget_size),
-                        Rect::from_pos_size(Vec2::ZERO, root_size),
-                    ) {
-                        widget_placements.push(WidgetPlacement {
-                            widget_ref: *widget_ref,
-                            zindex: parent_container.zindex,
-                            boundary: Rect::ZERO,
-                            rect: Rect::from_pos_size(position, widget_size),
-                        });
-                    }
-                }
             }
             LayoutCommand::Child {
                 widget_refs,
@@ -1015,6 +1083,79 @@ pub fn layout(
                 padding,
                 ..
             } => {
+                let align_x = match layout_state.pass2_parent_container.axis {
+                    StackAxisPass2::None => AlignX::Start,
+                    StackAxisPass2::Horizontal {
+                        rtl_aware,
+                        spacing,
+                        main_axis_alignment,
+                        cross_axis_alignment,
+                    } => AlignX::Start,
+                    StackAxisPass2::Vertical {
+                        rtl_aware,
+                        spacing,
+                        main_axis_alignment,
+                        cross_axis_alignment,
+                    } => match cross_axis_alignment {
+                        CrossAxisAlignment::Start => {
+                            if rtl_aware {
+                                AlignX::Start
+                            } else {
+                                AlignX::Left
+                            }
+                        }
+                        CrossAxisAlignment::End => {
+                            if rtl_aware {
+                                AlignX::End
+                            } else {
+                                AlignX::Right
+                            }
+                        }
+                        CrossAxisAlignment::Center => AlignX::Center,
+                        CrossAxisAlignment::Stretch => AlignX::Start,
+                        CrossAxisAlignment::Baseline => {
+                            panic!("Baseline align is not supported for vstack")
+                        }
+                    },
+                };
+
+                let align_y = match layout_state.pass2_parent_container.axis {
+                    StackAxisPass2::None => AlignY::Top,
+                    StackAxisPass2::Horizontal {
+                        rtl_aware,
+                        spacing,
+                        main_axis_alignment,
+                        cross_axis_alignment,
+                    } => match cross_axis_alignment {
+                        CrossAxisAlignment::Start => AlignY::Top,
+                        CrossAxisAlignment::End => AlignY::Bottom,
+                        CrossAxisAlignment::Center => AlignY::Center,
+                        CrossAxisAlignment::Stretch => AlignY::Top,
+                        CrossAxisAlignment::Baseline => {
+                            todo!()
+                        }
+                    },
+                    StackAxisPass2::Vertical {
+                        rtl_aware,
+                        spacing,
+                        main_axis_alignment,
+                        cross_axis_alignment,
+                    } => AlignY::Top,
+                };
+
+                let rect = Rect::from_pos_size(
+                    position
+                        + Vec2::new(
+                            align_x.position(
+                                layout_state.layout_direction,
+                                boundary.width,
+                                widget_size.x,
+                            ),
+                            align_y.position(boundary.height, widget_size.y),
+                        ),
+                    widget_size,
+                );
+
                 // Don't render anything outside the screen view
                 if rect_contains_boundary(rect, Rect::from_pos_size(Vec2::ZERO, root_size)) {
                     for widget_ref in widget_refs {
@@ -1071,7 +1212,10 @@ pub fn layout(
                     spacing,
                     main_axis_alignment,
                     cross_axis_alignment,
-                } => current_position.y += widget_size.y + spacing,
+                    ..
+                } => {
+                    current_position.y += widget_size.y + spacing;
+                }
                 StackAxisPass2::None => {}
             }
         }

@@ -136,6 +136,7 @@ struct Pass2LayoutContainer {
     axis: StackAxisPass2,
     zindex: i32,
     idx: usize,
+    padding: EdgeInsets,
 }
 
 #[derive(Default)]
@@ -746,6 +747,7 @@ pub fn layout(
     layout_state.pass2_parent_container = Pass2LayoutContainer {
         idx: 0,
         axis: StackAxisPass2::None,
+        padding: EdgeInsets::ZERO,
         zindex: 0,
         widget_ref: vec![],
     };
@@ -808,10 +810,6 @@ pub fn layout(
 
         let mut widget_size = layout_state.actual_sizes[current_idx];
 
-        // let boundary_size = container_size;
-
-        // Don't remember why I added this, it seems like it breaks flex size
-        // ---------------------------------------------------------------------
         let (boundary_position, boundary_size) = match layout_state.pass2_parent_container.axis {
             StackAxisPass2::None => (container_position, container_size),
             StackAxisPass2::Horizontal { .. } => (
@@ -823,7 +821,6 @@ pub fn layout(
                 Vec2::new(container_size.x, widget_size.y),
             ),
         };
-        // ---------------------------------------------------------------------
 
         let mut boundary = Rect::from_pos_size(boundary_position, boundary_size);
         // let (align_x, align_y) = layout_state.get_align();
@@ -845,6 +842,33 @@ pub fn layout(
             if rtl_aware && layout_state.layout_direction == LayoutDirection::RTL {
                 position.x -= widget_size.x;
                 boundary.x -= widget_size.x;
+            }
+        }
+
+        match layout_state.pass2_parent_container.axis {
+            StackAxisPass2::None => {}
+            StackAxisPass2::Horizontal {
+                rtl_aware,
+                spacing,
+                main_axis_alignment,
+                cross_axis_alignment,
+            } => {
+                if cross_axis_alignment == CrossAxisAlignment::Stretch {
+                    let height =
+                        boundary.size().x - layout_state.pass2_parent_container.padding.vertical();
+                    widget_size.y = height.max(layout_state.actual_sizes[current_idx].y);
+                }
+            }
+            StackAxisPass2::Vertical {
+                spacing,
+                main_axis_alignment,
+                cross_axis_alignment,
+            } => {
+                if cross_axis_alignment == CrossAxisAlignment::Stretch {
+                    let width = boundary.size().x
+                        - layout_state.pass2_parent_container.padding.horizontal();
+                    widget_size.x = width.max(layout_state.actual_sizes[current_idx].x);
+                }
             }
         }
 
@@ -885,6 +909,7 @@ pub fn layout(
                             idx: current_idx,
                             zindex: *zindex,
                             widget_ref: widget_ref.clone(),
+                            padding: *padding,
                             axis: StackAxisPass2::Vertical {
                                 spacing: *spacing,
                                 main_axis_alignment: *main_axis_alignment,
@@ -909,6 +934,7 @@ pub fn layout(
                             idx: current_idx,
                             zindex: *zindex,
                             widget_ref: widget_ref.clone(),
+                            padding: *padding,
                             axis: StackAxisPass2::Horizontal {
                                 spacing: *spacing,
                                 rtl_aware: *rtl_aware,
@@ -923,6 +949,7 @@ pub fn layout(
                     ContainerKind::Flow { .. } => todo!(),
                     ContainerKind::ZStack => {
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
+                            padding: *padding,
                             idx: current_idx,
                             zindex: *zindex,
                             widget_ref: widget_ref.clone(),
@@ -1040,9 +1067,11 @@ pub fn layout(
                         current_position.x += widget_size.x + spacing
                     }
                 }
-                StackAxisPass2::Vertical { spacing, .. } => {
-                    current_position.y += widget_size.y + spacing
-                }
+                StackAxisPass2::Vertical {
+                    spacing,
+                    main_axis_alignment,
+                    cross_axis_alignment,
+                } => current_position.y += widget_size.y + spacing,
                 StackAxisPass2::None => {}
             }
         }

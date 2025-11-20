@@ -157,7 +157,7 @@ impl AlignY {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MainAxisAlignment {
     #[default]
     Start,
@@ -168,7 +168,7 @@ pub enum MainAxisAlignment {
     SpaceEvenly,
 }
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CrossAxisAlignment {
     #[default]
     Start,

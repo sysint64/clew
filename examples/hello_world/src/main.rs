@@ -21,7 +21,8 @@ use tech_paws_ui::{
     },
 };
 use tech_paws_ui::{
-    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, CrossAxisAlignment, EdgeInsets, Gradient, LinearGradient, RadialGradient, SizeConstraint
+    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, CrossAxisAlignment, EdgeInsets,
+    Gradient, LinearGradient, RadialGradient, SizeConstraint,
 };
 use tech_paws_ui_derive::Identifiable;
 use tech_paws_ui_desktop::{
@@ -188,105 +189,109 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
         // ui_benchmark(ctx);
 
-        vstack()
-            // .align_x(AlignX::Center)
-        // .align_y(AlignY::Center)
-            .cross_axis_alignment(CrossAxisAlignment::Center)
-            // .fill_max_size()
-            .padding(EdgeInsets::all(12.))
+        zstack()
+            .align_x(AlignX::Center)
+            .align_y(AlignY::Center)
             .build(ctx, |ctx| {
-                for_each(0..2).build(ctx, |ctx, i| {
-                    for_each(&mut self.books).build(ctx, |ctx, book| {
-                        if button(&format!("{i}: {}", book.title)).build(ctx).clicked() {
-                            book.title = "Changed!".to_string();
-                            println!("Clicked to book with id id: {}", book.id());
-                        }
-                    });
-                });
+                vstack()
+                    .cross_axis_alignment(CrossAxisAlignment::Stretch)
+                    // .fill_max_height()
+                    // .fill_max_size()
+                    .padding(EdgeInsets::all(12.))
+                    .build(ctx, |ctx| {
+                        for_each(0..2).build(ctx, |ctx, i| {
+                            for_each(&mut self.books).build(ctx, |ctx, book| {
+                                if button(&format!("{i}: {}", book.title)).build(ctx).clicked() {
+                                    book.title = "Changed!".to_string();
+                                    println!("Clicked to book with id id: {}", book.id());
+                                }
+                            });
+                        });
 
-                button("Button").build(ctx);
-                // gap().fill_max_height().build(ctx);
-                button("Button").build(ctx);
+                        button("Button").build(ctx);
+                        // gap().fill_max_height().build(ctx);
+                        button("Button").build(ctx);
 
-                // colored_box(ColorRgba::from_hex(0xFFCC0000)).build(ctx, |ctx| {
-                zstack().padding(EdgeInsets::all(8.)).build(ctx, |ctx| {
-                    if gesture_detector()
-                        .build(ctx, |ctx| {
-                            let response = ctx.of::<GestureDetectorResponse>().unwrap();
-
-                            decorated_box()
-                                .color(ColorRgba::from_hex(0xFFCC0000))
-                                .shape(if response.is_hot() {
-                                    BoxShape::oval
-                                } else {
-                                    BoxShape::rect
-                                })
-                                .border_radius(BorderRadius::all(8.))
-                                .border(Border::all(BorderSide::new(
-                                    1.,
-                                    if response.is_focused() {
-                                        ColorRgba::from_hex(0xFF00DD00)
-                                    } else {
-                                        ColorRgba::from_hex(0xFF007700)
-                                    },
-                                )))
-                                .add_linear_gradient(LinearGradient::vertical(vec![
-                                    ColorRgba::from_hex(0xFF2F2F2F),
-                                    ColorRgba::from_hex(0xFF272727),
-                                ]))
-                                .add_radial_gradient(RadialGradient::circle(vec![
-                                    if response.is_active() {
-                                        ColorRgba::from_hex(0xFFFF0000)
-                                    } else {
-                                        ColorRgba::from_hex(0x00000000)
-                                    },
-                                    if response.is_active() {
-                                        ColorRgba::from_hex(0x00000000)
-                                    } else {
-                                        ColorRgba::from_hex(0xFFFF0000)
-                                    },
-                                ]))
+                        // colored_box(ColorRgba::from_hex(0xFFCC0000)).build(ctx, |ctx| {
+                        zstack().padding(EdgeInsets::all(8.)).build(ctx, |ctx| {
+                            if gesture_detector()
                                 .build(ctx, |ctx| {
-                                    // padding(EdgeInsets::all(8.)).build(ctx, |ctx| {
-                                    vstack().build(ctx, |ctx| {
-                                        vstack().build(ctx, |ctx| {
-                                            text("Counter:")
-                                                .text_align_x(AlignX::Center)
-                                                .text_align_y(AlignY::Center)
-                                                .build(ctx);
+                                    let response = ctx.of::<GestureDetectorResponse>().unwrap();
 
-                                            text(&format!("{}", app.counter))
-                                                .text_align_x(AlignX::Center)
-                                                .text_align_y(AlignY::Center)
-                                                .build(ctx);
+                                    decorated_box()
+                                        .color(ColorRgba::from_hex(0xFFCC0000))
+                                        .shape(if response.is_hot() {
+                                            BoxShape::oval
+                                        } else {
+                                            BoxShape::rect
+                                        })
+                                        .border_radius(BorderRadius::all(8.))
+                                        .border(Border::all(BorderSide::new(
+                                            1.,
+                                            if response.is_focused() {
+                                                ColorRgba::from_hex(0xFF00DD00)
+                                            } else {
+                                                ColorRgba::from_hex(0xFF007700)
+                                            },
+                                        )))
+                                        .add_linear_gradient(LinearGradient::vertical(vec![
+                                            ColorRgba::from_hex(0xFF2F2F2F),
+                                            ColorRgba::from_hex(0xFF272727),
+                                        ]))
+                                        .add_radial_gradient(RadialGradient::circle(vec![
+                                            if response.is_active() {
+                                                ColorRgba::from_hex(0xFFFF0000)
+                                            } else {
+                                                ColorRgba::from_hex(0x00000000)
+                                            },
+                                            if response.is_active() {
+                                                ColorRgba::from_hex(0x00000000)
+                                            } else {
+                                                ColorRgba::from_hex(0xFFFF0000)
+                                            },
+                                        ]))
+                                        .build(ctx, |ctx| {
+                                            // padding(EdgeInsets::all(8.)).build(ctx, |ctx| {
+                                            vstack().build(ctx, |ctx| {
+                                                vstack().build(ctx, |ctx| {
+                                                    text("Counter:")
+                                                        .text_align_x(AlignX::Center)
+                                                        .text_align_y(AlignY::Center)
+                                                        .build(ctx);
+
+                                                    text(&format!("{}", app.counter))
+                                                        .text_align_x(AlignX::Center)
+                                                        .text_align_y(AlignY::Center)
+                                                        .build(ctx);
+                                                });
+                                                text(&format!("{}", app.counter))
+                                                    .text_align_x(AlignX::Center)
+                                                    .text_align_y(AlignY::Center)
+                                                    .build(ctx);
+                                            });
+                                            // });
                                         });
-                                        text(&format!("{}", app.counter))
-                                            .text_align_x(AlignX::Center)
-                                            .text_align_y(AlignY::Center)
-                                            .build(ctx);
-                                    });
-                                    // });
-                                });
-                        })
-                        .clicked()
-                    {
-                        println!("Clicked!");
-                    }
-                });
+                                })
+                                .clicked()
+                            {
+                                println!("Clicked!");
+                            }
+                        });
 
-                if button(&format!("Counter:\nValue: {}", app.counter))
-                    .id("counter")
-                    .build(ctx)
-                    .clicked()
-                {
-                    ctx.broadcast(CounterEvent::Increment);
-                    ctx.emit(CounterComponentEvent::HelloWorld);
-                    ctx.spawn(async move {
-                        tokio::time::sleep(Duration::from_secs(2)).await;
+                        if button(&format!("Counter:\nValue: {}", app.counter))
+                            .id("counter")
+                            .build(ctx)
+                            .clicked()
+                        {
+                            ctx.broadcast(CounterEvent::Increment);
+                            ctx.emit(CounterComponentEvent::HelloWorld);
+                            ctx.spawn(async move {
+                                tokio::time::sleep(Duration::from_secs(2)).await;
 
-                        CounterEvent::Increment
+                                CounterEvent::Increment
+                            });
+                        };
                     });
-                };
             });
     }
 }

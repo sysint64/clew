@@ -96,6 +96,23 @@ enum StackAxis {
     },
 }
 
+#[derive(Default, Debug, Clone, Copy)]
+enum StackAxisPass2 {
+    #[default]
+    None,
+    Horizontal {
+        rtl_aware: bool,
+        spacing: f32,
+        main_axis_alignment: MainAxisAlignment,
+        cross_axis_alignment: CrossAxisAlignment,
+    },
+    Vertical {
+        spacing: f32,
+        main_axis_alignment: MainAxisAlignment,
+        cross_axis_alignment: CrossAxisAlignment,
+    },
+}
+
 #[derive(Debug, Default, Clone, Copy)]
 struct LayoutContainerCommand {
     kind: ContainerKind,
@@ -111,6 +128,14 @@ struct LayoutContainer {
     idx: usize,
     axis: StackAxis,
     command: LayoutContainerCommand,
+}
+
+#[derive(Debug, Default, Clone)]
+struct Pass2LayoutContainer {
+    widget_ref: Vec<WidgetRef>,
+    axis: StackAxisPass2,
+    zindex: i32,
+    idx: usize,
 }
 
 #[derive(Default)]
@@ -132,9 +157,12 @@ pub(crate) struct LayoutState {
     positions: Vec<Vec2>,
 
     containers_stack_cursor: usize,
+    pass_2_containers_stack_cursor: usize,
     layout_direction: LayoutDirection,
     parent_container: LayoutContainer,
+    pass2_parent_container: Pass2LayoutContainer,
     containers_stack: Vec<LayoutContainer>,
+    pass_2_containers_stack: Vec<Pass2LayoutContainer>,
 
     align_stack_cursor: usize,
     align_x_stack: Vec<AlignX>,
@@ -276,6 +304,24 @@ impl LayoutState {
         self.containers_stack_cursor -= 1;
 
         self.containers_stack[self.containers_stack_cursor].clone()
+    }
+
+    #[inline]
+    fn push_pass2_container(&mut self, container: Pass2LayoutContainer) {
+        if self.pass_2_containers_stack.len() <= self.pass_2_containers_stack_cursor {
+            self.pass_2_containers_stack.push(container);
+        } else {
+            self.pass_2_containers_stack[self.pass_2_containers_stack_cursor] = container;
+        }
+
+        self.pass_2_containers_stack_cursor += 1;
+    }
+
+    #[inline]
+    fn pop_pass2_container(&mut self) -> Pass2LayoutContainer {
+        self.pass_2_containers_stack_cursor -= 1;
+
+        self.pass_2_containers_stack[self.pass_2_containers_stack_cursor].clone()
     }
 
     #[inline]
@@ -697,10 +743,9 @@ pub fn layout(
     widget_placements.clear();
 
     layout_state.push_position(current_position);
-    layout_state.parent_container = LayoutContainer {
+    layout_state.pass2_parent_container = Pass2LayoutContainer {
         idx: 0,
-        axis: StackAxis::None,
-        command: Default::default(),
+        axis: StackAxisPass2::None,
         zindex: 0,
         widget_ref: vec![],
     };
@@ -708,8 +753,9 @@ pub fn layout(
 
     for command in commands {
         let mut go_next = true;
-        let container_idx = layout_state.parent_container.idx;
+        let container_idx = layout_state.pass2_parent_container.idx;
 
+        let container_position = layout_state.positions[layout_state.position_cursor - 1];
         let container_resize = layout_state.resizes[container_idx];
         let container_offset = layout_state.offsets[container_idx];
         let container_size_resized = layout_state.actual_sizes[container_idx] + container_resize;
@@ -722,9 +768,9 @@ pub fn layout(
             let constraints = layout_state.constraints[current_idx];
             let container_flex_size = layout_state.flex_sizes[container_idx];
 
-            let mut size = match layout_state.parent_container.axis {
-                StackAxis::None => container_size_resized.x,
-                StackAxis::Horizontal { spacing, .. } => {
+            let mut size = match layout_state.pass2_parent_container.axis {
+                StackAxisPass2::None => container_size_resized.x,
+                StackAxisPass2::Horizontal { spacing, .. } => {
                     let flex_sum_x = layout_state.flex_sum_x[container_idx].max(1.);
                     let available_width =
                         (container_size_resized.x - container_flex_size.x + spacing).max(0.);
@@ -732,7 +778,7 @@ pub fn layout(
 
                     flex_x * per_flex
                 }
-                StackAxis::Vertical { .. } => container_size_resized.x,
+                StackAxisPass2::Vertical { .. } => container_size_resized.x,
             };
 
             size = apply_constraints_width(size, constraints);
@@ -743,10 +789,10 @@ pub fn layout(
             let constraints = layout_state.constraints[current_idx];
             let container_flex_size = layout_state.flex_sizes[container_idx];
 
-            let mut size = match layout_state.parent_container.axis {
-                StackAxis::None => container_size_resized.y,
-                StackAxis::Horizontal { .. } => container_size_resized.y,
-                StackAxis::Vertical { spacing } => {
+            let mut size = match layout_state.pass2_parent_container.axis {
+                StackAxisPass2::None => container_size_resized.y,
+                StackAxisPass2::Horizontal { .. } => container_size_resized.y,
+                StackAxisPass2::Vertical { spacing, .. } => {
                     let flex_sum_y = layout_state.flex_sum_y[container_idx].max(1.);
                     let available_height =
                         (container_size_resized.y - container_flex_size.y + spacing).max(0.);
@@ -766,14 +812,20 @@ pub fn layout(
 
         // Don't remember why I added this, it seems like it breaks flex size
         // ---------------------------------------------------------------------
-        let boundary_size = match layout_state.parent_container.axis {
-            StackAxis::None => container_size,
-            StackAxis::Horizontal { .. } => Vec2::new(widget_size.x, container_size.y),
-            StackAxis::Vertical { .. } => Vec2::new(container_size.x, widget_size.y),
+        let (boundary_position, boundary_size) = match layout_state.pass2_parent_container.axis {
+            StackAxisPass2::None => (container_position, container_size),
+            StackAxisPass2::Horizontal { .. } => (
+                Vec2::new(current_position.x, container_position.y),
+                Vec2::new(widget_size.x, container_size.y),
+            ),
+            StackAxisPass2::Vertical { .. } => (
+                Vec2::new(container_position.x, current_position.y),
+                Vec2::new(container_size.x, widget_size.y),
+            ),
         };
         // ---------------------------------------------------------------------
 
-        let mut boundary = Rect::from_pos_size(current_position, boundary_size);
+        let mut boundary = Rect::from_pos_size(boundary_position, boundary_size);
         // let (align_x, align_y) = layout_state.get_align();
         // let mut position = current_position
         //     + container_offset
@@ -787,7 +839,9 @@ pub fn layout(
         //     );
         let mut position = current_position;
 
-        if let StackAxis::Horizontal { rtl_aware, .. } = layout_state.parent_container.axis {
+        if let StackAxisPass2::Horizontal { rtl_aware, .. } =
+            layout_state.pass2_parent_container.axis
+        {
             if rtl_aware && layout_state.layout_direction == LayoutDirection::RTL {
                 position.x -= widget_size.x;
                 boundary.x -= widget_size.x;
@@ -815,15 +869,9 @@ pub fn layout(
                 ..
             } => {
                 layout_state.push_position(current_position);
-                layout_state.push_container(layout_state.parent_container.clone());
-                current_position = position;
-                let command = LayoutContainerCommand {
-                    kind: *kind,
-                    constraints: *constraints,
-                    size: *size,
-                    padding: *padding,
-                };
+                layout_state.push_pass2_container(layout_state.pass2_parent_container.clone());
 
+                current_position = position;
                 current_position.x += padding.left;
                 current_position.y += padding.top;
 
@@ -831,35 +879,42 @@ pub fn layout(
                     ContainerKind::VStack {
                         spacing,
                         main_axis_alignment,
-                        cross_axis_alignment: _,
+                        cross_axis_alignment,
                     } => {
-                        layout_state.parent_container = LayoutContainer {
+                        layout_state.pass2_parent_container = Pass2LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
                             widget_ref: widget_ref.clone(),
-                            axis: StackAxis::Vertical { spacing: *spacing },
-                            command,
+                            axis: StackAxisPass2::Vertical {
+                                spacing: *spacing,
+                                main_axis_alignment: *main_axis_alignment,
+                                cross_axis_alignment: *cross_axis_alignment,
+                            },
                         };
 
                         current_idx += 1;
                         go_next = false;
                     }
                     ContainerKind::HStack {
-                        spacing, rtl_aware, ..
+                        spacing,
+                        rtl_aware,
+                        main_axis_alignment,
+                        cross_axis_alignment,
                     } => {
                         if *rtl_aware && layout_state.layout_direction == LayoutDirection::RTL {
                             current_position = position + Vec2::new(widget_size.x, 0.);
                         }
 
-                        layout_state.parent_container = LayoutContainer {
+                        layout_state.pass2_parent_container = Pass2LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
                             widget_ref: widget_ref.clone(),
-                            axis: StackAxis::Horizontal {
+                            axis: StackAxisPass2::Horizontal {
                                 spacing: *spacing,
                                 rtl_aware: *rtl_aware,
+                                main_axis_alignment: *main_axis_alignment,
+                                cross_axis_alignment: *cross_axis_alignment,
                             },
-                            command,
                         };
 
                         current_idx += 1;
@@ -867,12 +922,11 @@ pub fn layout(
                     }
                     ContainerKind::Flow { .. } => todo!(),
                     ContainerKind::ZStack => {
-                        layout_state.parent_container = LayoutContainer {
+                        layout_state.pass2_parent_container = Pass2LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
                             widget_ref: widget_ref.clone(),
-                            axis: StackAxis::None,
-                            command,
+                            axis: StackAxisPass2::None,
                         };
 
                         current_idx += 1;
@@ -882,8 +936,8 @@ pub fn layout(
             }
             LayoutCommand::EndContainer => {
                 widget_size = container_size;
-                let parent_container = layout_state.parent_container.clone();
-                layout_state.parent_container = layout_state.pop_container();
+                let parent_container = layout_state.pass2_parent_container.clone();
+                layout_state.pass2_parent_container = layout_state.pop_pass2_container();
                 current_position = layout_state.pop_position();
 
                 let container_idx = parent_container.idx;
@@ -953,6 +1007,16 @@ pub fn layout(
                             },
                             zindex: i32::MAX,
                             boundary: Rect::ZERO,
+                            rect: boundary,
+                        });
+
+                        widget_placements.push(WidgetPlacement {
+                            widget_ref: WidgetRef {
+                                widget_type: WidgetType::of::<DebugBoundary>(),
+                                id: WidgetId::auto(),
+                            },
+                            zindex: i32::MAX,
+                            boundary: Rect::ZERO,
                             rect,
                         });
                     }
@@ -966,18 +1030,20 @@ pub fn layout(
         }
 
         if go_next {
-            match layout_state.parent_container.axis {
-                StackAxis::Horizontal { spacing, rtl_aware } => {
+            match layout_state.pass2_parent_container.axis {
+                StackAxisPass2::Horizontal {
+                    spacing, rtl_aware, ..
+                } => {
                     if rtl_aware && layout_state.layout_direction == LayoutDirection::RTL {
                         current_position.x -= widget_size.x + spacing
                     } else {
                         current_position.x += widget_size.x + spacing
                     }
                 }
-                StackAxis::Vertical { spacing, .. } => {
+                StackAxisPass2::Vertical { spacing, .. } => {
                     current_position.y += widget_size.y + spacing
                 }
-                StackAxis::None => {}
+                StackAxisPass2::None => {}
             }
         }
     }

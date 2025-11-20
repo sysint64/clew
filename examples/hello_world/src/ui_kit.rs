@@ -84,7 +84,7 @@ impl<'a> ButtonBuilder<'a> {
                             .text_align_y(AlignY::Center)
                             .width(self.width)
                             .constraints(self.constraints)
-                            .padding(EdgeInsets::symmetric(12., 0.))
+                            .padding(EdgeInsets::symmetric(12., 8.))
                             .build(ctx);
                     });
             })
@@ -157,7 +157,8 @@ pub fn button(text: &str) -> ButtonBuilder<'_> {
             min_width: 20.,
             min_height: 20.,
             max_width: f32::INFINITY,
-            max_height: 20.,
+            // max_width: f32::INFINITY,
+            max_height: f32::INFINITY,
         },
     }
 }

@@ -4,9 +4,11 @@ use tech_paws_ui::identifiable::Identifiable;
 // use tech_paws_ui::widgets::button::button;
 use tech_paws_ui::widgets::colored_box::colored_box;
 use tech_paws_ui::widgets::decorated_box::decorated_box;
+use tech_paws_ui::widgets::gap::gap;
 use tech_paws_ui::widgets::gesture_detector::{GestureDetectorResponse, gesture_detector};
 use tech_paws_ui::widgets::hstack::hstack;
 use tech_paws_ui::widgets::text::text;
+use tech_paws_ui::widgets::zstack::zstack;
 use tech_paws_ui::{
     AlignX, AlignY, ColorRgb,
     render::Renderer,
@@ -188,8 +190,10 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
         // ui_benchmark(ctx);
 
         vstack()
-            .align_x(AlignX::Center)
-            .align_y(AlignY::Center)
+            // .align_x(AlignX::Center)
+            // .align_y(AlignY::Center)
+            .fill_max_size()
+            .padding(EdgeInsets::all(12.))
             .build(ctx, |ctx| {
                 for_each(0..2).build(ctx, |ctx, i| {
                     for_each(&mut self.books).build(ctx, |ctx, book| {
@@ -201,68 +205,74 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
                 });
 
                 button("Button").build(ctx);
+                gap().fill_max_height().build(ctx);
                 button("Button").build(ctx);
 
                 // colored_box(ColorRgba::from_hex(0xFFCC0000)).build(ctx, |ctx| {
-                if gesture_detector()
-                    .build(ctx, |ctx| {
-                        let response = ctx.of::<GestureDetectorResponse>().unwrap();
+                zstack().padding(EdgeInsets::all(8.)).build(ctx, |ctx| {
+                    if gesture_detector()
+                        .build(ctx, |ctx| {
+                            let response = ctx.of::<GestureDetectorResponse>().unwrap();
 
-                        decorated_box()
-                            .color(ColorRgba::from_hex(0xFFCC0000))
-                            .shape(if response.is_hot() {
-                                BoxShape::oval
-                            } else {
-                                BoxShape::rect
-                            })
-                            .border_radius(BorderRadius::all(8.))
-                            .border(Border::all(BorderSide::new(
-                                1.,
-                                if response.is_focused() {
-                                    ColorRgba::from_hex(0xFF00DD00)
+                            decorated_box()
+                                .color(ColorRgba::from_hex(0xFFCC0000))
+                                .shape(if response.is_hot() {
+                                    BoxShape::oval
                                 } else {
-                                    ColorRgba::from_hex(0xFF007700)
-                                },
-                            )))
-                            .add_linear_gradient(LinearGradient::vertical(vec![
-                                ColorRgba::from_hex(0xFF2F2F2F),
-                                ColorRgba::from_hex(0xFF272727),
-                            ]))
-                            .add_radial_gradient(RadialGradient::circle(vec![
-                                if response.is_active() {
-                                    ColorRgba::from_hex(0xFFFF0000)
-                                } else {
-                                    ColorRgba::from_hex(0x00000000)
-                                },
-                                if response.is_active() {
-                                    ColorRgba::from_hex(0x00000000)
-                                } else {
-                                    ColorRgba::from_hex(0xFFFF0000)
-                                },
-                            ]))
-                            .build(ctx, |ctx| {
-                                vstack().build(ctx, |ctx| {
+                                    BoxShape::rect
+                                })
+                                .border_radius(BorderRadius::all(8.))
+                                .border(Border::all(BorderSide::new(
+                                    1.,
+                                    if response.is_focused() {
+                                        ColorRgba::from_hex(0xFF00DD00)
+                                    } else {
+                                        ColorRgba::from_hex(0xFF007700)
+                                    },
+                                )))
+                                .add_linear_gradient(LinearGradient::vertical(vec![
+                                    ColorRgba::from_hex(0xFF2F2F2F),
+                                    ColorRgba::from_hex(0xFF272727),
+                                ]))
+                                .add_radial_gradient(RadialGradient::circle(vec![
+                                    if response.is_active() {
+                                        ColorRgba::from_hex(0xFFFF0000)
+                                    } else {
+                                        ColorRgba::from_hex(0x00000000)
+                                    },
+                                    if response.is_active() {
+                                        ColorRgba::from_hex(0x00000000)
+                                    } else {
+                                        ColorRgba::from_hex(0xFFFF0000)
+                                    },
+                                ]))
+                                .build(ctx, |ctx| {
+                                    // padding(EdgeInsets::all(8.)).build(ctx, |ctx| {
                                     vstack().build(ctx, |ctx| {
-                                        text("Counter:")
-                                            .text_align_x(AlignX::Center)
-                                            .text_align_y(AlignY::Center)
-                                            .build(ctx);
+                                        vstack().build(ctx, |ctx| {
+                                            text("Counter:")
+                                                .text_align_x(AlignX::Center)
+                                                .text_align_y(AlignY::Center)
+                                                .build(ctx);
+
+                                            text(&format!("{}", app.counter))
+                                                .text_align_x(AlignX::Center)
+                                                .text_align_y(AlignY::Center)
+                                                .build(ctx);
+                                        });
                                         text(&format!("{}", app.counter))
                                             .text_align_x(AlignX::Center)
                                             .text_align_y(AlignY::Center)
                                             .build(ctx);
                                     });
-                                    text(&format!("{}", app.counter))
-                                        .text_align_x(AlignX::Center)
-                                        .text_align_y(AlignY::Center)
-                                        .build(ctx);
+                                    // });
                                 });
-                            });
-                    })
-                    .clicked()
-                {
-                    println!("Clicked!");
-                }
+                        })
+                        .clicked()
+                    {
+                        println!("Clicked!");
+                    }
+                });
 
                 if button(&format!("Counter:\nValue: {}", app.counter))
                     .id("counter")

@@ -109,21 +109,10 @@ impl DecoratedBoxBuilder {
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
         context.current_zindex += 1;
 
-        // let size = Size::new(SizeConstraint::Wrap, SizeConstraint::Wrap);
         let widget_ref = WidgetRef::new(WidgetType::of::<DecoratedBox>(), id);
 
         context.decorators.push(widget_ref);
-        // context.push_layout_command(LayoutCommand::BeginContainer {
-        //     widget_ref: Some(widget_ref),
-        //     zindex: context.current_zindex - 1,
-        //     kind: ContainerKind::ZStack,
-        //     size,
-        //     constraints: Constraints::default(),
-        // });
         callback(context);
-        // context.decorators.pop();
-
-        // context.push_layout_command(LayoutCommand::EndContainer);
 
         context.current_zindex = last_zindex;
         context.widgets_states.accessed_this_frame.insert(id);

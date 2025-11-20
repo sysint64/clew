@@ -23,6 +23,7 @@ pub enum LayoutCommand {
         constraints: Constraints,
         size: Size,
         zindex: i32,
+        padding: EdgeInsets,
     },
     EndContainer,
     BeginAlign {
@@ -33,6 +34,7 @@ pub enum LayoutCommand {
     Child {
         widget_refs: Vec<WidgetRef>,
         constraints: Constraints,
+        padding: EdgeInsets,
         size: Size,
         derive_wrap_size: DeriveWrapSize,
         zindex: i32,
@@ -78,9 +80,6 @@ pub enum ContainerKind {
     },
     #[default]
     ZStack,
-    Padding {
-        padding: EdgeInsets,
-    },
 }
 
 #[derive(Default, Debug, Clone, Copy)]
@@ -101,6 +100,7 @@ struct LayoutContainerCommand {
     kind: ContainerKind,
     constraints: Constraints,
     size: Size,
+    padding: EdgeInsets,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -519,12 +519,16 @@ pub fn layout(
                 size,
                 zindex,
                 widget_ref,
+                padding,
                 ..
             } => {
                 layout_state.push_container(layout_state.parent_container.clone());
                 layout_state.push_boundary();
                 layout_state.add_flex_sum(*size);
                 layout_state.set_constraints(*constraints);
+
+                // layout_state.set_offset(Vec2::new(padding.left, padding.top));
+                layout_state.set_resize(Vec2::new(-padding.horizontal(), -padding.vertical()));
 
                 match kind {
                     ContainerKind::VStack { spacing, .. } => {
@@ -537,6 +541,7 @@ pub fn layout(
                                 kind: *kind,
                                 constraints: *constraints,
                                 size: *size,
+                                padding: *padding,
                             },
                         };
                     }
@@ -555,6 +560,7 @@ pub fn layout(
                                 kind: *kind,
                                 constraints: *constraints,
                                 size: *size,
+                                padding: *padding,
                             },
                         };
                     }
@@ -568,23 +574,7 @@ pub fn layout(
                                 kind: *kind,
                                 constraints: *constraints,
                                 size: *size,
-                            },
-                        };
-                    }
-                    ContainerKind::Padding { padding } => {
-                        layout_state.set_offset(Vec2::new(padding.left, padding.top));
-                        layout_state
-                            .set_resize(Vec2::new(-padding.horizontal(), -padding.vertical()));
-
-                        layout_state.parent_container = LayoutContainer {
-                            idx: layout_state.current_idx(),
-                            zindex: *zindex,
-                            widget_ref: widget_ref.clone(),
-                            axis: StackAxis::None,
-                            command: LayoutContainerCommand {
-                                kind: *kind,
-                                constraints: *constraints,
-                                size: *size,
+                                padding: *padding,
                             },
                         };
                     }
@@ -603,6 +593,7 @@ pub fn layout(
                                 kind: *kind,
                                 constraints: *constraints,
                                 size: *size,
+                                padding: *padding,
                             },
                         };
                     }
@@ -615,6 +606,7 @@ pub fn layout(
                     .unwrap();
 
                 let mut size = layout_state.parent_container.command.size;
+                let mut padding = layout_state.parent_container.command.padding;
 
                 match layout_state.parent_container.command.kind {
                     ContainerKind::VStack { spacing, .. } => {
@@ -632,24 +624,12 @@ pub fn layout(
                         wrap_size.y = wrap_size.y.max(0.);
                     }
                     ContainerKind::ZStack => {}
-                    ContainerKind::Padding { padding } => {
-                        wrap_size.x += padding.horizontal();
-                        wrap_size.y += padding.vertical();
-                        wrap_size.x = wrap_size.x.max(0.);
-                        wrap_size.y = wrap_size.y.max(0.);
-
-                        size = Size {
-                            width: match size.width {
-                                SizeConstraint::Fill(_) => size.width,
-                                _ => SizeConstraint::Wrap,
-                            },
-                            height: match size.height {
-                                SizeConstraint::Fill(_) => size.height,
-                                _ => SizeConstraint::Wrap,
-                            },
-                        };
-                    }
                 };
+
+                wrap_size.x += padding.horizontal();
+                wrap_size.y += padding.vertical();
+                wrap_size.x = wrap_size.x.max(0.);
+                wrap_size.y = wrap_size.y.max(0.);
 
                 let wrap_size = *wrap_size;
                 let current_container_idx = layout_state.parent_container.idx;
@@ -829,6 +809,7 @@ pub fn layout(
                 size,
                 zindex,
                 widget_ref,
+                padding,
                 ..
             } => {
                 layout_state.push_position(current_position);
@@ -838,7 +819,11 @@ pub fn layout(
                     kind: *kind,
                     constraints: *constraints,
                     size: *size,
+                    padding: *padding,
                 };
+
+                current_position.x += padding.left;
+                current_position.y += padding.top;
 
                 match kind {
                     ContainerKind::VStack { spacing, .. } => {
@@ -886,17 +871,6 @@ pub fn layout(
 
                         current_idx += 1;
                         go_next = false;
-                    }
-                    ContainerKind::Padding { .. } => {
-                        layout_state.parent_container = LayoutContainer {
-                            idx: current_idx,
-                            zindex: *zindex,
-                            widget_ref: widget_ref.clone(),
-                            axis: StackAxis::None,
-                            command,
-                        };
-
-                        current_idx += 1;
                     }
                 }
             }

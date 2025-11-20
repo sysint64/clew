@@ -1,6 +1,6 @@
 use crate::{
-    AlignX, AlignY, Constraints, CrossAxisAlignment, MainAxisAlignment, Size, SizeConstraint,
-    impl_position_methods, impl_size_methods,
+    AlignX, AlignY, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, Size,
+    SizeConstraint, impl_position_methods, impl_size_methods,
     layout::{ContainerKind, LayoutCommand},
 };
 
@@ -16,11 +16,18 @@ pub struct HStackBuilder {
     zindex: Option<i32>,
     main_axis_alignment: MainAxisAlignment,
     cross_axis_alignment: CrossAxisAlignment,
+    padding: EdgeInsets,
 }
 
 impl HStackBuilder {
     impl_size_methods!();
     impl_position_methods!();
+
+    pub fn padding(mut self, padding: EdgeInsets) -> Self {
+        self.padding = padding;
+
+        self
+    }
 
     pub fn rtl_aware(mut self, rtl_aware: bool) -> Self {
         self.rtl_aware = rtl_aware;
@@ -57,6 +64,7 @@ impl HStackBuilder {
         context.push_layout_command(LayoutCommand::BeginContainer {
             widget_ref: widget_refs,
             zindex: 0,
+            padding: self.padding,
             kind: ContainerKind::HStack {
                 spacing: self.spacing,
                 main_axis_alignment: self.main_axis_alignment,
@@ -85,5 +93,6 @@ pub fn hstack() -> HStackBuilder {
         align_y: None,
         main_axis_alignment: MainAxisAlignment::default(),
         cross_axis_alignment: CrossAxisAlignment::default(),
+        padding: EdgeInsets::ZERO,
     }
 }

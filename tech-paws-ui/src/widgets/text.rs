@@ -24,6 +24,7 @@ pub struct TextBuilder<'a> {
     color: ColorRgba,
     text_align_x: AlignX,
     text_align_y: AlignY,
+    padding: EdgeInsets,
 }
 
 #[derive(Clone, PartialEq)]
@@ -48,6 +49,12 @@ impl WidgetState for State {
 
 impl<'a> TextBuilder<'a> {
     impl_size_methods!();
+
+    pub fn padding(mut self, padding: EdgeInsets) -> Self {
+        self.padding = padding;
+
+        self
+    }
 
     pub fn color(mut self, color: ColorRgba) -> Self {
         self.color = color;
@@ -85,11 +92,12 @@ impl<'a> TextBuilder<'a> {
 
         context.push_layout_command(LayoutCommand::Child {
             widget_refs: widget_refs,
+            padding: EdgeInsets::ZERO,
             constraints: self.constraints,
             size: self.size,
             zindex: self.zindex.unwrap_or(context.current_zindex),
             derive_wrap_size: DeriveWrapSize::Text {
-                padding: EdgeInsets::ZERO,
+                padding: self.padding,
                 text_id,
             },
         });
@@ -125,6 +133,7 @@ pub fn text(text: &str) -> TextBuilder<'_> {
         },
         text_align_x: AlignX::Start,
         text_align_y: AlignY::Top,
+        padding: EdgeInsets::ZERO,
     }
 }
 

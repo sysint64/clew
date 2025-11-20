@@ -84,6 +84,7 @@ impl<'a> ButtonBuilder<'a> {
                             .text_align_y(AlignY::Center)
                             .width(self.width)
                             .constraints(self.constraints)
+                            .padding(EdgeInsets::symmetric(12., 0.))
                             .build(ctx);
                     });
             })

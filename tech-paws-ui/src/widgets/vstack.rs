@@ -1,7 +1,5 @@
 use crate::{
-    AlignX, AlignY, Constraints, CrossAxisAlignment, MainAxisAlignment, Size, SizeConstraint,
-    impl_position_methods, impl_size_methods,
-    layout::{ContainerKind, LayoutCommand},
+    impl_position_methods, impl_size_methods, layout::{ContainerKind, LayoutCommand}, AlignX, AlignY, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, Size, SizeConstraint
 };
 
 use super::builder::BuildContext;
@@ -15,11 +13,18 @@ pub struct VStackBuilder {
     zindex: Option<i32>,
     main_axis_alignment: MainAxisAlignment,
     cross_axis_alignment: CrossAxisAlignment,
+    padding: EdgeInsets,
 }
 
 impl VStackBuilder {
     impl_size_methods!();
     impl_position_methods!();
+
+    pub fn padding(mut self, padding: EdgeInsets) -> Self {
+        self.padding = padding;
+
+        self
+    }
 
     pub fn spacing(mut self, spacing: f32) -> Self {
         self.spacing = spacing;
@@ -39,7 +44,7 @@ impl VStackBuilder {
         self
     }
 
-    pub fn build<F>(&self, context: &mut BuildContext, callback: F)
+    pub fn build<F>(self, context: &mut BuildContext, callback: F)
     where
         F: FnOnce(&mut BuildContext),
     {
@@ -52,6 +57,7 @@ impl VStackBuilder {
             context.push_layout_command(LayoutCommand::BeginContainer {
                 widget_ref: widget_refs,
                 zindex: 0,
+                padding: self.padding,
                 kind: ContainerKind::VStack {
                     spacing: self.spacing,
                     main_axis_alignment: self.main_axis_alignment,
@@ -78,5 +84,6 @@ pub fn vstack() -> VStackBuilder {
         align_y: None,
         main_axis_alignment: MainAxisAlignment::default(),
         cross_axis_alignment: CrossAxisAlignment::default(),
+        padding: EdgeInsets::ZERO,
     }
 }

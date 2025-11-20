@@ -178,7 +178,7 @@ pub enum CrossAxisAlignment {
     Baseline,
 }
 
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Default, Debug, Clone, PartialEq, Copy)]
 pub struct EdgeInsets {
     pub top: f32,
     pub left: f32,
@@ -333,11 +333,13 @@ impl Default for Constraints {
 }
 
 impl Constraints {
-    pub fn expand(&mut self, padding: EdgeInsets) {
-        self.min_width += padding.horizontal();
-        self.min_height += padding.vertical();
-        self.max_width += padding.horizontal();
-        self.max_height += padding.vertical();
+    pub fn expand(self, padding: EdgeInsets) -> Constraints {
+        Constraints {
+            min_width: self.min_width + padding.horizontal(),
+            min_height: self.min_height + padding.vertical(),
+            max_width: self.max_width + padding.horizontal(),
+            max_height: self.max_height + padding.vertical(),
+        }
     }
 
     pub fn exact_size(size: Size) -> Self {

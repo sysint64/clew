@@ -21,8 +21,7 @@ use tech_paws_ui::{
     },
 };
 use tech_paws_ui::{
-    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, EdgeInsets, Gradient, LinearGradient,
-    RadialGradient, SizeConstraint,
+    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, CrossAxisAlignment, EdgeInsets, Gradient, LinearGradient, RadialGradient, SizeConstraint
 };
 use tech_paws_ui_derive::Identifiable;
 use tech_paws_ui_desktop::{
@@ -191,8 +190,9 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
 
         vstack()
             // .align_x(AlignX::Center)
-            // .align_y(AlignY::Center)
-            .fill_max_size()
+        // .align_y(AlignY::Center)
+            .cross_axis_alignment(CrossAxisAlignment::Center)
+            // .fill_max_size()
             .padding(EdgeInsets::all(12.))
             .build(ctx, |ctx| {
                 for_each(0..2).build(ctx, |ctx, i| {
@@ -205,7 +205,7 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
                 });
 
                 button("Button").build(ctx);
-                gap().fill_max_height().build(ctx);
+                // gap().fill_max_height().build(ctx);
                 button("Button").build(ctx);
 
                 // colored_box(ColorRgba::from_hex(0xFFCC0000)).build(ctx, |ctx| {

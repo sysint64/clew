@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use glam::Vec2;
 
 use crate::{
-    Border, BorderRadius, BorderSide, ColorRgb, ColorRgba, Gradient, LayoutDirection, Rect, View,
-    WidgetType,
+    Border, BorderRadius, BorderSide, ColorRgb, ColorRgba, DebugBoundary, Gradient,
+    LayoutDirection, Rect, View, WidgetType,
     interaction::{InteractionState, handle_interaction},
     io::UserInput,
-    layout::layout,
+    layout::{WidgetPlacement, layout},
     state::UiState,
     text::{FontResources, StringId, StringInterner, TextId, TextsResources},
     widgets::{self, builder::BuildContext},
@@ -274,6 +274,10 @@ pub fn render(
                         .unwrap(),
                 );
             }
+
+            if placement.widget_ref.widget_type == WidgetType::of::<DebugBoundary>() {
+                render_debug_boundary(&mut render_context, placement);
+            }
         }
 
         println!(
@@ -298,4 +302,20 @@ pub fn render(
     println!("COMMANDS SORT TIME: {:?}", commands_sort_time.elapsed());
 
     force_redraw || need_to_redraw
+}
+
+fn render_debug_boundary(ctx: &mut RenderContext, placement: &WidgetPlacement) {
+    let size = placement.rect.size().px(ctx);
+    let position = placement.rect.position().px(ctx);
+
+    ctx.push_command(RenderCommand::Rect {
+        zindex: placement.zindex,
+        boundary: placement.rect.shrink(2.).px(ctx),
+        fill: None,
+        border_radius: None,
+        border: Some(Border::all(BorderSide::new(
+            2.,
+            ColorRgba::from_hex(0xFFFF0000),
+        ))),
+    });
 }

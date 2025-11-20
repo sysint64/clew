@@ -68,6 +68,8 @@ pub struct WidgetRef {
     pub id: WidgetId,
 }
 
+pub struct DebugBoundary;
+
 impl WidgetRef {
     pub(crate) fn new(widget_type: WidgetType, id: WidgetId) -> Self {
         Self { widget_type, id }

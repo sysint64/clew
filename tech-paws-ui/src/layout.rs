@@ -1,11 +1,12 @@
 use crate::{
-    AlignX, AlignY, Constraints, CrossAxisAlignment, EdgeInsets, LayoutDirection,
-    MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetRef, rect_contains_boundary,
+    AlignX, AlignY, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets, LayoutDirection,
+    MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, WidgetRef, WidgetType,
+    rect_contains_boundary,
     text::{TextId, TextsResources},
 };
 use glam::Vec2;
 
-pub(crate) const RENDER_DEBUG_BOUNDARIES: bool = false;
+pub(crate) const RENDER_DEBUG_BOUNDARIES: bool = true;
 
 #[derive(Debug)]
 pub struct WidgetPlacement {
@@ -773,17 +774,18 @@ pub fn layout(
         // ---------------------------------------------------------------------
 
         let mut boundary = Rect::from_pos_size(current_position, boundary_size);
-        let (align_x, align_y) = layout_state.get_align();
-        let mut position = current_position
-            + container_offset
-            + Vec2::new(
-                align_x.position(
-                    layout_state.layout_direction,
-                    boundary_size.x,
-                    widget_size.x,
-                ),
-                align_y.position(boundary_size.y, widget_size.y),
-            );
+        // let (align_x, align_y) = layout_state.get_align();
+        // let mut position = current_position
+        //     + container_offset
+        //     + Vec2::new(
+        //         align_x.position(
+        //             layout_state.layout_direction,
+        //             boundary_size.x,
+        //             widget_size.x,
+        //         ),
+        //         align_y.position(boundary_size.y, widget_size.y),
+        //     );
+        let mut position = current_position;
 
         if let StackAxis::Horizontal { rtl_aware, .. } = layout_state.parent_container.axis {
             if rtl_aware && layout_state.layout_direction == LayoutDirection::RTL {
@@ -826,7 +828,11 @@ pub fn layout(
                 current_position.y += padding.top;
 
                 match kind {
-                    ContainerKind::VStack { spacing, .. } => {
+                    ContainerKind::VStack {
+                        spacing,
+                        main_axis_alignment,
+                        cross_axis_alignment: _,
+                    } => {
                         layout_state.parent_container = LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
@@ -880,44 +886,35 @@ pub fn layout(
                 layout_state.parent_container = layout_state.pop_container();
                 current_position = layout_state.pop_position();
 
-                if RENDER_DEBUG_BOUNDARIES {
-                    let container_idx = layout_state.parent_container.idx;
-                    let container_offset = layout_state.offsets[container_idx];
-                    let container_size = layout_state.actual_sizes[container_idx];
-                    let _position = current_position
-                        + container_offset
-                        + Vec2::new(
-                            align_x.position(
-                                layout_state.layout_direction,
-                                container_size.x,
-                                widget_size.x,
-                            ),
-                            align_y.position(container_size.y, widget_size.y),
-                        );
+                let container_idx = parent_container.idx;
+                let container_offset = layout_state.offsets[container_idx];
+                let container_size = layout_state.actual_sizes[container_idx];
+                let position = current_position;
+                // let position = current_position
+                //     + container_offset
+                //     + Vec2::new(
+                //         align_x.position(
+                //             layout_state.layout_direction,
+                //             container_size.x,
+                //             widget_size.x,
+                //         ),
+                //         align_y.position(container_size.y, widget_size.y),
+                //     );
 
-                    // widget_placements.push(WidgetPlacement {
-                    //     zindex: i32::MAX,
-                    //     boundary: Rect::ZERO,
-                    //     rect: Rect::from_pos_size(position, widget_size),
-                    // });
+                if RENDER_DEBUG_BOUNDARIES {
+                    widget_placements.push(WidgetPlacement {
+                        widget_ref: WidgetRef {
+                            widget_type: WidgetType::of::<DebugBoundary>(),
+                            id: WidgetId::auto(),
+                        },
+
+                        zindex: i32::MAX,
+                        boundary: Rect::ZERO,
+                        rect: Rect::from_pos_size(position, widget_size),
+                    });
                 }
 
-                // if let Some(widget_ref) = parent_container.widget_ref {
                 for widget_ref in &parent_container.widget_ref {
-                    let container_idx = parent_container.idx;
-                    let container_offset = layout_state.offsets[container_idx];
-                    let container_size = layout_state.actual_sizes[container_idx];
-                    let position = current_position
-                        + container_offset
-                        + Vec2::new(
-                            align_x.position(
-                                layout_state.layout_direction,
-                                container_size.x,
-                                widget_size.x,
-                            ),
-                            align_y.position(container_size.y, widget_size.y),
-                        );
-
                     if rect_contains_boundary(
                         Rect::from_pos_size(position, widget_size),
                         Rect::from_pos_size(Vec2::ZERO, root_size),
@@ -934,15 +931,28 @@ pub fn layout(
             LayoutCommand::Child {
                 widget_refs,
                 zindex,
+                padding,
                 ..
             } => {
                 // Don't render anything outside the screen view
-                if rect_contains_boundary(boundary, Rect::from_pos_size(Vec2::ZERO, root_size)) {
+                if rect_contains_boundary(rect, Rect::from_pos_size(Vec2::ZERO, root_size)) {
                     for widget_ref in widget_refs {
                         widget_placements.push(WidgetPlacement {
                             widget_ref: *widget_ref,
                             zindex: *zindex,
                             boundary,
+                            rect,
+                        });
+                    }
+
+                    if RENDER_DEBUG_BOUNDARIES {
+                        widget_placements.push(WidgetPlacement {
+                            widget_ref: WidgetRef {
+                                widget_type: WidgetType::of::<DebugBoundary>(),
+                                id: WidgetId::auto(),
+                            },
+                            zindex: i32::MAX,
+                            boundary: Rect::ZERO,
                             rect,
                         });
                     }

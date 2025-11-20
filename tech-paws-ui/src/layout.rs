@@ -2,7 +2,7 @@ use crate::{
     AlignX, AlignY, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets, LayoutDirection,
     MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, WidgetRef, WidgetType,
     rect_contains_boundary,
-    text::{TextId, TextsResources},
+    text::{FontResources, TextId, TextsResources},
 };
 use glam::Vec2;
 
@@ -141,6 +141,11 @@ struct Pass2LayoutContainer {
     padding: EdgeInsets,
 }
 
+pub(crate) struct TextLayout {
+    pub(crate) width: f32,
+    pub(crate) text_id: TextId,
+}
+
 #[derive(Default)]
 pub(crate) struct LayoutState {
     cursor: usize,
@@ -170,6 +175,8 @@ pub(crate) struct LayoutState {
     align_stack_cursor: usize,
     align_x_stack: Vec<AlignX>,
     align_y_stack: Vec<AlignY>,
+
+    pub(crate) texts: Vec<TextLayout>,
 }
 
 impl LayoutState {
@@ -340,6 +347,8 @@ impl LayoutState {
         self.position_cursor = 0;
         self.containers_stack_cursor = 0;
         self.align_stack_cursor = 0;
+
+        self.texts.clear();
     }
 
     fn add_flex_sum(&mut self, size: Size) {
@@ -551,6 +560,8 @@ pub fn layout(
     commands: &[LayoutCommand],
     widget_placements: &mut Vec<WidgetPlacement>,
     text: &mut TextsResources,
+    fonts: &mut FontResources,
+    pass1: bool,
 ) {
     layout_state.clear();
 
@@ -695,6 +706,7 @@ pub fn layout(
                 constraints,
                 size,
                 derive_wrap_size,
+                widget_refs,
                 ..
             } => {
                 layout_state.push_boundary();
@@ -1081,6 +1093,7 @@ pub fn layout(
                 widget_refs,
                 zindex,
                 padding,
+                derive_wrap_size,
                 ..
             } => {
                 let align_x = match layout_state.pass2_parent_container.axis {
@@ -1166,6 +1179,16 @@ pub fn layout(
                             rect,
                         });
                     }
+
+                    let wrap_size = match derive_wrap_size {
+                        DeriveWrapSize::Constraints => {}
+                        DeriveWrapSize::Text { text_id, .. } => {
+                            layout_state.texts.push(TextLayout {
+                                width: rect.width * view.scale_factor,
+                                text_id: *text_id,
+                            });
+                        }
+                    };
 
                     if RENDER_DEBUG_BOUNDARIES {
                         widget_placements.push(WidgetPlacement {

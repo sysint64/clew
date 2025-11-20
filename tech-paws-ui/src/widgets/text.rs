@@ -129,7 +129,7 @@ pub fn text(text: &str) -> TextBuilder<'_> {
             min_width: 100.,
             min_height: 20.,
             max_width: f32::INFINITY,
-            max_height: 20.,
+            max_height: f32::INFINITY,
         },
         text_align_x: AlignX::Start,
         text_align_y: AlignY::Top,
@@ -142,7 +142,9 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
     let size = placement.rect.size().px(ctx);
     let position = placement.rect.position().px(ctx);
 
-    let text_size = ctx.text.get_mut(state.text_id).layout();
+    let text = ctx.text.get_mut(state.text_id);
+
+    let text_size = text.layout();
     let text_position = position
         + Vec2::new(
             state

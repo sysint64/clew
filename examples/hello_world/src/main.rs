@@ -189,9 +189,9 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
         // ui_benchmark(ctx);
 
-        hstack()
+        vstack()
             .main_axis_alignment(MainAxisAlignment::Center)
-            .cross_axis_alignment(CrossAxisAlignment::Stretch)
+            .cross_axis_alignment(CrossAxisAlignment::Center)
             .fill_max_size()
             // .fill_max_height()
             .padding(EdgeInsets::all(12.))
@@ -206,7 +206,7 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
                 });
 
                 button("Button").build(ctx);
-                // gap().fill_max_height().build(ctx);
+                gap().fill_max_height().build(ctx);
                 button("Button").build(ctx);
 
                 // colored_box(ColorRgba::from_hex(0xFFCC0000)).build(ctx, |ctx| {
@@ -290,6 +290,11 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
                         button("Hello World!").build(ctx);
                     });
 
+                text("Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.")
+                    .color(ColorRgba::from_hex(0xFFFFFFFF))
+                    .fill_max_width()
+                    .build(ctx);
+
                 if button(&format!("Counter:\nValue: {}", app.counter))
                     .id("counter")
                     .build(ctx)
@@ -314,13 +319,15 @@ fn ui_benchmark(ctx: &mut BuildContext) {
     vstack().fill_max_width().build(ctx, |ctx| {
         // gap().height(128.).show(ctx);
 
-        for i in 0..100 {
+        for i in 0..5 {
             // 100 buttons
             hstack().fill_max_width().build(ctx, |ctx| {
                 for j in 0..1000 {
                     // hstack().show(ctx, |ctx| {});
                     // 10 buttons per row
+                    // if button(&format!("Button {i}_{j}"))
                     if button(&format!("Button {i}_{j}"))
+                        // if button("Button")
                         .id((i, j))
                         .build(ctx)
                         .clicked()

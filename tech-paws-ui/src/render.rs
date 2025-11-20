@@ -183,7 +183,28 @@ pub fn render(
         &state.layout_commands,
         &mut state.widget_placements,
         text,
+        fonts,
+        true,
     );
+
+    for layout_text in &state.layout_state.texts {
+        let text = text.get_mut(layout_text.text_id);
+
+        text.with_buffer_mut(|buffer| {
+            buffer.set_size(&mut fonts.font_system, Some(layout_text.width), None);
+        });
+    }
+
+    layout(
+        &mut state.layout_state,
+        &state.view,
+        &state.layout_commands,
+        &mut state.widget_placements,
+        text,
+        fonts,
+        false,
+    );
+
     println!(
         "LAYOUT TIME FOR {} COMMANDS: {:?}",
         state.layout_commands.len(),
@@ -289,17 +310,17 @@ pub fn render(
 
     let clean_up_time = std::time::Instant::now();
 
-    state.widgets_states.sweep(&mut state.interaction_state);
-    state.user_input.clear_frame_events();
+    // state.widgets_states.sweep(&mut state.interaction_state);
+    // state.user_input.clear_frame_events();
 
-    println!("CLEAN UP TIME: {:?}", clean_up_time.elapsed());
+    // println!("CLEAN UP TIME: {:?}", clean_up_time.elapsed());
 
-    let commands_sort_time = std::time::Instant::now();
-    state
-        .render_state
-        .commands
-        .sort_by_key(|cmd| cmd.zindex().unwrap_or(i32::MAX));
-    println!("COMMANDS SORT TIME: {:?}", commands_sort_time.elapsed());
+    // let commands_sort_time = std::time::Instant::now();
+    // state
+    // .render_state
+    // .commands
+    // .sort_by_key(|cmd| cmd.zindex().unwrap_or(i32::MAX));
+    // println!("COMMANDS SORT TIME: {:?}", commands_sort_time.elapsed());
 
     force_redraw || need_to_redraw
 }

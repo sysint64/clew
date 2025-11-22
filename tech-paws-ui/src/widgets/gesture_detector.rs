@@ -93,17 +93,8 @@ impl GestureDetectorBuilder {
             is_focused: state.is_focused,
         };
 
-        // context.push_layout_command(LayoutCommand::BeginContainer {
-        //     widget_ref: Some(widget_ref),
-        //     zindex: context.current_zindex - 1,
-        //     kind: ContainerKind::ZStack,
-        //     size,
-        //     constraints: Constraints::default(),
-        // });
         context.decorators.push(widget_ref);
         context.with_user_data(response.clone(), callback);
-        // context.decorators.pop();
-        // context.push_layout_command(LayoutCommand::EndContainer);
 
         context.widgets_states.accessed_this_frame.insert(id);
 

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use tech_paws_ui::PhysicalSize;
+use tech_paws_ui::assets::Assets;
 use tech_paws_ui::io::Cursor;
 use tech_paws_ui::render::Renderer;
 use tech_paws_ui::text::{FontResources, StringId, StringInterner, TextId};
@@ -14,7 +15,7 @@ use crate::window_manager::WindowState;
 use winit::platform::macos::EventLoopBuilderExtMacOS;
 
 pub trait ApplicationDelegate<Event> {
-    fn init_assets(&mut self, _fonts: &mut FontResources) {}
+    fn init_assets(&mut self, _assets: &mut Assets) {}
 
     fn on_start(&mut self, window_manager: &mut WindowManager<Self, Event>)
     where
@@ -33,6 +34,7 @@ pub struct Application<'a, T: ApplicationDelegate<Event>, Event = ()> {
     app: T,
     window_manager: WindowManager<'a, T, Event>,
     fonts: FontResources,
+    assets: Assets<'a>,
     string_interner: StringInterner,
     last_cursor: Cursor,
     broadcast_event_queue: Vec<Arc<dyn Any + Send>>,
@@ -56,6 +58,7 @@ impl ApplicationEventLoopProxy for WinitEventLoopProxy {
 fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
     app: &mut T,
     fonts: &mut FontResources,
+    assets: &Assets,
     string_interner: &mut StringInterner,
     broadcast_event_queue: &mut Vec<Arc<dyn Any + Send>>,
     broadcast_async_tx: &mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
@@ -109,6 +112,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         &mut window_state.ui_state,
         &mut window_state.texts,
         fonts,
+        assets,
         string_interner,
         &mut window_state.strings,
         force_redraw,
@@ -203,6 +207,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
                 let need_to_redraw = render(
                     &mut self.app,
                     &mut self.fonts,
+                    &mut self.assets,
                     &mut self.string_interner,
                     &mut self.broadcast_event_queue,
                     &mut self.broadcast_async_tx,
@@ -218,6 +223,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
                         window.fill_color,
                         &mut self.fonts,
                         &mut window.texts,
+                        &mut self.assets,
                     );
 
                     window.winit_window.request_redraw();
@@ -311,8 +317,11 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> Application<'_, T, Event> {
     pub fn run_application(mut delegate: T) -> anyhow::Result<()> {
         let (broadcast_async_tx, broadcast_async_rx) = tokio::sync::mpsc::unbounded_channel();
 
-        let mut fonts = FontResources::new();
-        delegate.init_assets(&mut fonts);
+        let mut assets = Assets::new();
+
+        delegate.init_assets(&mut assets);
+
+        let fonts = assets.create_font_resources();
 
         #[cfg(target_os = "macos")]
         let event_loop = winit::event_loop::EventLoop::with_user_event()
@@ -335,6 +344,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> Application<'_, T, Event> {
             broadcast_async_tx,
             force_redraw: false,
             event_loop_proxy: Arc::new(WinitEventLoopProxy { proxy: event_proxy }),
+            assets,
         };
 
         event_loop.run_app(&mut application)?;

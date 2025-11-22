@@ -145,8 +145,8 @@ impl BuildContext<'_, '_> {
 #[macro_export]
 macro_rules! impl_size_methods {
     () => {
-        pub fn size(mut self, size: Size) -> Self {
-            self.size = size;
+        pub fn size<T: Into<Size>>(mut self, size: T) -> Self {
+            self.size = size.into();
             self
         }
 

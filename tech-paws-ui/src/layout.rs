@@ -1,6 +1,7 @@
 use crate::{
     AlignX, AlignY, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets, LayoutDirection,
     MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, WidgetRef, WidgetType,
+    assets::Assets,
     rect_contains_boundary,
     text::{FontResources, TextId, TextsResources},
 };
@@ -53,6 +54,7 @@ pub enum DeriveWrapSize {
         padding: EdgeInsets,
         text_id: TextId,
     },
+    Svg(&'static str),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -561,7 +563,7 @@ pub fn layout(
     widget_placements: &mut Vec<WidgetPlacement>,
     text: &mut TextsResources,
     fonts: &mut FontResources,
-    pass1: bool,
+    assets: &Assets,
 ) {
     layout_state.clear();
 
@@ -707,6 +709,7 @@ pub fn layout(
                 size,
                 derive_wrap_size,
                 widget_refs,
+                padding,
                 ..
             } => {
                 layout_state.push_boundary();
@@ -714,17 +717,25 @@ pub fn layout(
                 layout_state.add_flex_sum_x(size.width);
                 layout_state.add_flex_sum_y(size.height);
 
-                let wrap_size = match derive_wrap_size {
-                    DeriveWrapSize::Constraints => {
-                        Vec2::new(constraints.min_width, constraints.min_height)
-                    }
-                    DeriveWrapSize::Text { padding, text_id } => {
-                        if size.width.constrained() && size.height.constrained() {
+                let wrap_size = if size.width.constrained() && size.height.constrained() {
+                    Vec2::new(constraints.min_width, constraints.min_height)
+                } else {
+                    match derive_wrap_size {
+                        DeriveWrapSize::Constraints => {
                             Vec2::new(constraints.min_width, constraints.min_height)
-                        } else {
+                        }
+                        DeriveWrapSize::Text { padding, text_id } => {
                             let text_size = text.get_mut(*text_id).layout();
 
                             (text_size / view.scale_factor)
+                                + Vec2::new(padding.horizontal(), padding.vertical())
+                        }
+                        DeriveWrapSize::Svg(asset_id) => {
+                            let tree = assets
+                                .get_svg_tree(asset_id)
+                                .expect(&format!("SVG with ID = {asset_id} has not found"));
+
+                            Vec2::new(tree.size().width(), tree.size().height())
                                 + Vec2::new(padding.horizontal(), padding.vertical())
                         }
                     }
@@ -1180,14 +1191,11 @@ pub fn layout(
                         });
                     }
 
-                    let wrap_size = match derive_wrap_size {
-                        DeriveWrapSize::Constraints => {}
-                        DeriveWrapSize::Text { text_id, .. } => {
-                            layout_state.texts.push(TextLayout {
-                                width: rect.width * view.scale_factor,
-                                text_id: *text_id,
-                            });
-                        }
+                    if let DeriveWrapSize::Text { text_id, .. } = derive_wrap_size {
+                        layout_state.texts.push(TextLayout {
+                            width: rect.width * view.scale_factor,
+                            text_id: *text_id,
+                        });
                     };
 
                     if RENDER_DEBUG_BOUNDARIES {

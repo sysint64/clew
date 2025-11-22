@@ -9,6 +9,7 @@ pub mod state;
 pub mod text;
 mod widget_id;
 pub mod widgets;
+pub mod assets;
 
 pub use foundation::*;
 pub use render::render;

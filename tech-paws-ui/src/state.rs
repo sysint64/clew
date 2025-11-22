@@ -85,6 +85,8 @@ impl WidgetsStates {
     where
         F: FnOnce() -> T,
     {
+        puffin::profile_function!();
+
         self.data.entry(id).or_insert_with(|| Box::new(create()));
 
         self.data

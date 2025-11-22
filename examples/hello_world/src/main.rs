@@ -1,5 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
+use tech_paws_ui::assets::Assets;
 use tech_paws_ui::identifiable::Identifiable;
 // use tech_paws_ui::widgets::button::button;
 use tech_paws_ui::widgets::colored_box::colored_box;
@@ -7,6 +8,7 @@ use tech_paws_ui::widgets::decorated_box::decorated_box;
 use tech_paws_ui::widgets::gap::gap;
 use tech_paws_ui::widgets::gesture_detector::{GestureDetectorResponse, gesture_detector};
 use tech_paws_ui::widgets::hstack::hstack;
+use tech_paws_ui::widgets::svg::svg;
 use tech_paws_ui::widgets::text::text;
 use tech_paws_ui::widgets::zstack::zstack;
 use tech_paws_ui::{
@@ -53,18 +55,22 @@ pub enum CounterEvent {
 }
 
 impl ApplicationDelegate<CounterEvent> for DemoApplication {
-    fn init_assets(&mut self, fonts: &mut FontResources) {
-        fonts.load_font("Inter", include_bytes!("../../assets/fonts/Inter.ttf"));
-        fonts.load_font(
+    fn init_assets(&mut self, assets: &mut Assets) {
+        assets.load_font("Inter", include_bytes!("../../assets/fonts/Inter.ttf"));
+        assets.load_font(
             "Source Han Serif",
             include_bytes!("../../assets/fonts/SourceHanSerif-Regular.otf"),
         );
-        fonts.load_font(
+        assets.load_font(
             "Noto Emoji",
             include_bytes!("../../assets/fonts/NotoEmoji-VariableFont_wght.ttf"),
         );
 
         log::info!("Loaded fonts");
+
+        assets.load_svg("e", include_bytes!("../../assets/svg/e.svg"));
+
+        log::info!("Loaded svgs");
     }
 
     fn on_event(
@@ -187,6 +193,9 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
+        puffin::GlobalProfiler::lock().new_frame();
+        puffin::profile_function!();
+
         // ui_benchmark(ctx);
 
         vstack()
@@ -196,6 +205,13 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
             // .fill_max_height()
             .padding(EdgeInsets::all(12.))
             .build(ctx, |ctx| {
+                hstack().cross_axis_alignment(CrossAxisAlignment::Center).build(ctx, |ctx| {
+                    svg("e").build(ctx);
+                    svg("e").padding(EdgeInsets::all(8.)).build(ctx);
+                    svg("e").padding(EdgeInsets::all(8.)).size(24.).build(ctx);
+                    svg("e").color(ColorRgba::from_hex(0xFFFFFFFF)).build(ctx);
+                });
+
                 for_each(0..2).build(ctx, |ctx, i| {
                     for_each(&mut self.books).build(ctx, |ctx, book| {
                         if button(&format!("{i}: {}", book.title)).build(ctx).clicked() {
@@ -319,14 +335,14 @@ fn ui_benchmark(ctx: &mut BuildContext) {
     vstack().fill_max_width().build(ctx, |ctx| {
         // gap().height(128.).show(ctx);
 
-        for i in 0..5 {
+        for i in 0..50 {
             // 100 buttons
             hstack().fill_max_width().build(ctx, |ctx| {
-                for j in 0..1000 {
+                for j in 0..10 {
                     // hstack().show(ctx, |ctx| {});
                     // 10 buttons per row
-                    // if button(&format!("Button {i}_{j}"))
-                    if button(&format!("Button {i}_{j}"))
+                    if button("Button")
+                        // if button(&format!("Button {i}_{j}"))
                         // if button("Button")
                         .id((i, j))
                         .build(ctx)
@@ -346,8 +362,13 @@ fn ui_benchmark(ctx: &mut BuildContext) {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let server_addr = format!("0.0.0.0:{}", puffin_http::DEFAULT_PORT);
+    let _puffin_server = puffin_http::Server::new(&server_addr).unwrap();
+    eprintln!("Serving demo profile data on {server_addr}. Run `puffin_viewer` to view it.");
+    puffin::set_scopes_on(true);
+
     env_logger::Builder::new()
-        .filter(None, log::LevelFilter::Info)
+        .filter(None, log::LevelFilter::Debug)
         .init();
 
     log::info!("Starting app");

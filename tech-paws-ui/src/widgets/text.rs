@@ -87,6 +87,13 @@ impl<'a> TextBuilder<'a> {
                 })
         });
 
+        // Example of how to set align
+        // -----------------------------------------------------------------------------------------
+        // for line in buffer.lines.iter_mut() {
+        //     line.set_align(Some(cosmic_text::Align::Center));
+        // }
+        // -----------------------------------------------------------------------------------------
+
         let mut widget_refs = std::mem::take(&mut context.decorators);
         widget_refs.push(widget_ref);
 
@@ -143,7 +150,6 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
     let position = placement.rect.position().px(ctx);
 
     let text = ctx.text.get_mut(state.text_id);
-
     let text_size = text.layout();
     let text_position = position
         + Vec2::new(

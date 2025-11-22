@@ -9,8 +9,10 @@ glam = { workspace = true }
 cosmic-text = { workspace = true }
 slotmap = { workspace = true }
 string-interner = { workspace = true }
+usvg = { workspace = true }
 bitflags = "2.10"
 tokio = { version = "1", features = ["rt", "sync", "time"], optional = true }
+puffin = "0.19.1"
 
 [features]
 default = ["tokio"]

@@ -47,21 +47,25 @@ impl<'a> ButtonBuilder<'a> {
             gesture_detector().build(ctx, |ctx| {
                 let response = ctx.of::<GestureDetectorResponse>().unwrap();
 
-                let gradient = if response.is_active() && response.is_hot() {
-                    LinearGradient::vertical(vec![
-                        ColorRgba::from_hex(0xFF1C1C1C),
-                        ColorRgba::from_hex(0xFF212121),
-                    ])
-                } else if response.is_hot() {
-                    LinearGradient::vertical(vec![
-                        ColorRgba::from_hex(0xFF383838),
-                        ColorRgba::from_hex(0xFF2E2E2E),
-                    ])
-                } else {
-                    LinearGradient::vertical(vec![
-                        ColorRgba::from_hex(0xFF2F2F2F),
-                        ColorRgba::from_hex(0xFF272727),
-                    ])
+                let gradient = {
+                    puffin::profile_scope!("add gradient");
+
+                    if response.is_active() && response.is_hot() {
+                        LinearGradient::vertical(vec![
+                            ColorRgba::from_hex(0xFF1C1C1C),
+                            ColorRgba::from_hex(0xFF212121),
+                        ])
+                    } else if response.is_hot() {
+                        LinearGradient::vertical(vec![
+                            ColorRgba::from_hex(0xFF383838),
+                            ColorRgba::from_hex(0xFF2E2E2E),
+                        ])
+                    } else {
+                        LinearGradient::vertical(vec![
+                            ColorRgba::from_hex(0xFF2F2F2F),
+                            ColorRgba::from_hex(0xFF272727),
+                        ])
+                    }
                 };
 
                 let border_color = if response.is_focused() {

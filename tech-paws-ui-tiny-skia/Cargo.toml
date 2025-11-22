@@ -9,3 +9,7 @@ softbuffer = "0.4"
 tech-paws-ui = { path = "../tech-paws-ui" }
 raw-window-handle = { workspace = true }
 cosmic-text = { workspace = true }
+usvg = { workspace = true }
+resvg = { workspace = true }
+log = { workspace = true }
+glam = { workspace = true }

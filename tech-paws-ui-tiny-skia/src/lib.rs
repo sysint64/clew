@@ -1,13 +1,14 @@
-use std::{num::NonZeroU32, slice};
+use std::{collections::HashMap, num::NonZeroU32, slice};
 
 use cosmic_text::SwashCache;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use tech_paws_ui::{
     Border, BorderRadius, BorderSide, ColorRgb, ColorRgba, Gradient, Rect, TileMode, View,
+    assets::Assets,
     render::{Fill, RenderCommand, RenderState, Renderer},
     text::{FontResources, TextsResources},
 };
-use tiny_skia::{Paint, PixmapMut};
+use tiny_skia::{Paint, Pixmap, PixmapMut};
 
 pub struct TinySkiaRenderer<D, W> {
     surface: softbuffer::Surface<D, W>,
@@ -38,6 +39,7 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
         fill_color: ColorRgb,
         fonts: &mut FontResources,
         text: &mut TextsResources,
+        assets: &Assets,
     ) {
         let render_time = std::time::Instant::now();
 
@@ -171,6 +173,47 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
                 RenderCommand::PopClip => {
                     // clip_stack.pop();
                 }
+                RenderCommand::Svg {
+                    zindex,
+                    boundary,
+                    asset_id,
+                    tint_color,
+                } => {
+                    let tree = assets
+                        .get_svg_tree(asset_id)
+                        .expect(&format!("SVG with ID = {asset_id} has not found"));
+
+                    let mut svg_pixmap = tiny_skia::Pixmap::new(
+                        boundary.width.ceil() as u32,
+                        boundary.height.ceil() as u32,
+                    );
+
+                    if let Some(mut svg_pixmap) = svg_pixmap {
+                        let sx = boundary.width / tree.size().width();
+                        let sy = boundary.height / tree.size().height();
+
+                        resvg::render(
+                            &tree,
+                            tiny_skia::Transform::from_scale(sx, sy),
+                            &mut svg_pixmap.as_mut(),
+                        );
+
+                        if let Some(tint) = tint_color {
+                            tint_pixmap(&mut svg_pixmap, convert_rgba_color(tint));
+                        }
+
+                        pixmap.draw_pixmap(
+                            boundary.x.round() as i32,
+                            boundary.y.round() as i32,
+                            svg_pixmap.as_ref(),
+                            &tiny_skia::PixmapPaint::default(),
+                            tiny_skia::Transform::identity(),
+                            None,
+                        );
+                    } else {
+                        log::warn!("Failed to render svg: {asset_id}");
+                    }
+                }
             }
         }
 
@@ -192,7 +235,7 @@ fn render_rect(
     clip_mask: Option<&tiny_skia::Mask>,
 ) {
     let path = if let Some(border_radius) = border_radius {
-        create_rounded_rect_path(boundary, border_radius)
+        Some(create_rounded_rect_path(boundary, border_radius))
     } else {
         let mut pb = tiny_skia::PathBuilder::new();
         if let Some(rect) =
@@ -200,25 +243,27 @@ fn render_rect(
         {
             pb.push_rect(rect);
         }
-        pb.finish().unwrap()
+        pb.finish()
     };
 
-    if let Some(fill) = fill {
-        // Render fill
-        if let Some(paint) = create_paint_from_fill(fill, boundary) {
-            pixmap.fill_path(
-                &path,
-                &paint,
-                tiny_skia::FillRule::Winding,
-                tiny_skia::Transform::identity(),
-                clip_mask,
-            );
+    if let Some(path) = path {
+        if let Some(fill) = fill {
+            // Render fill
+            if let Some(paint) = create_paint_from_fill(fill, boundary) {
+                pixmap.fill_path(
+                    &path,
+                    &paint,
+                    tiny_skia::FillRule::Winding,
+                    tiny_skia::Transform::identity(),
+                    clip_mask,
+                );
+            }
         }
-    }
 
-    if let Some(border) = border {
-        // Render border
-        render_border(pixmap, &path, border, clip_mask);
+        if let Some(border) = border {
+            // Render border
+            render_border(pixmap, &path, border, clip_mask);
+        }
     }
 }
 
@@ -513,4 +558,23 @@ fn convert_rgb_color(color: &ColorRgb) -> tiny_skia::Color {
     // Note: due to softbuffer and tiny_skia having incompatible internal color representations we swap
     // the red and blue channels here
     tiny_skia::Color::from_rgba(color.b, color.g, color.r, 1.).unwrap()
+}
+
+fn tint_pixmap(pixmap: &mut tiny_skia::Pixmap, color: tiny_skia::Color) {
+    let mut tint_pixmap = tiny_skia::Pixmap::new(pixmap.width(), pixmap.height()).unwrap();
+    tint_pixmap.fill(color);
+
+    // Create a paint with multiply blend mode
+    let mut paint = tiny_skia::PixmapPaint::default();
+    paint.blend_mode = tiny_skia::BlendMode::SourceIn;
+
+    // Draw the tint over the original with multiply blending
+    pixmap.draw_pixmap(
+        0,
+        0,
+        tint_pixmap.as_ref(),
+        &paint,
+        tiny_skia::Transform::identity(),
+        None,
+    );
 }

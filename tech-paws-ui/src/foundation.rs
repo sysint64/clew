@@ -87,6 +87,24 @@ impl Size {
     }
 }
 
+impl From<f32> for Size {
+    fn from(value: f32) -> Self {
+        Self {
+            width: SizeConstraint::Fixed(value),
+            height: SizeConstraint::Fixed(value),
+        }
+    }
+}
+
+impl From<f64> for Size {
+    fn from(value: f64) -> Self {
+        Self {
+            width: SizeConstraint::Fixed(value as f32),
+            height: SizeConstraint::Fixed(value as f32),
+        }
+    }
+}
+
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum AlignX {
     Left,

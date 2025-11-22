@@ -5,6 +5,7 @@ use glam::Vec2;
 use crate::{
     Border, BorderRadius, BorderSide, ColorRgb, ColorRgba, DebugBoundary, Gradient,
     LayoutDirection, Rect, View, WidgetType,
+    assets::Assets,
     interaction::{InteractionState, handle_interaction},
     io::UserInput,
     layout::{WidgetPlacement, layout},
@@ -25,6 +26,10 @@ impl RenderState {
 }
 
 pub trait Renderer {
+    fn upload_svg(&mut self, name: &'static str, tree: &usvg::Tree) {}
+
+    fn on_scale_factor_update(&mut self, scale_factor: f32) {}
+
     fn process_commands(
         &mut self,
         view: &View,
@@ -32,6 +37,7 @@ pub trait Renderer {
         fill_color: ColorRgb,
         fonts: &mut FontResources,
         text: &mut TextsResources,
+        assets: &Assets,
     );
 }
 
@@ -75,6 +81,12 @@ pub enum RenderCommand {
         text_id: TextId,
         tint_color: Option<ColorRgba>,
     },
+    Svg {
+        zindex: i32,
+        boundary: Rect,
+        asset_id: &'static str,
+        tint_color: Option<ColorRgba>,
+    },
     PushClipRect(Rect),
     PopClip,
 }
@@ -85,6 +97,7 @@ impl RenderCommand {
             RenderCommand::Rect { zindex, .. } => Some(*zindex),
             RenderCommand::Oval { zindex, .. } => Some(*zindex),
             RenderCommand::Text { zindex, .. } => Some(*zindex),
+            RenderCommand::Svg { zindex, .. } => Some(*zindex),
             RenderCommand::PushClipRect(rect) => None,
             RenderCommand::PopClip => None,
         }
@@ -170,6 +183,7 @@ pub fn render(
     state: &mut UiState,
     text: &mut TextsResources,
     fonts: &mut FontResources,
+    assets: &Assets,
     string_interner: &mut StringInterner,
     strings: &mut HashMap<StringId, TextId>,
     force_redraw: bool,
@@ -184,7 +198,7 @@ pub fn render(
         &mut state.widget_placements,
         text,
         fonts,
-        true,
+        assets,
     );
 
     for layout_text in &state.layout_state.texts {
@@ -202,7 +216,7 @@ pub fn render(
         &mut state.widget_placements,
         text,
         fonts,
-        false,
+        assets,
     );
 
     println!(
@@ -292,6 +306,17 @@ pub fn render(
                     state
                         .widgets_states
                         .get_mut::<widgets::decorated_box::State>(placement.widget_ref.id)
+                        .unwrap(),
+                );
+            }
+
+            if placement.widget_ref.widget_type == WidgetType::of::<widgets::svg::SvgWidget>() {
+                widgets::svg::render(
+                    &mut render_context,
+                    placement,
+                    state
+                        .widgets_states
+                        .get_mut::<widgets::svg::State>(placement.widget_ref.id)
                         .unwrap(),
                 );
             }

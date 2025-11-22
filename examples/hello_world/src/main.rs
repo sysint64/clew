@@ -208,7 +208,8 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
                 hstack().cross_axis_alignment(CrossAxisAlignment::Center).build(ctx, |ctx| {
                     svg("e").build(ctx);
                     svg("e").padding(EdgeInsets::all(8.)).build(ctx);
-                    svg("e").padding(EdgeInsets::all(8.)).size(24.).build(ctx);
+                    svg("e").padding(EdgeInsets::all(8.)).size(128.).build(ctx);
+                    svg("e").size(128.).build(ctx);
                     svg("e").color(ColorRgba::from_hex(0xFFFFFFFF)).build(ctx);
                 });
 

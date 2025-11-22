@@ -62,7 +62,7 @@ impl ZStackBuilder {
         context.current_zindex += 1;
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            widget_ref: widgets,
+            decorators: widgets,
             zindex: last_zindex,
             padding: self.padding,
             kind: ContainerKind::ZStack,

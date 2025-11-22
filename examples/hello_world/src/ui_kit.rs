@@ -105,7 +105,6 @@ pub fn button(text: &str) -> ButtonBuilder<'_> {
     ButtonBuilder {
         id: WidgetId::auto(),
         text,
-        // width: SizeConstraint::Fixed(100.),
         width: SizeConstraint::Wrap,
         align_x: None,
         align_y: None,
@@ -113,9 +112,8 @@ pub fn button(text: &str) -> ButtonBuilder<'_> {
         zindex: None,
         constraints: Constraints {
             min_width: 20.,
-            min_height: 20.,
+            min_height: 0.,
             max_width: f32::INFINITY,
-            // max_width: f32::INFINITY,
             max_height: f32::INFINITY,
         },
     }

@@ -62,7 +62,7 @@ impl VStackBuilder {
         let widget_refs = std::mem::take(&mut context.decorators);
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            widget_ref: widget_refs,
+            decorators: widget_refs,
             zindex: 0,
             padding: self.padding,
             kind: ContainerKind::VStack {

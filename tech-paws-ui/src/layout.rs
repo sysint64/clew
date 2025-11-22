@@ -20,7 +20,7 @@ pub struct WidgetPlacement {
 #[derive(Debug, Clone)]
 pub enum LayoutCommand {
     BeginContainer {
-        widget_ref: Vec<WidgetRef>,
+        decorators: Vec<WidgetRef>,
         kind: ContainerKind,
         constraints: Constraints,
         size: Size,
@@ -34,7 +34,8 @@ pub enum LayoutCommand {
     },
     EndAlign,
     Child {
-        widget_refs: Vec<WidgetRef>,
+        widget_ref: WidgetRef,
+        decorators: Vec<WidgetRef>,
         constraints: Constraints,
         padding: EdgeInsets,
         size: Size,
@@ -50,10 +51,7 @@ pub enum LayoutCommand {
 #[derive(Debug, Clone, Copy)]
 pub enum DeriveWrapSize {
     Constraints,
-    Text {
-        padding: EdgeInsets,
-        text_id: TextId,
-    },
+    Text(TextId),
     Svg(&'static str),
 }
 
@@ -384,17 +382,23 @@ impl LayoutState {
 
     fn add_container_size(&mut self, size: Size, wrap_size: Vec2) -> Vec2 {
         Vec2::new(
-            self.add_width(size.width, wrap_size.x),
-            self.add_height(size.height, wrap_size.y),
+            self.add_width(size.width, wrap_size.x, 0.),
+            self.add_height(size.height, wrap_size.y, 0.),
         )
     }
 
-    fn add_size(&mut self, size: Size, constraints: Constraints, wrap_size: Vec2) -> Vec2 {
+    fn add_size(
+        &mut self,
+        size: Size,
+        constraints: Constraints,
+        wrap_size: Vec2,
+        padding: EdgeInsets,
+    ) -> Vec2 {
         let wrap_size = apply_constraints(wrap_size, constraints);
 
         let mut size = Vec2::new(
-            self.add_width(size.width, wrap_size.x),
-            self.add_height(size.height, wrap_size.y),
+            self.add_width(size.width, wrap_size.x, padding.horizontal()),
+            self.add_height(size.height, wrap_size.y, padding.vertical()),
         );
 
         size = apply_constraints(size, constraints);
@@ -405,12 +409,14 @@ impl LayoutState {
         size
     }
 
-    fn add_width(&mut self, width: SizeConstraint, wrap_width: f32) -> f32 {
+    fn add_width(&mut self, width: SizeConstraint, wrap_width: f32, padding: f32) -> f32 {
         let wrap_size = self.wrap_sizes.get_mut(self.parent_container.idx).unwrap();
         let flex_sizes = self.flex_sizes.get_mut(self.parent_container.idx).unwrap();
 
         match width {
             SizeConstraint::Fixed(value) => {
+                let value = value + padding;
+
                 match self.parent_container.axis {
                     StackAxis::None => {
                         wrap_size.x = wrap_size.x.max(value);
@@ -429,6 +435,8 @@ impl LayoutState {
                 value
             }
             SizeConstraint::Wrap => {
+                let wrap_width = wrap_width + padding;
+
                 match self.parent_container.axis {
                     StackAxis::None => {
                         wrap_size.x = wrap_size.x.max(wrap_width);
@@ -447,6 +455,8 @@ impl LayoutState {
                 wrap_width
             }
             SizeConstraint::Fill(_) => {
+                let wrap_width = wrap_width + padding;
+
                 match self.parent_container.axis {
                     StackAxis::None => {
                         wrap_size.x = wrap_size.x.max(wrap_width);
@@ -465,12 +475,14 @@ impl LayoutState {
         }
     }
 
-    fn add_height(&mut self, height: SizeConstraint, wrap_height: f32) -> f32 {
+    fn add_height(&mut self, height: SizeConstraint, wrap_height: f32, padding: f32) -> f32 {
         let wrap_size = self.wrap_sizes.get_mut(self.parent_container.idx).unwrap();
         let flex_sizes = self.flex_sizes.get_mut(self.parent_container.idx).unwrap();
 
         match height {
             SizeConstraint::Fixed(value) => {
+                let value = value + padding;
+
                 match self.parent_container.axis {
                     StackAxis::None => {
                         wrap_size.y = wrap_size.y.max(value);
@@ -489,6 +501,8 @@ impl LayoutState {
                 value
             }
             SizeConstraint::Wrap => {
+                let wrap_height = wrap_height + padding;
+
                 match self.parent_container.axis {
                     StackAxis::None => {
                         wrap_size.y = wrap_size.y.max(wrap_height);
@@ -507,6 +521,8 @@ impl LayoutState {
                 wrap_height
             }
             SizeConstraint::Fill(_) => {
+                let wrap_height = wrap_height + padding;
+
                 match self.parent_container.axis {
                     StackAxis::None => {
                         wrap_size.y = wrap_size.y.max(wrap_height);
@@ -581,7 +597,7 @@ pub fn layout(
                 constraints,
                 size,
                 zindex,
-                widget_ref,
+                decorators: widget_ref,
                 padding,
                 ..
             } => {
@@ -708,7 +724,7 @@ pub fn layout(
                 constraints,
                 size,
                 derive_wrap_size,
-                widget_refs,
+                decorators: widget_refs,
                 padding,
                 ..
             } => {
@@ -724,11 +740,10 @@ pub fn layout(
                         DeriveWrapSize::Constraints => {
                             Vec2::new(constraints.min_width, constraints.min_height)
                         }
-                        DeriveWrapSize::Text { padding, text_id } => {
+                        DeriveWrapSize::Text(text_id) => {
                             let text_size = text.get_mut(*text_id).layout();
 
                             (text_size / view.scale_factor)
-                                + Vec2::new(padding.horizontal(), padding.vertical())
                         }
                         DeriveWrapSize::Svg(asset_id) => {
                             let tree = assets
@@ -736,18 +751,17 @@ pub fn layout(
                                 .expect(&format!("SVG with ID = {asset_id} has not found"));
 
                             Vec2::new(tree.size().width(), tree.size().height())
-                                + Vec2::new(padding.horizontal(), padding.vertical())
                         }
                     }
                 };
 
-                layout_state.add_size(*size, *constraints, wrap_size);
+                layout_state.add_size(*size, *constraints, wrap_size, *padding);
             }
             LayoutCommand::Spacer { constraints, size } => {
                 layout_state.push_boundary();
                 layout_state.set_constraints(*constraints);
                 layout_state.add_flex_sum(*size);
-                layout_state.add_size(*size, *constraints, Vec2::ZERO);
+                layout_state.add_size(*size, *constraints, Vec2::ZERO, EdgeInsets::ZERO);
             }
             LayoutCommand::BeginAlign { .. } | LayoutCommand::EndAlign => {
                 // Nothing
@@ -911,7 +925,7 @@ pub fn layout(
                 constraints,
                 size,
                 zindex,
-                widget_ref,
+                decorators,
                 padding,
                 ..
             } => {
@@ -1016,7 +1030,7 @@ pub fn layout(
                 current_position.x += padding.left;
                 current_position.y += padding.top;
 
-                for widget_ref in widget_ref {
+                for widget_ref in decorators {
                     if rect_contains_boundary(
                         Rect::from_pos_size(position, widget_size),
                         Rect::from_pos_size(Vec2::ZERO, root_size),
@@ -1040,7 +1054,7 @@ pub fn layout(
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
-                            widget_ref: widget_ref.clone(),
+                            widget_ref: decorators.clone(),
                             padding: *padding,
                             axis: StackAxisPass2::Vertical {
                                 spacing: *spacing,
@@ -1066,7 +1080,7 @@ pub fn layout(
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
-                            widget_ref: widget_ref.clone(),
+                            widget_ref: decorators.clone(),
                             padding: *padding,
                             axis: StackAxisPass2::Horizontal {
                                 spacing: *spacing,
@@ -1085,7 +1099,7 @@ pub fn layout(
                             padding: *padding,
                             idx: current_idx,
                             zindex: *zindex,
-                            widget_ref: widget_ref.clone(),
+                            widget_ref: decorators.clone(),
                             axis: StackAxisPass2::None,
                         };
 
@@ -1101,7 +1115,8 @@ pub fn layout(
                 current_position = layout_state.pop_position();
             }
             LayoutCommand::Child {
-                widget_refs,
+                widget_ref,
+                decorators,
                 zindex,
                 padding,
                 derive_wrap_size,
@@ -1167,7 +1182,7 @@ pub fn layout(
                     } => AlignY::Top,
                 };
 
-                let rect = Rect::from_pos_size(
+                let decorators_rect = Rect::from_pos_size(
                     position
                         + Vec2::new(
                             align_x.position(
@@ -1181,17 +1196,33 @@ pub fn layout(
                 );
 
                 // Don't render anything outside the screen view
-                if rect_contains_boundary(rect, Rect::from_pos_size(Vec2::ZERO, root_size)) {
-                    for widget_ref in widget_refs {
+                if rect_contains_boundary(
+                    decorators_rect,
+                    Rect::from_pos_size(Vec2::ZERO, root_size),
+                ) {
+                    for widget_ref in decorators {
                         widget_placements.push(WidgetPlacement {
                             widget_ref: *widget_ref,
                             zindex: *zindex,
                             boundary,
-                            rect,
+                            rect: decorators_rect,
                         });
                     }
 
-                    if let DeriveWrapSize::Text { text_id, .. } = derive_wrap_size {
+                    let rect = Rect::from_pos_size(
+                        decorators_rect.position() + Vec2::new(padding.left, padding.top),
+                        decorators_rect.size()
+                            - Vec2::new(padding.horizontal(), padding.vertical()),
+                    );
+
+                    widget_placements.push(WidgetPlacement {
+                        widget_ref: *widget_ref,
+                        zindex: *zindex,
+                        boundary,
+                        rect,
+                    });
+
+                    if let DeriveWrapSize::Text(text_id) = derive_wrap_size {
                         layout_state.texts.push(TextLayout {
                             width: rect.width * view.scale_factor,
                             text_id: *text_id,
@@ -1217,6 +1248,16 @@ pub fn layout(
                             zindex: i32::MAX,
                             boundary: Rect::ZERO,
                             rect,
+                        });
+
+                        widget_placements.push(WidgetPlacement {
+                            widget_ref: WidgetRef {
+                                widget_type: WidgetType::of::<DebugBoundary>(),
+                                id: WidgetId::auto(),
+                            },
+                            zindex: i32::MAX,
+                            boundary: Rect::ZERO,
+                            rect: decorators_rect,
                         });
                     }
                 }

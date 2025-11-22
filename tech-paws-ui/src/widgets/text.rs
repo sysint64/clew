@@ -94,19 +94,16 @@ impl<'a> TextBuilder<'a> {
         // }
         // -----------------------------------------------------------------------------------------
 
-        let mut widget_refs = std::mem::take(&mut context.decorators);
-        widget_refs.push(widget_ref);
+        let decorators = std::mem::take(&mut context.decorators);
 
         context.push_layout_command(LayoutCommand::Child {
-            widget_refs: widget_refs,
-            padding: EdgeInsets::ZERO,
+            widget_ref,
+            decorators,
+            padding: self.padding,
             constraints: self.constraints,
             size: self.size,
             zindex: self.zindex.unwrap_or(context.current_zindex),
-            derive_wrap_size: DeriveWrapSize::Text {
-                padding: self.padding,
-                text_id,
-            },
+            derive_wrap_size: DeriveWrapSize::Text(text_id),
         });
 
         context.widgets_states.accessed_this_frame.insert(id);

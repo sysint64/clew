@@ -124,14 +124,12 @@ impl<'a> ButtonBuilder<'a> {
 
         context.with_align(self.align_x, self.align_y, |context| {
             context.push_layout_command(LayoutCommand::Child {
-                widget_refs: vec![widget_ref],
+                widget_ref: widget_ref,
+                decorators: vec![],
                 constraints: self.constraints,
                 size,
                 padding: self.padding.unwrap_or(EdgeInsets::ZERO),
-                derive_wrap_size: DeriveWrapSize::Text {
-                    padding: EdgeInsets::symmetric(8., 4.),
-                    text_id,
-                },
+                derive_wrap_size: DeriveWrapSize::Text(text_id),
                 zindex: self.zindex.unwrap_or(context.current_zindex),
             });
         });

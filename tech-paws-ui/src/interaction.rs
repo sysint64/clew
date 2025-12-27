@@ -98,19 +98,19 @@ pub fn handle_interaction(
     let mut need_to_redraw = false;
 
     for placement in widget_placements.iter() {
-        if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>() {
-            widgets::button::handle_interaction(
-                placement.widget_ref.id,
-                user_input,
-                interaction_state,
-                widgets_states
-                    .get_mut::<widgets::button::State>(placement.widget_ref.id)
-                    .unwrap(),
-            );
+        // if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>() {
+        //     widgets::button::handle_interaction(
+        //         placement.widget_ref.id,
+        //         user_input,
+        //         interaction_state,
+        //         widgets_states
+        //             .get_mut::<widgets::button::State>(placement.widget_ref.id)
+        //             .unwrap(),
+        //     );
 
-            need_to_redraw = need_to_redraw
-                || widgets_states.update_last::<widgets::button::State>(placement.widget_ref.id);
-        }
+        //     need_to_redraw = need_to_redraw
+        //         || widgets_states.update_last::<widgets::button::State>(placement.widget_ref.id);
+        // }
 
         if placement.widget_ref.widget_type
             == WidgetType::of::<widgets::gesture_detector::GestureDetector>()
@@ -119,8 +119,12 @@ pub fn handle_interaction(
                 placement.widget_ref.id,
                 user_input,
                 interaction_state,
+                // widgets_states
+                //     .get_mut::<widgets::gesture_detector::State>(placement.widget_ref.id)
+                //     .unwrap(),
                 widgets_states
-                    .get_mut::<widgets::gesture_detector::State>(placement.widget_ref.id)
+                    .gesture_detector
+                    .get_mut(placement.widget_ref.id)
                     .unwrap(),
             );
 

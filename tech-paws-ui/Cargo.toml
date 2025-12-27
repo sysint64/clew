@@ -13,6 +13,13 @@ usvg = { workspace = true }
 bitflags = "2.10"
 tokio = { version = "1", features = ["rt", "sync", "time"], optional = true }
 puffin = "0.19.1"
+bumpalo = { workspace = true }
+smallvec = { workspace = true }
+profiling = { workspace = true, features = ["profile-with-tracy"] }
+tracy-client = { workspace = true }
+rustc-hash = "2.1"
+slab = "0.4.11"
+bitvec = "1.0.1"
 
 [features]
 default = ["tokio"]

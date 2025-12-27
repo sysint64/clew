@@ -41,188 +41,199 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
         text: &mut TextsResources,
         assets: &Assets,
     ) {
-        let render_time = std::time::Instant::now();
+        let surface_buffer = {
+            profiling::scope!("Tech Paws UI - Tiny Skia - Render");
 
-        let width = view.size.width;
-        let height = view.size.height;
+            let width = view.size.width;
+            let height = view.size.height;
 
-        if self.current_width != width || self.current_height != height {
-            self.surface
-                .resize(
-                    NonZeroU32::new(width).unwrap(),
-                    NonZeroU32::new(height).unwrap(),
+            if self.current_width != width || self.current_height != height {
+                self.surface
+                    .resize(
+                        NonZeroU32::new(width).unwrap(),
+                        NonZeroU32::new(height).unwrap(),
+                    )
+                    .unwrap();
+
+                self.current_width = width;
+                self.current_height = height;
+            }
+
+            let mut surface_buffer = self.surface.buffer_mut().unwrap();
+            let surface_buffer_u8 = unsafe {
+                slice::from_raw_parts_mut(
+                    surface_buffer.as_mut_ptr() as *mut u8,
+                    surface_buffer.len() * 4,
                 )
-                .unwrap();
+            };
+            let mut pixmap = PixmapMut::from_bytes(surface_buffer_u8, width, height).unwrap();
+            pixmap.fill(convert_rgb_color(&fill_color));
 
-            self.current_width = width;
-            self.current_height = height;
-        }
+            let clip_stack: Vec<tiny_skia::Mask> = Vec::new();
 
-        let mut surface_buffer = self.surface.buffer_mut().unwrap();
-        let surface_buffer_u8 = unsafe {
-            slice::from_raw_parts_mut(
-                surface_buffer.as_mut_ptr() as *mut u8,
-                surface_buffer.len() * 4,
-            )
-        };
-        let mut pixmap = PixmapMut::from_bytes(surface_buffer_u8, width, height).unwrap();
-        pixmap.fill(convert_rgb_color(&fill_color));
+            for command in state.commands() {
+                let current_clip = clip_stack.last();
 
-        let clip_stack: Vec<tiny_skia::Mask> = Vec::new();
-
-        for command in state.commands() {
-            let current_clip = clip_stack.last();
-
-            match command {
-                RenderCommand::Rect {
-                    boundary,
-                    fill,
-                    border_radius,
-                    border,
-                    ..
-                } => {
-                    render_rect(
-                        &mut pixmap,
-                        *boundary,
-                        fill.as_ref(),
-                        border_radius.as_ref(),
-                        border.as_ref(),
-                        current_clip,
-                    );
-                }
-                RenderCommand::Oval {
-                    boundary,
-                    fill,
-                    border,
-                    ..
-                } => {
-                    render_oval(
-                        &mut pixmap,
-                        *boundary,
-                        fill.as_ref(),
-                        border.as_ref(),
-                        current_clip,
-                    );
-                }
-                RenderCommand::Text {
-                    x: text_position_x,
-                    y: text_position_y,
-                    text_id,
-                    tint_color,
-                    ..
-                } => {
-                    let mut paint = Paint {
-                        anti_alias: false,
-                        ..Default::default()
-                    };
-
-                    text.get_mut(*text_id).with_buffer_mut(|buffer| {
-                        buffer.draw(
-                            &mut fonts.font_system,
-                            &mut self.swash_cache,
-                            tint_color.unwrap_or(ColorRgba::from_hex(0xFF000000)).into(),
-                            |x, y, w, h, color| {
-                                let opacity = color.a() as f32 / 255.;
-                                let color = tint_color
-                                    .map(|c| c.with_opacity(opacity * c.a).into())
-                                    .unwrap_or(color);
-
-                                // Note: due to softbuffer and tiny_skia having incompatible internal color representations we swap
-                                // the red and blue channels here
-                                paint.set_color_rgba8(color.b(), color.g(), color.r(), color.a());
-                                pixmap.fill_rect(
-                                    tiny_skia::Rect::from_xywh(
-                                        text_position_x + x as f32,
-                                        text_position_y + y as f32,
-                                        w as f32,
-                                        h as f32,
-                                    )
-                                    .unwrap(),
-                                    &paint,
-                                    tiny_skia::Transform::identity(),
-                                    None,
-                                );
-                            },
+                match command {
+                    RenderCommand::Rect {
+                        boundary,
+                        fill,
+                        border_radius,
+                        border,
+                        ..
+                    } => {
+                        render_rect(
+                            &mut pixmap,
+                            *boundary,
+                            fill.as_ref(),
+                            border_radius.as_ref(),
+                            border.as_ref(),
+                            current_clip,
                         );
-                    });
-                }
-                RenderCommand::PushClipRect(_rect) => {
-                    // let clip_path = {
-                    //     let mut pb = tiny_skia::PathBuilder::new();
-                    //     if let Some(rect) = tiny_skia::Rect::from_xywh(*x, *y, *width, *height) {
-                    //         pb.push_rect(rect);
-                    //     }
-                    //     pb.finish().unwrap()
-                    // };
+                    }
+                    RenderCommand::Oval {
+                        boundary,
+                        fill,
+                        border,
+                        ..
+                    } => {
+                        render_oval(
+                            &mut pixmap,
+                            *boundary,
+                            fill.as_ref(),
+                            border.as_ref(),
+                            current_clip,
+                        );
+                    }
+                    RenderCommand::Text {
+                        x: text_position_x,
+                        y: text_position_y,
+                        text_id,
+                        tint_color,
+                        ..
+                    } => {
+                        let mut paint = Paint {
+                            anti_alias: false,
+                            ..Default::default()
+                        };
 
-                    // let mut new_mask = tiny_skia::Mask::new(*width as u32, *height as u32).unwrap();
-                    // new_mask.fill_path(
-                    //     &clip_path,
-                    //     tiny_skia::FillRule::Winding,
-                    //     true,
-                    //     tiny_skia::Transform::identity(),
-                    // );
+                        text.get_mut(*text_id).with_buffer_mut(|buffer| {
+                            buffer.draw(
+                                &mut fonts.font_system,
+                                &mut self.swash_cache,
+                                tint_color.unwrap_or(ColorRgba::from_hex(0xFF000000)).into(),
+                                |x, y, w, h, color| {
+                                    let opacity = color.a() as f32 / 255.;
+                                    let color = tint_color
+                                        .map(|c| c.with_opacity(opacity * c.a).into())
+                                        .unwrap_or(color);
 
-                    // // Intersect with parent clip if exists
-                    // // if let Some(parent_clip) = current_clip {
-                    // // new_mask.intersect_mask(parent_clip);
-                    // // }
+                                    // Note: due to softbuffer and tiny_skia having incompatible internal color representations we swap
+                                    // the red and blue channels here
+                                    paint.set_color_rgba8(
+                                        color.b(),
+                                        color.g(),
+                                        color.r(),
+                                        color.a(),
+                                    );
+                                    pixmap.fill_rect(
+                                        tiny_skia::Rect::from_xywh(
+                                            text_position_x + x as f32,
+                                            text_position_y + y as f32,
+                                            w as f32,
+                                            h as f32,
+                                        )
+                                        .unwrap(),
+                                        &paint,
+                                        tiny_skia::Transform::identity(),
+                                        None,
+                                    );
+                                },
+                            );
+                        });
+                    }
+                    RenderCommand::PushClipRect(_rect) => {
+                        // let clip_path = {
+                        //     let mut pb = tiny_skia::PathBuilder::new();
+                        //     if let Some(rect) = tiny_skia::Rect::from_xywh(*x, *y, *width, *height) {
+                        //         pb.push_rect(rect);
+                        //     }
+                        //     pb.finish().unwrap()
+                        // };
 
-                    // clip_stack.push(new_mask);
-                }
-                RenderCommand::PopClip => {
-                    // clip_stack.pop();
-                }
-                RenderCommand::Svg {
-                    zindex,
-                    boundary,
-                    asset_id,
-                    tint_color,
-                } => {
-                    let tree = assets
-                        .get_svg_tree(asset_id)
-                        .expect(&format!("SVG with ID = {asset_id} has not found"));
+                        // let mut new_mask = tiny_skia::Mask::new(*width as u32, *height as u32).unwrap();
+                        // new_mask.fill_path(
+                        //     &clip_path,
+                        //     tiny_skia::FillRule::Winding,
+                        //     true,
+                        //     tiny_skia::Transform::identity(),
+                        // );
 
-                    let mut svg_pixmap = tiny_skia::Pixmap::new(
-                        boundary.width.ceil() as u32,
-                        boundary.height.ceil() as u32,
-                    );
+                        // // Intersect with parent clip if exists
+                        // // if let Some(parent_clip) = current_clip {
+                        // // new_mask.intersect_mask(parent_clip);
+                        // // }
 
-                    if let Some(mut svg_pixmap) = svg_pixmap {
-                        let sx = boundary.width / tree.size().width();
-                        let sy = boundary.height / tree.size().height();
+                        // clip_stack.push(new_mask);
+                    }
+                    RenderCommand::PopClip => {
+                        // clip_stack.pop();
+                    }
+                    RenderCommand::Svg {
+                        zindex,
+                        boundary,
+                        asset_id,
+                        tint_color,
+                    } => {
+                        let tree = assets
+                            .get_svg_tree(asset_id)
+                            .expect(&format!("SVG with ID = {asset_id} has not found"));
 
-                        resvg::render(
-                            &tree,
-                            tiny_skia::Transform::from_scale(sx, sy),
-                            &mut svg_pixmap.as_mut(),
+                        let mut svg_pixmap = tiny_skia::Pixmap::new(
+                            boundary.width.ceil() as u32,
+                            boundary.height.ceil() as u32,
                         );
 
-                        if let Some(tint) = tint_color {
-                            tint_pixmap(&mut svg_pixmap, convert_rgba_color(tint));
+                        if let Some(mut svg_pixmap) = svg_pixmap {
+                            let sx = boundary.width / tree.size().width();
+                            let sy = boundary.height / tree.size().height();
+
+                            resvg::render(
+                                &tree,
+                                tiny_skia::Transform::from_scale(sx, sy),
+                                &mut svg_pixmap.as_mut(),
+                            );
+
+                            if let Some(tint) = tint_color {
+                                tint_pixmap(&mut svg_pixmap, convert_rgba_color(tint));
+                            }
+
+                            pixmap.draw_pixmap(
+                                boundary.x.round() as i32,
+                                boundary.y.round() as i32,
+                                svg_pixmap.as_ref(),
+                                &tiny_skia::PixmapPaint::default(),
+                                tiny_skia::Transform::identity(),
+                                None,
+                            );
+                        } else {
+                            log::warn!("Failed to render svg: {asset_id}");
                         }
-
-                        pixmap.draw_pixmap(
-                            boundary.x.round() as i32,
-                            boundary.y.round() as i32,
-                            svg_pixmap.as_ref(),
-                            &tiny_skia::PixmapPaint::default(),
-                            tiny_skia::Transform::identity(),
-                            None,
-                        );
-                    } else {
-                        log::warn!("Failed to render svg: {asset_id}");
                     }
                 }
             }
+
+            surface_buffer
+        };
+
+        {
+            profiling::scope!("Tech Paws UI - Tiny Skia - Softbuffer Preset");
+
+            let compose_time = std::time::Instant::now();
+            surface_buffer.present().unwrap();
         }
 
-        println!("RENDER COMMANDS: {:?}", render_time.elapsed());
-
-        let compose_time = std::time::Instant::now();
-        surface_buffer.present().unwrap();
-
-        println!("SOFTBUFFER PRESENT: {:?}", compose_time.elapsed());
+        tracy_client::frame_mark();
     }
 }
 

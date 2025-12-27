@@ -74,6 +74,7 @@ impl<'a> TextBuilder<'a> {
         self
     }
 
+    #[profiling::function]
     pub fn build(&self, context: &mut BuildContext) {
         let id = self.id.with_seed(context.id_seed);
 
@@ -106,18 +107,15 @@ impl<'a> TextBuilder<'a> {
             derive_wrap_size: DeriveWrapSize::Text(text_id),
         });
 
-        context.widgets_states.accessed_this_frame.insert(id);
-
-        let state = context
-            .widgets_states
-            .get_or_insert::<State, _>(id, || State {
+        context.widgets_states.text.set(
+            id,
+            State {
                 text_id: text_id,
                 color: self.color,
                 text_align_x: self.text_align_x,
                 text_align_y: self.text_align_y,
-            });
-
-        state.text_id = text_id;
+            },
+        );
     }
 }
 

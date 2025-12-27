@@ -103,6 +103,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         id_seed: None,
         user_data: Vec::new(),
         strings: &mut window_state.strings,
+        phase_allocator: &mut window_state.ui_state.phase_allocator,
         decorators: Vec::new(),
     };
 

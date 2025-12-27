@@ -11,6 +11,7 @@ where
     I: IntoIterator,
     I::Item: Identifiable,
 {
+    #[profiling::function]
     pub fn build<F>(self, context: &mut BuildContext, mut callback: F)
     where
         F: FnMut(&mut BuildContext, I::Item),

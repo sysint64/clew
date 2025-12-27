@@ -73,9 +73,7 @@ impl SvgBuilder {
             derive_wrap_size: DeriveWrapSize::Svg(self.asset_id),
         });
 
-        context.widgets_states.accessed_this_frame.insert(id);
-
-        let state = context.widgets_states.replace(
+        let state = context.widgets_states.svg.set(
             id,
             State {
                 asset_id: self.asset_id,

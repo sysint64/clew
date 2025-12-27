@@ -48,8 +48,6 @@ impl<'a> ButtonBuilder<'a> {
                 let response = ctx.of::<GestureDetectorResponse>().unwrap();
 
                 let gradient = {
-                    puffin::profile_scope!("add gradient");
-
                     if response.is_active() && response.is_hot() {
                         LinearGradient::vertical(vec![
                             ColorRgba::from_hex(0xFF1C1C1C),

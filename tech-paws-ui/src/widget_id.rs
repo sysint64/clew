@@ -1,47 +1,55 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+use rustc_hash::FxHasher;
+
+#[derive(Clone, Copy, Debug, Eq)]
 pub struct WidgetId {
-    pub file: &'static str,
-    pub line: u32,
-    pub column: u32,
-    pub seed: Option<u64>,
+    base: u64,      // hash of file/line/column
+    seed: Option<u64>,
+}
+
+impl Hash for WidgetId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.base.hash(state);
+        self.seed.hash(state);
+    }
+}
+
+impl PartialEq for WidgetId {
+    fn eq(&self, other: &Self) -> bool {
+        self.base == other.base && self.seed == other.seed
+    }
 }
 
 impl WidgetId {
     #[track_caller]
-    pub fn auto_with_seed(seed: impl Hash) -> Self {
+    pub fn auto() -> Self {
         let location = std::panic::Location::caller();
 
-        let mut hasher = DefaultHasher::new();
-        seed.hash(&mut hasher);
+        let mut hasher = FxHasher::default();
+        std::ptr::hash(location.file().as_ptr(), &mut hasher);
+        location.line().hash(&mut hasher);
+        location.column().hash(&mut hasher);
 
         Self {
-            file: location.file(),
-            line: location.line(),
-            column: location.column(),
-            seed: Some(hasher.finish()),
+            base: hasher.finish(),
+            seed: None,
         }
+    }
+
+    #[track_caller]
+    pub fn auto_with_seed(seed: impl Hash) -> Self {
+        let mut hasher = FxHasher::default();
+        seed.hash(&mut hasher);
+
+        Self::auto().with_seed(Some(hasher.finish()))
     }
 
     pub fn with_seed(mut self, seed: Option<u64>) -> Self {
         if self.seed.is_none() {
             self.seed = seed;
         }
-
         self
-    }
-
-    #[track_caller]
-    pub fn auto() -> Self {
-        let location = std::panic::Location::caller();
-
-        Self {
-            file: location.file(),
-            line: location.line(),
-            column: location.column(),
-            seed: None,
-        }
     }
 }
 

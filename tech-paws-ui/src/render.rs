@@ -164,6 +164,7 @@ impl PixelExtension<Border> for Border {
     }
 }
 
+#[profiling::function]
 pub fn cache_string<F>(ctx: &mut BuildContext, symbol: StringId, create_text_id: F) -> TextId
 where
     F: FnOnce(&mut BuildContext) -> TextId,
@@ -190,63 +191,71 @@ pub fn render(
 ) -> bool {
     let mut need_to_redraw = false;
 
-    let layout_time = std::time::Instant::now();
-    layout(
-        &mut state.layout_state,
-        &state.view,
-        &state.layout_commands,
-        &mut state.widget_placements,
-        text,
-        fonts,
-        assets,
-    );
+    // let layout_time = std::time::Instant::now();
+    {
+        profiling::scope!("Tech Paws UI - Layout");
 
-    for layout_text in &state.layout_state.texts {
-        let text = text.get_mut(layout_text.text_id);
-
-        text.with_buffer_mut(|buffer| {
-            buffer.set_size(&mut fonts.font_system, Some(layout_text.width), None);
-        });
-    }
-
-    layout(
-        &mut state.layout_state,
-        &state.view,
-        &state.layout_commands,
-        &mut state.widget_placements,
-        text,
-        fonts,
-        assets,
-    );
-
-    println!(
-        "LAYOUT TIME FOR {} COMMANDS: {:?}",
-        state.layout_commands.len(),
-        layout_time.elapsed()
-    );
-
-    let interaction_time = std::time::Instant::now();
-
-    need_to_redraw = need_to_redraw
-        || handle_interaction(
-            &mut state.user_input,
-            &mut state.interaction_state,
-            &mut state.widgets_states,
+        layout(
+            &mut state.layout_state,
             &state.view,
+            &state.layout_commands,
+            &mut state.widget_placements,
             text,
             fonts,
-            &state.widget_placements,
+            assets,
         );
 
-    need_to_redraw = need_to_redraw || state.interaction_state != state.last_interaction_state;
-    state.last_interaction_state = state.interaction_state.clone();
+        for layout_text in &state.layout_state.texts {
+            let text = text.get_mut(layout_text.text_id);
 
-    println!("INTERACTION TIME: {:?}", interaction_time.elapsed());
+            text.with_buffer_mut(|buffer| {
+                buffer.set_size(&mut fonts.font_system, Some(layout_text.width), None);
+            });
+        }
+
+        layout(
+            &mut state.layout_state,
+            &state.view,
+            &state.layout_commands,
+            &mut state.widget_placements,
+            text,
+            fonts,
+            assets,
+        );
+    }
+    // println!(
+    //     "LAYOUT TIME FOR {} COMMANDS: {:?}",
+    //     state.layout_commands.len(),
+    //     layout_time.elapsed()
+    // );
+
+    // let interaction_time = std::time::Instant::now();
+
+    {
+        profiling::scope!("Tech Paws UI - Interaction");
+
+        need_to_redraw = need_to_redraw
+            || handle_interaction(
+                &mut state.user_input,
+                &mut state.interaction_state,
+                &mut state.widgets_states,
+                &state.view,
+                text,
+                fonts,
+                &state.widget_placements,
+            );
+
+        need_to_redraw = need_to_redraw || state.interaction_state != state.last_interaction_state;
+        state.last_interaction_state = state.interaction_state.clone();
+    }
+
+    // println!("INTERACTION TIME: {:?}", interaction_time.elapsed());
 
     if force_redraw || need_to_redraw {
-        println!("REDRAW");
+        profiling::scope!("Tech Paws UI - Collect Render Commands");
+        // println!("REDRAW");
 
-        let render_time = std::time::Instant::now();
+        // let render_time = std::time::Instant::now();
 
         for placement in &state.widget_placements {
             let mut render_context = RenderContext {
@@ -261,25 +270,30 @@ pub fn render(
                 commands: &mut state.render_state.commands,
             };
 
-            if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>()
-            {
-                widgets::button::render(
-                    &mut render_context,
-                    placement,
-                    state
-                        .widgets_states
-                        .get_mut::<widgets::button::State>(placement.widget_ref.id)
-                        .unwrap(),
-                );
-            }
+            // if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>()
+            // {
+            //     widgets::button::render(
+            //         &mut render_context,
+            //         placement,
+            //         state
+            //             .widgets_states
+            //             .get_mut::<widgets::button::State>(placement.widget_ref.id)
+            //             .unwrap(),
+            //     );
+            // }
 
             if placement.widget_ref.widget_type == WidgetType::of::<widgets::text::TextWidget>() {
                 widgets::text::render(
                     &mut render_context,
                     placement,
+                    // state
+                    //     .widgets_states
+                    //     .get_mut::<widgets::text::State>(placement.widget_ref.id)
+                    //     .unwrap(),
                     state
                         .widgets_states
-                        .get_mut::<widgets::text::State>(placement.widget_ref.id)
+                        .text
+                        .get(placement.widget_ref.id)
                         .unwrap(),
                 );
             }
@@ -292,8 +306,13 @@ pub fn render(
                     placement,
                     state
                         .widgets_states
-                        .get_mut::<widgets::colored_box::State>(placement.widget_ref.id)
+                        .colored_box
+                        .get(placement.widget_ref.id)
                         .unwrap(),
+                    // state
+                    //     .widgets_states
+                    //     .get_mut::<widgets::colored_box::State>(placement.widget_ref.id)
+                    //     .unwrap(),
                 );
             }
 
@@ -305,8 +324,13 @@ pub fn render(
                     placement,
                     state
                         .widgets_states
-                        .get_mut::<widgets::decorated_box::State>(placement.widget_ref.id)
+                        .decorated_box
+                        .get(placement.widget_ref.id)
                         .unwrap(),
+                    // state
+                    //     .widgets_states
+                    //     .get_mut::<widgets::decorated_box::State>(placement.widget_ref.id)
+                    //     .unwrap(),
                 );
             }
 
@@ -316,8 +340,13 @@ pub fn render(
                     placement,
                     state
                         .widgets_states
-                        .get_mut::<widgets::svg::State>(placement.widget_ref.id)
+                        .svg
+                        .get(placement.widget_ref.id)
                         .unwrap(),
+                    // state
+                    //     .widgets_states
+                    //     .get_mut::<widgets::svg::State>(placement.widget_ref.id)
+                    //     .unwrap(),
                 );
             }
 
@@ -326,17 +355,17 @@ pub fn render(
             }
         }
 
-        println!(
-            "RENDER COMMAND CREATED FOR {} PLACEMENTS: {:?}",
-            state.widget_placements.len(),
-            render_time.elapsed()
-        );
+        // println!(
+        //     "RENDER COMMAND CREATED FOR {} PLACEMENTS: {:?}",
+        //     state.widget_placements.len(),
+        //     render_time.elapsed()
+        // );
     }
 
-    let clean_up_time = std::time::Instant::now();
+    // let clean_up_time = std::time::Instant::now();
 
-    // state.widgets_states.sweep(&mut state.interaction_state);
-    // state.user_input.clear_frame_events();
+    state.widgets_states.sweep(&mut state.interaction_state);
+    state.user_input.clear_frame_events();
 
     // println!("CLEAN UP TIME: {:?}", clean_up_time.elapsed());
 
@@ -346,6 +375,11 @@ pub fn render(
     // .commands
     // .sort_by_key(|cmd| cmd.zindex().unwrap_or(i32::MAX));
     // println!("COMMANDS SORT TIME: {:?}", commands_sort_time.elapsed());
+
+    {
+        profiling::scope!("Tech Paws UI - Reset phase allocator");
+        state.phase_allocator.reset();
+    }
 
     force_redraw || need_to_redraw
 }
@@ -365,3 +399,5 @@ fn render_debug_boundary(ctx: &mut RenderContext, placement: &WidgetPlacement) {
         ))),
     });
 }
+
+fn render_performance() {}

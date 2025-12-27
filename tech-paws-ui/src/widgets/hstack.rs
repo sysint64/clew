@@ -53,6 +53,7 @@ impl HStackBuilder {
         self
     }
 
+    #[profiling::function]
     pub fn build<F>(self, context: &mut BuildContext, callback: F)
     where
         F: FnOnce(&mut BuildContext),

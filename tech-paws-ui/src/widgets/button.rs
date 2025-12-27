@@ -134,19 +134,22 @@ impl<'a> ButtonBuilder<'a> {
             });
         });
 
-        context.widgets_states.accessed_this_frame.insert(id);
+        // context.widgets_states.accessed_this_frame.insert(id);
 
-        let mut state = context
-            .widgets_states
-            .get_or_insert::<State, _>(id, || State {
-                clicked: false,
-                text_id,
-            });
+        // let mut state = context
+        //     .widgets_states
+        //     .get_or_insert::<State, _>(id, || State {
+        //         clicked: false,
+        //         text_id,
+        //     });
 
-        state.text_id = text_id;
+        // state.text_id = text_id;
 
+        // ButtonResponse {
+            // clicked: state.clicked,
+        // }
         ButtonResponse {
-            clicked: state.clicked,
+            clicked: false,
         }
     }
 }

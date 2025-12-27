@@ -68,6 +68,7 @@ impl GestureDetectorResponse {
 impl GestureDetectorBuilder {
     impl_id!();
 
+    #[profiling::function]
     pub fn build<F>(self, context: &mut BuildContext, callback: F) -> GestureDetectorResponse
     where
         F: FnOnce(&mut BuildContext),
@@ -79,7 +80,8 @@ impl GestureDetectorBuilder {
 
         let state = context
             .widgets_states
-            .get_or_insert::<State, _>(id, || State {
+            .gesture_detector
+            .get_or_insert(id, || State {
                 clicked: false,
                 is_active: false,
                 is_hot: false,
@@ -96,7 +98,11 @@ impl GestureDetectorBuilder {
         context.decorators.push(widget_ref);
         context.with_user_data(response.clone(), callback);
 
-        context.widgets_states.accessed_this_frame.insert(id);
+        context
+            .widgets_states
+            .gesture_detector
+            .accessed_this_frame
+            .insert(id);
 
         response
     }

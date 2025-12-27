@@ -165,7 +165,8 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
-        component(app, &mut self.counter).build(ctx);
+        // component(app, &mut self.counter).build(ctx);
+        ui_benchmark(ctx);
     }
 }
 
@@ -193,16 +194,10 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
-        puffin::GlobalProfiler::lock().new_frame();
-        puffin::profile_function!();
-
-        // ui_benchmark(ctx);
-
         vstack()
             .main_axis_alignment(MainAxisAlignment::Center)
             .cross_axis_alignment(CrossAxisAlignment::Center)
             .fill_max_size()
-            // .fill_max_height()
             .padding(EdgeInsets::all(12.))
             .build(ctx, |ctx| {
                 hstack().cross_axis_alignment(CrossAxisAlignment::Center).build(ctx, |ctx| {
@@ -330,6 +325,7 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
 }
 
 #[allow(dead_code)]
+#[profiling::function]
 fn ui_benchmark(ctx: &mut BuildContext) {
     let build_time = std::time::Instant::now();
 
@@ -337,14 +333,10 @@ fn ui_benchmark(ctx: &mut BuildContext) {
         // gap().height(128.).show(ctx);
 
         for i in 0..50 {
-            // 100 buttons
             hstack().fill_max_width().build(ctx, |ctx| {
                 for j in 0..10 {
                     // hstack().show(ctx, |ctx| {});
-                    // 10 buttons per row
-                    if button("Button")
-                        // if button(&format!("Button {i}_{j}"))
-                        // if button("Button")
+                    if button(&bumpalo::format!(in &ctx.phase_allocator, "Button {}_{}", i, j))
                         .id((i, j))
                         .build(ctx)
                         .clicked()
@@ -357,16 +349,15 @@ fn ui_benchmark(ctx: &mut BuildContext) {
             });
         }
     });
-
-    println!("BUILD TIME: {:?}", build_time.elapsed());
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let server_addr = format!("0.0.0.0:{}", puffin_http::DEFAULT_PORT);
-    let _puffin_server = puffin_http::Server::new(&server_addr).unwrap();
-    eprintln!("Serving demo profile data on {server_addr}. Run `puffin_viewer` to view it.");
-    puffin::set_scopes_on(true);
+    // let server_addr = format!("0.0.0.0:{}", puffin_http::DEFAULT_PORT);
+    // let _puffin_server = puffin_http::Server::new(&server_addr).unwrap();
+    // eprintln!("Serving demo profile data on {server_addr}. Run `puffin_viewer` to view it.");
+    // puffin::set_scopes_on(true);
+    tracy_client::Client::start();
 
     env_logger::Builder::new()
         .filter(None, log::LevelFilter::Debug)

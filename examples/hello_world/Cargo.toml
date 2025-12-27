@@ -13,5 +13,8 @@ puffin = "0.19.1"
 
 log = { workspace = true }
 winit = { workspace = true }
+bumpalo = { workspace = true }
 env_logger = "0.10"
 tokio = { version = "1.47.1", features = ["full"] }
+tracy-client = { workspace = true }
+profiling = { workspace = true }

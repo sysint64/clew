@@ -8,6 +8,7 @@ use std::{
 use crate::{
     layout::LayoutCommand, state::WidgetsStates, text::{FontResources, StringId, StringInterner, TextId, TextsResources}, AlignX, AlignY, View, ViewId, WidgetRef
 };
+// use bumpalo::{Bump, collections::Vec};
 
 #[derive(Debug)]
 pub enum ApplicationEvent {
@@ -36,6 +37,7 @@ pub struct BuildContext<'a, 'b> {
     pub id_seed: Option<u64>,
     pub user_data: Vec<Box<dyn Any + Send>>,
     pub decorators: Vec<WidgetRef>,
+    pub phase_allocator: &'a bumpalo::Bump,
 }
 
 impl BuildContext<'_, '_> {
@@ -51,6 +53,7 @@ impl BuildContext<'_, '_> {
         None
     }
 
+    #[profiling::function]
     pub fn push_layout_command(&mut self, command: LayoutCommand) {
         self.layout_commands.push(command);
     }

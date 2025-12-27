@@ -2,6 +2,7 @@ use std::any::Any;
 use std::hash::Hash;
 
 use glam::Vec2;
+use smallvec::{SmallVec, smallvec};
 
 use crate::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, BoxShape, ColorRgba, Constraints, Gradient,
@@ -12,6 +13,7 @@ use crate::{
     state::WidgetState,
     text::StringId,
 };
+// use bumpalo::{Bump, collections::Vec};
 
 use super::builder::BuildContext;
 
@@ -20,7 +22,7 @@ pub struct DecoratedBox;
 pub struct DecoratedBoxBuilder {
     id: WidgetId,
     color: Option<ColorRgba>,
-    gradients: Vec<Gradient>,
+    gradients: SmallVec<[Gradient; 4]>,
     border_radius: Option<BorderRadius>,
     border: Option<Border>,
     zindex: Option<i32>,
@@ -31,7 +33,7 @@ pub struct DecoratedBoxBuilder {
 pub struct State {
     shape: BoxShape,
     color: Option<ColorRgba>,
-    gradients: Vec<Gradient>,
+    gradients: SmallVec<[Gradient; 4]>,
     border_radius: Option<BorderRadius>,
     border: Option<Border>,
 }
@@ -69,12 +71,6 @@ impl DecoratedBoxBuilder {
         self
     }
 
-    pub fn gradients(mut self, gradients: &[Gradient]) -> Self {
-        self.gradients = gradients.to_vec();
-
-        self
-    }
-
     pub fn add_gradient(mut self, gradient: Gradient) -> Self {
         self.gradients.push(gradient);
 
@@ -99,6 +95,7 @@ impl DecoratedBoxBuilder {
         self
     }
 
+    #[profiling::function]
     pub fn build<F>(self, context: &mut BuildContext, callback: F)
     where
         F: FnOnce(&mut BuildContext),
@@ -115,9 +112,7 @@ impl DecoratedBoxBuilder {
         callback(context);
 
         context.current_zindex = last_zindex;
-        context.widgets_states.accessed_this_frame.insert(id);
-
-        context.widgets_states.replace(
+        context.widgets_states.decorated_box.set(
             id,
             State {
                 color: self.color,
@@ -136,7 +131,7 @@ pub fn decorated_box() -> DecoratedBoxBuilder {
         id: WidgetId::auto(),
         zindex: None,
         color: None,
-        gradients: vec![],
+        gradients: smallvec![],
         border_radius: None,
         border: None,
         shape: BoxShape::rect,

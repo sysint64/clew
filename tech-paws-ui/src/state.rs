@@ -4,12 +4,12 @@ use std::{
     sync::Arc,
 };
 
+use bitvec::vec::BitVec;
+use rustc_hash::{FxHashMap, FxHashSet};
+use slab::Slab;
+
 use crate::{
-    LayoutDirection, View, WidgetId,
-    interaction::InteractionState,
-    io::UserInput,
-    layout::{LayoutCommand, LayoutState, WidgetPlacement},
-    render::RenderState,
+    interaction::InteractionState, io::UserInput, layout::{LayoutCommand, LayoutState, WidgetPlacement}, render::RenderState, widgets::{colored_box, decorated_box, gesture_detector, svg, text}, LayoutDirection, View, WidgetId
 };
 
 pub trait WidgetState: Any + Send {
@@ -22,6 +22,7 @@ pub struct UiState {
     pub view: View,
     pub render_state: RenderState,
     pub layout_commands: Vec<LayoutCommand>,
+    pub phase_allocator: bumpalo::Bump,
     pub(crate) layout_state: LayoutState,
     pub current_event_queue: Vec<Arc<dyn Any + Send>>,
     pub next_event_queue: Vec<Arc<dyn Any + Send>>,
@@ -38,9 +39,112 @@ pub struct UiState {
 
 #[derive(Default)]
 pub struct WidgetsStates {
-    pub data: HashMap<WidgetId, Box<dyn WidgetState>>,
-    pub last: HashMap<WidgetId, Box<dyn WidgetState>>,
-    pub accessed_this_frame: HashSet<WidgetId>,
+    // pub data: FxHashMap<WidgetId, Box<dyn WidgetState>>,
+    // pub last: FxHashMap<WidgetId, Box<dyn WidgetState>>,
+    pub decorated_box: TypedWidgetStates<decorated_box::State>,
+    pub text: TypedWidgetStates<text::State>,
+    pub gesture_detector: TypedWidgetStates<gesture_detector::State>,
+    pub colored_box: TypedWidgetStates<colored_box::State>,
+    pub svg: TypedWidgetStates<svg::State>,
+    pub custom: TypedWidgetStates<Box<dyn WidgetState>>,
+}
+
+pub struct TypedWidgetStates<T> {
+    id_to_index: FxHashMap<WidgetId, u32>,
+    states: Vec<T>,
+    ids: Vec<WidgetId>,
+    pub accessed_this_frame: FxHashSet<WidgetId>,
+}
+
+impl<T> Default for TypedWidgetStates<T> {
+    fn default() -> Self {
+        Self {
+            id_to_index: FxHashMap::default(),
+            states: Vec::new(),
+            ids: Vec::new(),
+            accessed_this_frame: FxHashSet::default(),
+        }
+    }
+}
+
+impl<T> TypedWidgetStates<T> {
+    pub fn get_or_insert(&mut self, id: WidgetId, create: impl FnOnce() -> T) -> &mut T {
+        let index = *self.id_to_index.entry(id).or_insert_with(|| {
+            let idx = self.states.len() as u32;
+            self.states.push(create());
+            self.ids.push(id);
+            idx
+        });
+        &mut self.states[index as usize]
+    }
+
+    pub fn get_mut(&mut self, id: WidgetId) -> Option<&mut T> {
+        self.id_to_index
+            .get(&id)
+            .map(|&idx| &mut self.states[idx as usize])
+    }
+
+    pub fn get(&self, id: WidgetId) -> Option<&T> {
+        self.id_to_index
+            .get(&id)
+            .map(|&idx| &self.states[idx as usize])
+    }
+
+    pub fn replace(&mut self, id: WidgetId, state: T) {
+        if let Some(&idx) = self.id_to_index.get(&id) {
+            self.states[idx as usize] = state;
+        } else {
+            let idx = self.states.len() as u32;
+            self.id_to_index.insert(id, idx);
+            self.states.push(state);
+            self.ids.push(id);
+        }
+    }
+
+    pub fn set(&mut self, id: WidgetId, state: T) -> usize {
+        if let Some(&idx) = self.id_to_index.get(&id) {
+            self.states[idx as usize] = state;
+
+            idx as usize
+        } else {
+            let idx = self.states.len() as u32;
+            self.id_to_index.insert(id, idx);
+            self.states.push(state);
+            self.ids.push(id);
+
+            idx as usize
+        }
+    }
+
+    pub fn sweep(&mut self, interaction: &mut InteractionState) {
+        let mut i = 0;
+
+        while i < self.states.len() {
+            if self.accessed_this_frame.contains(&self.ids[i]) {
+                i += 1;
+            } else {
+                // Swap-remove from both parallel arrays
+                self.id_to_index.remove(&self.ids[i]);
+
+                self.states.swap_remove(i);
+                self.ids.swap_remove(i);
+
+                // Update the index of the element that was swapped in
+                if i < self.ids.len() {
+                    self.id_to_index.insert(self.ids[i], i as u32);
+                }
+            }
+        }
+
+        self.accessed_this_frame.clear();
+    }
+
+    pub fn clear(&mut self) {
+        self.id_to_index.clear();
+        self.states.clear();
+        self.ids.clear();
+        self.accessed_this_frame.clear();
+    }
 }
 
 impl UiState {
@@ -61,9 +165,12 @@ impl UiState {
     pub fn new(view: View) -> Self {
         let (async_tx, async_rx) = tokio::sync::mpsc::unbounded_channel();
 
+        let mut phase_allocator = bumpalo::Bump::with_capacity(16 * 1024 * 1024);
+
         Self {
             view,
             render_state: Default::default(),
+            phase_allocator,
             layout_commands: Vec::new(),
             current_event_queue: Vec::new(),
             next_event_queue: Vec::new(),
@@ -81,87 +188,111 @@ impl UiState {
 }
 
 impl WidgetsStates {
-    pub fn get_or_insert<T: WidgetState, F>(&mut self, id: WidgetId, create: F) -> &mut T
-    where
-        F: FnOnce() -> T,
-    {
-        puffin::profile_function!();
+    // #[profiling::function]
+    // pub fn get_or_insert<T: WidgetState, F>(&mut self, id: WidgetId, create: F) -> &mut T
+    // where
+    //     F: FnOnce() -> T,
+    // {
+    //     self.data
+    //         .entry(id)
+    //         .or_insert_with(|| Box::new(create()))
+    //         .as_any_mut()
+    //         .downcast_mut::<T>()
+    //         .unwrap()
+    // }
 
-        self.data.entry(id).or_insert_with(|| Box::new(create()));
+    // #[profiling::function]
+    // pub fn replace<T: WidgetState>(&mut self, id: WidgetId, state: T) {
+    //     match self.data.entry(id) {
+    //         std::collections::hash_map::Entry::Occupied(mut entry) => {
+    //             // Try to reuse existing allocation
+    //             if let Some(existing) = entry.get_mut().as_any_mut().downcast_mut::<T>() {
+    //                 *existing = state;
+    //             } else {
+    //                 entry.insert(Box::new(state));
+    //             }
+    //         }
+    //         std::collections::hash_map::Entry::Vacant(entry) => {
+    //             entry.insert(Box::new(state));
+    //         }
+    //     }
 
-        self.data
-            .get_mut(&id)
-            .unwrap()
-            .as_any_mut()
-            .downcast_mut::<T>()
-            .unwrap()
-    }
+    //     // self.data.insert(id, Box::new(state));
 
-    pub fn replace<T: WidgetState>(&mut self, id: WidgetId, state: T) {
-        self.data.insert(id, Box::new(state));
+    //     // self.data.entry(id).or_insert(|| Box::new(create()));
+    //     // self.accessed_this_frame.insert(id);
+    //     // self.data.entry(id).or_insert_with(|| Box::new(create()));
 
-        // self.data.entry(id).or_insert(|| Box::new(create()));
-        // self.accessed_this_frame.insert(id);
-        // self.data.entry(id).or_insert_with(|| Box::new(create()));
+    //     // self.data
+    //     //     .get_mut(&id)
+    //     //     .unwrap()
+    //     //     .as_any_mut()
+    //     //     .downcast_mut::<T>()
+    //     //     .unwrap()
+    // }
 
-        // self.data
-        //     .get_mut(&id)
-        //     .unwrap()
-        //     .as_any_mut()
-        //     .downcast_mut::<T>()
-        //     .unwrap()
-    }
+    // #[profiling::function]
+    // pub fn get_mut<T: WidgetState>(&mut self, id: WidgetId) -> Option<&mut T> {
+    //     self.data
+    //         .get_mut(&id)
+    //         .and_then(|b| b.as_any_mut().downcast_mut::<T>())
+    // }
 
-    pub fn get_mut<T: WidgetState>(&mut self, id: WidgetId) -> Option<&mut T> {
-        self.data
-            .get_mut(&id)
-            .and_then(|b| b.as_any_mut().downcast_mut::<T>())
-    }
-
+    #[profiling::function]
     pub fn update_last<T>(&mut self, id: WidgetId) -> bool
     where
         T: WidgetState + Clone + PartialEq,
     {
-        let current_state = self
-            .data
-            .get(&id)
-            .and_then(|b| b.as_any().downcast_ref::<T>())
-            .unwrap();
+        true
 
-        let last_state = self
-            .last
-            .get_mut(&id)
-            .and_then(|b| b.as_any_mut().downcast_mut::<T>());
+        // let current_state = self
+        //     .data
+        //     .get(&id)
+        //     .and_then(|b| b.as_any().downcast_ref::<T>())
+        //     .unwrap();
 
-        if let Some(last_state) = last_state {
-            if last_state != current_state {
-                *last_state = current_state.clone();
+        // let last_state = self
+        //     .last
+        //     .get_mut(&id)
+        //     .and_then(|b| b.as_any_mut().downcast_mut::<T>());
 
-                true
-            } else {
-                false
-            }
-        } else {
-            self.last.insert(id, Box::new(current_state.clone()));
+        // if let Some(last_state) = last_state {
+        //     if last_state != current_state {
+        //         *last_state = current_state.clone();
 
-            true
-        }
+        //         true
+        //     } else {
+        //         false
+        //     }
+        // } else {
+        //     self.last.insert(id, Box::new(current_state.clone()));
+
+        //     true
+        // }
     }
 
-    pub fn contains(&self, id: WidgetId) -> bool {
-        self.data.contains_key(&id)
-    }
+    // pub fn contains(&self, id: WidgetId) -> bool {
+    //     self.data.contains_key(&id)
+    // }
 
+    #[profiling::function]
     pub fn sweep(&mut self, interaction: &mut InteractionState) {
-        self.data
-            .retain(|id, _| self.accessed_this_frame.contains(id));
+        self.decorated_box.clear();
+        self.text.clear();
+        self.colored_box.clear();
+        self.svg.clear();
+        self.gesture_detector.sweep(interaction);
+        self.custom.sweep(interaction);
 
-        if let Some(id) = interaction.focused {
-            if !self.accessed_this_frame.contains(&id) {
-                interaction.focused = None;
-            }
-        }
+        // self.data
+        //     .retain(|id, _| self.accessed_this_frame.contains(id));
 
-        self.accessed_this_frame.clear();
+        // if let Some(id) = interaction.focused {
+        //     if !self.accessed_this_frame.contains(&id) {
+        //         interaction.focused = None;
+        //     }
+        // }
+
+        // self.accessed_this_frame.clear();
     }
 }

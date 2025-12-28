@@ -45,3 +45,30 @@ pub fn derive_identifiable(input: TokenStream) -> TokenStream {
 
     TokenStream::from(expanded)
 }
+
+#[proc_macro_derive(WidgetState)]
+pub fn derive_widget_state(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = &input.ident;
+
+    let expanded = quote! {
+        impl WidgetState for #name {
+            #[inline]
+            fn as_any(&self) -> &dyn std::any::Any {
+                self
+            }
+
+            #[inline]
+            fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+                self
+            }
+
+            #[inline]
+            fn into_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+                self
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}

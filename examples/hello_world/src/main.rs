@@ -4,6 +4,7 @@ use std::{sync::Arc, time::Duration};
 use tech_paws_ui::assets::Assets;
 use tech_paws_ui::identifiable::Identifiable;
 // use tech_paws_ui::widgets::button::button;
+use tech_paws_ui::state::WidgetState;
 use tech_paws_ui::widgets::colored_box::colored_box;
 use tech_paws_ui::widgets::decorated_box::decorated_box;
 use tech_paws_ui::widgets::gap::gap;
@@ -27,7 +28,7 @@ use tech_paws_ui::{
     Border, BorderRadius, BorderSide, BoxShape, ColorRgba, CrossAxisAlignment, EdgeInsets,
     Gradient, LinearGradient, MainAxisAlignment, RadialGradient, SizeConstraint,
 };
-use tech_paws_ui_derive::Identifiable;
+use tech_paws_ui_derive::{Identifiable, WidgetState};
 use tech_paws_ui_desktop::{
     app::{Application, ApplicationDelegate},
     window::Window,
@@ -125,7 +126,6 @@ pub struct MainWindow {
     counter: Counter,
 }
 
-#[allow(clippy::new_without_default)]
 impl MainWindow {
     pub fn new() -> Self {
         Self {
@@ -167,13 +167,40 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
-        // component(app, &mut self.counter).build(ctx);
-        ui_benchmark(ctx);
+        hstack().fill_max_size().build(ctx, |ctx| {
+            component::<Counter>(app).build(ctx);
+            component(app).state(&mut self.counter).build(ctx);
+        });
     }
 }
 
+#[derive(WidgetState)]
 struct Counter {
     books: Vec<Book>,
+}
+
+impl Default for Counter {
+    fn default() -> Self {
+        Self {
+            books: vec![
+                Book {
+                    id: 12,
+                    key: 21,
+                    title: "Auto Book 1".to_string(),
+                },
+                Book {
+                    id: 113,
+                    key: 311,
+                    title: "Auto Book 2".to_string(),
+                },
+                Book {
+                    id: 114,
+                    key: 411,
+                    title: "Auto Book 3".to_string(),
+                },
+            ],
+        }
+    }
 }
 
 #[derive(Identifiable)]
@@ -188,7 +215,10 @@ enum CounterComponentEvent {
     HelloWorld,
 }
 
-impl Component<DemoApplication, CounterComponentEvent> for Counter {
+impl Component for Counter {
+    type App = DemoApplication;
+    type Event = CounterComponentEvent;
+
     fn on_event(&mut self, _: &mut DemoApplication, _: &CounterComponentEvent) -> bool {
         println!("Hello World!");
 

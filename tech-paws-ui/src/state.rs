@@ -10,13 +10,20 @@ use slab::Slab;
 use smallvec::SmallVec;
 
 use crate::{
-    interaction::InteractionState, io::UserInput, layout::{LayoutCommand, LayoutState, WidgetPlacement}, render::RenderState, widgets::{colored_box, decorated_box, gesture_detector, svg, text}, LayoutDirection, View, WidgetId, WidgetRef
+    LayoutDirection, View, WidgetId, WidgetRef,
+    interaction::InteractionState,
+    io::UserInput,
+    layout::{LayoutCommand, LayoutState, WidgetPlacement},
+    render::RenderState,
+    widgets::{colored_box, decorated_box, gesture_detector, svg, text},
 };
 
-pub trait WidgetState: Any + Send {
+pub trait WidgetState: Any + Send + 'static {
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any>;
 }
 
 pub struct UiState {
@@ -48,7 +55,8 @@ pub struct WidgetsStates {
     pub gesture_detector: TypedWidgetStates<gesture_detector::State>,
     pub colored_box: TypedWidgetStates<colored_box::State>,
     pub svg: TypedWidgetStates<svg::State>,
-    pub custom: TypedWidgetStates<Box<dyn WidgetState>>,
+    pub components: TypedWidgetStates<Box<dyn Any>>,
+    pub custom: TypedWidgetStates<Option<Box<dyn WidgetState>>>,
 }
 
 pub struct TypedWidgetStates<T> {
@@ -167,7 +175,7 @@ impl UiState {
     pub fn new(view: View) -> Self {
         let (async_tx, async_rx) = tokio::sync::mpsc::unbounded_channel();
 
-        let mut phase_allocator = bumpalo::Bump::with_capacity(16 * 1024 * 1024);
+        let phase_allocator = bumpalo::Bump::with_capacity(16 * 1024 * 1024);
 
         Self {
             view,
@@ -191,18 +199,83 @@ impl UiState {
 }
 
 impl WidgetsStates {
-    // #[profiling::function]
-    // pub fn get_or_insert<T: WidgetState, F>(&mut self, id: WidgetId, create: F) -> &mut T
+    #[profiling::function]
+    pub fn get_or_insert_custom<T: WidgetState, F>(&mut self, id: WidgetId, create: F) -> &mut T
+    where
+        F: FnOnce() -> T,
+    {
+        let index = *self.custom.id_to_index.entry(id).or_insert_with(|| {
+            let idx = self.custom.states.len() as u32;
+            self.custom.states.push(Some(Box::new(create())));
+            self.custom.ids.push(id);
+            idx
+        });
+
+        self.custom.states[index as usize]
+            .as_mut()
+            .unwrap()
+            .as_any_mut()
+            .downcast_mut::<T>()
+            .unwrap()
+
+        // self.data
+        //     .entry(id)
+        //     .or_insert_with(|| Box::new(create()))
+        //     .as_any_mut()
+        //     .downcast_mut::<T>()
+        //     .unwrap()
+    }
+
+    // pub fn take_or_create<T: WidgetState, F>(&mut self, id: WidgetId, create: F) -> (u32, T)
     // where
-    //     F: FnOnce() -> T,
+    //     F: Fn() -> T,
     // {
-    //     self.data
-    //         .entry(id)
-    //         .or_insert_with(|| Box::new(create()))
-    //         .as_any_mut()
-    //         .downcast_mut::<T>()
-    //         .unwrap()
+    //     let index = *self.custom.id_to_index.entry(id).or_insert_with(|| {
+    //         let idx = self.custom.states.len() as u32;
+    //         self.custom.states.push(Box::new(create()));
+    //         self.custom.ids.push(id);
+    //         idx
+    //     });
+
+    //     let boxed = std::mem::replace(&mut self.custom.states[index as usize], Box::new(create()));
+    //     let concrete = *boxed
+    //         .into_any()
+    //         .downcast::<T>()
+    //         .expect("Type mismatch in widget state");
+
+    //     (index, concrete)
     // }
+
+    // pub fn restore<T: WidgetState>(&mut self, index: u32, state: T) {
+    //     self.custom.states[index as usize] = Box::new(state);
+    // }
+
+    pub fn take_or_create<T: WidgetState, F>(&mut self, id: WidgetId, create: F) -> (u32, Box<T>)
+    where
+        F: FnOnce() -> T,
+    {
+        let index = *self.custom.id_to_index.entry(id).or_insert_with(|| {
+            let idx = self.custom.states.len() as u32;
+            self.custom.states.push(Some(Box::new(create())));
+            self.custom.ids.push(id);
+            idx
+        });
+
+        let boxed = self.custom.states[index as usize]
+            .take()
+            .expect("State already taken");
+
+        let concrete: Box<T> = boxed
+            .into_any()
+            .downcast::<T>()
+            .expect("Type mismatch in widget state");
+
+        (index, concrete)
+    }
+
+    pub fn restore<T: WidgetState>(&mut self, index: u32, state: Box<T>) {
+        self.custom.states[index as usize] = Some(state as Box<dyn WidgetState>);
+    }
 
     // #[profiling::function]
     // pub fn replace<T: WidgetState>(&mut self, id: WidgetId, state: T) {

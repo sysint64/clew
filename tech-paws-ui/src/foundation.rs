@@ -134,6 +134,17 @@ pub enum AlignY {
     Fraction(f32),
 }
 
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
+pub enum TextAlign {
+    #[default]
+    Auto,
+    Left,
+    Right,
+    Center,
+    End,
+    Justified,
+}
+
 impl AlignX {
     #[inline]
     pub fn position(&self, layout_direction: LayoutDirection, boundary: f32, size: f32) -> f32 {

@@ -3,8 +3,8 @@ use std::any::Any;
 use glam::Vec2;
 
 use crate::{
-    AlignX, AlignY, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef,
-    WidgetType, impl_size_methods, impl_width_methods,
+    AlignX, AlignY, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, TextAlign, WidgetId,
+    WidgetRef, WidgetType, impl_id, impl_size_methods, impl_width_methods,
     layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
     render::{PixelExtension, RenderCommand, RenderContext, cache_string},
     state::WidgetState,
@@ -12,6 +12,7 @@ use crate::{
 };
 
 use super::builder::BuildContext;
+use std::hash::Hash;
 
 pub struct TextWidget;
 
@@ -24,13 +25,16 @@ pub struct TextBuilder<'a> {
     color: ColorRgba,
     text_align_x: AlignX,
     text_align_y: AlignY,
+    text_align: TextAlign,
     padding: EdgeInsets,
 }
 
 #[derive(Clone, PartialEq)]
 pub struct State {
     pub(crate) text_id: TextId,
+    pub(crate) text_data: String,
     pub(crate) color: ColorRgba,
+    pub(crate) text_align: TextAlign,
     pub(crate) text_align_x: AlignX,
     pub(crate) text_align_y: AlignY,
 }
@@ -53,6 +57,7 @@ impl WidgetState for State {
 }
 
 impl<'a> TextBuilder<'a> {
+    impl_id!();
     impl_size_methods!();
 
     pub fn padding(mut self, padding: EdgeInsets) -> Self {
@@ -63,6 +68,12 @@ impl<'a> TextBuilder<'a> {
 
     pub fn color(mut self, color: ColorRgba) -> Self {
         self.color = color;
+
+        self
+    }
+
+    pub fn text_align(mut self, text_align: TextAlign) -> Self {
+        self.text_align = text_align;
 
         self
     }
@@ -83,22 +94,54 @@ impl<'a> TextBuilder<'a> {
     pub fn build(&self, context: &mut BuildContext) {
         let id = self.id.with_seed(context.id_seed);
 
-        let text = context.string_interner.get_or_intern(self.text);
         let widget_ref = WidgetRef::new(WidgetType::of::<TextWidget>(), id);
-        let text_id = cache_string(context, text, |ctx| {
-            let text = ctx.string_interner.resolve(text).unwrap();
-            ctx.text
-                .add_text(ctx.view, ctx.fonts, 12., 12., |fonts, text_res| {
-                    text_res.set_text(fonts, text)
-                })
-        });
+        let state = context.widgets_states.text.get(id);
+        let last_text_align = state.map(|it| it.text_align).unwrap_or(TextAlign::Left);
 
-        // Example of how to set align
-        // -----------------------------------------------------------------------------------------
-        // for line in buffer.lines.iter_mut() {
-        //     line.set_align(Some(cosmic_text::Align::Center));
-        // }
-        // -----------------------------------------------------------------------------------------
+        let (text_data, text_id) = if let Some(state) = state {
+            if state.text_data != self.text {
+                context.text.update_text(state.text_id, |text| {
+                    text.set_text(context.fonts, self.text);
+                });
+
+                // Reset wrap size calculation during layout.
+                if !self.size.width.constrained() {
+                    let text = context.text.get_mut(state.text_id);
+                    text.with_buffer_mut(|buffer| {
+                        buffer.set_size(&mut context.fonts.font_system, None, None);
+                    });
+                }
+
+                (Some(self.text.to_string()), state.text_id)
+            } else {
+                (None, state.text_id)
+            }
+        } else {
+            let text_id =
+                context
+                    .text
+                    .add_text(context.view, context.fonts, 12., 12., |fonts, text_res| {
+                        text_res.set_text(fonts, self.text)
+                    });
+
+            (Some(self.text.to_string()), text_id)
+        };
+
+        if last_text_align != self.text_align {
+            let text = context.text.get_mut(text_id);
+            text.with_buffer_mut(|buffer| {
+                for line in buffer.lines.iter_mut() {
+                    line.set_align(match self.text_align {
+                        TextAlign::Auto => None,
+                        TextAlign::Left => Some(cosmic_text::Align::Left),
+                        TextAlign::Right => Some(cosmic_text::Align::Right),
+                        TextAlign::End => Some(cosmic_text::Align::End),
+                        TextAlign::Center => Some(cosmic_text::Align::Center),
+                        TextAlign::Justified => Some(cosmic_text::Align::Justified),
+                    });
+                }
+            });
+        }
 
         let decorators = std::mem::take(context.decorators);
 
@@ -112,15 +155,23 @@ impl<'a> TextBuilder<'a> {
             derive_wrap_size: DeriveWrapSize::Text(text_id),
         });
 
-        context.widgets_states.text.set(
-            id,
-            State {
-                text_id: text_id,
-                color: self.color,
-                text_align_x: self.text_align_x,
-                text_align_y: self.text_align_y,
-            },
-        );
+        context.widgets_states.text.accessed_this_frame.insert(id);
+
+        let state = context.widgets_states.text.get_or_insert(id, || State {
+            text_id: text_id,
+            text_data: text_data.clone().unwrap(),
+            color: self.color,
+            text_align: self.text_align,
+            text_align_x: self.text_align_x,
+            text_align_y: self.text_align_y,
+        });
+
+        if let Some(text_data) = text_data {
+            state.text_data = text_data;
+        }
+
+        state.color = self.color;
+        state.text_align = self.text_align;
     }
 }
 
@@ -140,6 +191,7 @@ pub fn text(text: &str) -> TextBuilder<'_> {
         },
         text_align_x: AlignX::Start,
         text_align_y: AlignY::Top,
+        text_align: TextAlign::Left,
         padding: EdgeInsets::ZERO,
     }
 }

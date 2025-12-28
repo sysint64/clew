@@ -1,22 +1,18 @@
-use std::alloc::System;
 use std::{sync::Arc, time::Duration};
 
 use tech_paws_ui::assets::Assets;
 use tech_paws_ui::identifiable::Identifiable;
 // use tech_paws_ui::widgets::button::button;
 use tech_paws_ui::state::WidgetState;
-use tech_paws_ui::widgets::colored_box::colored_box;
 use tech_paws_ui::widgets::decorated_box::decorated_box;
 use tech_paws_ui::widgets::gap::gap;
 use tech_paws_ui::widgets::gesture_detector::{GestureDetectorResponse, gesture_detector};
 use tech_paws_ui::widgets::hstack::hstack;
 use tech_paws_ui::widgets::svg::svg;
 use tech_paws_ui::widgets::text::text;
-use tech_paws_ui::widgets::zstack::zstack;
 use tech_paws_ui::{
     AlignX, AlignY, ColorRgb,
     render::Renderer,
-    text::FontResources,
     widgets::{
         builder::BuildContext,
         for_each::for_each,
@@ -26,7 +22,7 @@ use tech_paws_ui::{
 };
 use tech_paws_ui::{
     Border, BorderRadius, BorderSide, BoxShape, ColorRgba, CrossAxisAlignment, EdgeInsets,
-    Gradient, LinearGradient, MainAxisAlignment, RadialGradient, SizeConstraint,
+    LinearGradient, MainAxisAlignment, RadialGradient, TextAlign,
 };
 use tech_paws_ui_derive::{Identifiable, WidgetState};
 use tech_paws_ui_desktop::{
@@ -35,7 +31,6 @@ use tech_paws_ui_desktop::{
     window_manager::{WindowDescriptor, WindowManager},
 };
 use tech_paws_ui_tiny_skia::TinySkiaRenderer;
-use tracy_client::ProfiledAllocator;
 use ui_kit::button;
 
 mod ui_kit;
@@ -336,6 +331,25 @@ impl Component for Counter {
 
                 text("Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.")
                     .color(ColorRgba::from_hex(0xFFFFFFFF))
+                    .text_align(TextAlign::Justified)
+                    .fill_max_width()
+                    .build(ctx);
+
+                text("شكمنتشعيتد منتشسيب كمنتشسيب منت")
+                    .color(ColorRgba::from_hex(0xFFFFFFFF))
+                    .text_align(TextAlign::Right)
+                    .fill_max_width()
+                    .build(ctx);
+
+                text("日本語はすごいです！")
+                    .color(ColorRgba::from_hex(0xFFFFFFFF))
+                    .text_align(TextAlign::Center)
+                    .fill_max_width()
+                    .build(ctx);
+
+                text("شكمنتشعيتد منتشسيب كمنتشسيب منت")
+                    .color(ColorRgba::from_hex(0xFFFFFFFF))
+                    .text_align(TextAlign::End)
                     .fill_max_width()
                     .build(ctx);
 

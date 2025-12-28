@@ -354,11 +354,11 @@ impl WidgetsStates {
     #[profiling::function]
     pub fn sweep(&mut self, interaction: &mut InteractionState) {
         self.decorated_box.clear();
-        self.text.clear();
         self.colored_box.clear();
         self.svg.clear();
         self.gesture_detector.sweep(interaction);
         self.custom.sweep(interaction);
+        self.text.sweep(interaction);
 
         // self.data
         //     .retain(|id, _| self.accessed_this_frame.contains(id));

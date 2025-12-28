@@ -123,6 +123,8 @@ impl ApplicationDelegate<CounterEvent> for DemoApplication {
             )
             .block_on(),
         )
+
+        // Box::new(TinySkiaRenderer::new(window.clone(), window.clone()))
     }
 }
 

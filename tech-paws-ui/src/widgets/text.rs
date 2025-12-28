@@ -95,7 +95,7 @@ impl<'a> TextBuilder<'a> {
         // }
         // -----------------------------------------------------------------------------------------
 
-        let decorators = std::mem::take(&mut context.decorators);
+        let decorators = std::mem::take(context.decorators);
 
         context.push_layout_command(LayoutCommand::Child {
             widget_ref,

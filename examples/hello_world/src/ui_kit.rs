@@ -42,6 +42,7 @@ impl<'a> ButtonBuilder<'a> {
     impl_width_methods!();
     impl_position_methods!();
 
+    #[profiling::function]
     pub fn build(self, ctx: &mut BuildContext) -> ButtonResponse {
         let response = scope(self.id).build(ctx, |ctx| {
             gesture_detector().build(ctx, |ctx| {
@@ -49,20 +50,20 @@ impl<'a> ButtonBuilder<'a> {
 
                 let gradient = {
                     if response.is_active() && response.is_hot() {
-                        LinearGradient::vertical(vec![
+                        LinearGradient::vertical((
                             ColorRgba::from_hex(0xFF1C1C1C),
                             ColorRgba::from_hex(0xFF212121),
-                        ])
+                        ))
                     } else if response.is_hot() {
-                        LinearGradient::vertical(vec![
+                        LinearGradient::vertical((
                             ColorRgba::from_hex(0xFF383838),
                             ColorRgba::from_hex(0xFF2E2E2E),
-                        ])
+                        ))
                     } else {
-                        LinearGradient::vertical(vec![
+                        LinearGradient::vertical((
                             ColorRgba::from_hex(0xFF2F2F2F),
                             ColorRgba::from_hex(0xFF272727),
-                        ])
+                        ))
                     }
                 };
 

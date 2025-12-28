@@ -13,6 +13,7 @@ use crate::{
     text::{StringId, TextId},
 };
 use std::{any::Any, hash::Hash, rc::Rc};
+use smallvec::smallvec;
 
 pub struct ButtonBuilder<'a> {
     id: WidgetId,
@@ -125,7 +126,7 @@ impl<'a> ButtonBuilder<'a> {
         context.with_align(self.align_x, self.align_y, |context| {
             context.push_layout_command(LayoutCommand::Child {
                 widget_ref: widget_ref,
-                decorators: vec![],
+                decorators: smallvec![],
                 constraints: self.constraints,
                 size,
                 padding: self.padding.unwrap_or(EdgeInsets::ZERO),

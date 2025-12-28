@@ -1,5 +1,7 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 
+use rustc_hash::FxHasher;
+
 use super::builder::BuildContext;
 
 pub struct ScopeBuilder {
@@ -16,7 +18,7 @@ impl ScopeBuilder {
 }
 
 pub fn scope(key: impl Hash) -> ScopeBuilder {
-    let mut hasher = DefaultHasher::new();
+    let mut hasher = FxHasher::default();
     key.hash(&mut hasher);
 
     ScopeBuilder {

@@ -101,10 +101,10 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         broadcast_async_tx,
         event_loop_proxy,
         id_seed: None,
-        user_data: Vec::new(),
+        user_data: None,
         strings: &mut window_state.strings,
         phase_allocator: &mut window_state.ui_state.phase_allocator,
-        decorators: Vec::new(),
+        decorators: &mut window_state.ui_state.decorators,
     };
 
     window_state.window.build(app, &mut build_context);

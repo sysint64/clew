@@ -7,9 +7,10 @@ use std::{
 use bitvec::vec::BitVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 use slab::Slab;
+use smallvec::SmallVec;
 
 use crate::{
-    interaction::InteractionState, io::UserInput, layout::{LayoutCommand, LayoutState, WidgetPlacement}, render::RenderState, widgets::{colored_box, decorated_box, gesture_detector, svg, text}, LayoutDirection, View, WidgetId
+    interaction::InteractionState, io::UserInput, layout::{LayoutCommand, LayoutState, WidgetPlacement}, render::RenderState, widgets::{colored_box, decorated_box, gesture_detector, svg, text}, LayoutDirection, View, WidgetId, WidgetRef
 };
 
 pub trait WidgetState: Any + Send {
@@ -31,6 +32,7 @@ pub struct UiState {
     pub interaction_state: InteractionState,
     pub last_interaction_state: InteractionState,
     pub user_input: UserInput,
+    pub decorators: SmallVec<[WidgetRef; 8]>,
     // TODO(sysint64): Maybe move it to build context
     pub layout_direction: LayoutDirection,
     pub async_tx: tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
@@ -177,6 +179,7 @@ impl UiState {
             widgets_states: WidgetsStates::default(),
             layout_state: LayoutState::default(),
             widget_placements: Vec::new(),
+            decorators: SmallVec::new(),
             interaction_state: InteractionState::default(),
             last_interaction_state: InteractionState::default(),
             user_input: UserInput::default(),

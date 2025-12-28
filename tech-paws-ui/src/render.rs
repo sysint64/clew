@@ -229,6 +229,11 @@ pub fn render(
     //     layout_time.elapsed()
     // );
 
+    tracy_client::plot!(
+        "Tech Paws UI - Layout commands",
+        state.layout_commands.len() as f64
+    );
+
     // let interaction_time = std::time::Instant::now();
 
     {
@@ -355,6 +360,10 @@ pub fn render(
             }
         }
 
+        tracy_client::plot!(
+            "Tech Paws UI - Render Commands",
+            state.widget_placements.len() as f64
+        );
         // println!(
         //     "RENDER COMMAND CREATED FOR {} PLACEMENTS: {:?}",
         //     state.widget_placements.len(),

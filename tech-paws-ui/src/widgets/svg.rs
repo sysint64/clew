@@ -61,7 +61,7 @@ impl SvgBuilder {
         let id = self.id.with_seed(context.id_seed);
 
         let widget_ref = WidgetRef::new(WidgetType::of::<SvgWidget>(), id);
-        let decorators = std::mem::take(&mut context.decorators);
+        let decorators = std::mem::take(context.decorators);
 
         context.push_layout_command(LayoutCommand::Child {
             widget_ref,

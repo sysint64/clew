@@ -57,7 +57,7 @@ impl ZStackBuilder {
         let size = Size::new(SizeConstraint::Wrap, SizeConstraint::Wrap);
         let mut constraints = Constraints::default();
 
-        let widgets = std::mem::take(&mut context.decorators);
+        let widgets = std::mem::take(context.decorators);
         let last_zindex = context.current_zindex;
         context.current_zindex += 1;
 

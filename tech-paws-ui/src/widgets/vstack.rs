@@ -60,7 +60,7 @@ impl VStackBuilder {
     {
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
-        let widget_refs = std::mem::take(&mut context.decorators);
+        let widget_refs = std::mem::take(context.decorators);
 
         context.push_layout_command(LayoutCommand::BeginContainer {
             decorators: widget_refs,

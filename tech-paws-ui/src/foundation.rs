@@ -1,6 +1,7 @@
 use std::ops::Mul;
 
 use glam::{Vec2, Vec4};
+use smallvec::{SmallVec, smallvec};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Axis {
@@ -882,17 +883,17 @@ pub enum Gradient {
     Sweep(SweepGradient),
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct LinearGradient {
-    /// Start point (normalized 0.0 to 1.0)
-    pub start: (f32, f32),
-    /// End point (normalized 0.0 to 1.0)
-    pub end: (f32, f32),
-    /// Color stops
-    pub stops: Vec<ColorStop>,
-    /// How to handle colors outside the gradient range
-    pub tile_mode: TileMode,
-}
+// #[derive(Debug, Clone, PartialEq)]
+// pub struct LinearGradient {
+//     /// Start point (normalized 0.0 to 1.0)
+//     pub start: (f32, f32),
+//     /// End point (normalized 0.0 to 1.0)
+//     pub end: (f32, f32),
+//     /// Color stops
+//     pub stops: Vec<ColorStop>,
+//     /// How to handle colors outside the gradient range
+//     pub tile_mode: TileMode,
+// }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RadialGradient {
@@ -944,45 +945,114 @@ pub enum TileMode {
     Decal,
 }
 
+// impl LinearGradient {
+//     /// Creates a simple top-to-bottom gradient
+//     pub fn vertical(colors: Vec<ColorRgba>) -> Self {
+//         Self {
+//             start: (0.5, 0.0),
+//             end: (0.5, 1.0),
+//             stops: Self::even_stops(colors),
+//             tile_mode: TileMode::Clamp,
+//         }
+//     }
+
+//     /// Creates a simple left-to-right gradient
+//     pub fn horizontal(colors: Vec<ColorRgba>) -> Self {
+//         Self {
+//             start: (0.0, 0.5),
+//             end: (1.0, 0.5),
+//             stops: Self::even_stops(colors),
+//             tile_mode: TileMode::Clamp,
+//         }
+//     }
+
+//     /// Creates a gradient at a specific angle (in radians)
+//     pub fn angled(angle: f32, colors: Vec<ColorRgba>) -> Self {
+//         let (dx, dy) = (angle.cos(), angle.sin());
+//         Self {
+//             start: (0.5 - dx * 0.5, 0.5 - dy * 0.5),
+//             end: (0.5 + dx * 0.5, 0.5 + dy * 0.5),
+//             stops: Self::even_stops(colors),
+//             tile_mode: TileMode::Clamp,
+//         }
+//     }
+
+//     pub fn new(start: (f32, f32), end: (f32, f32), stops: Vec<ColorStop>) -> Self {
+//         Self {
+//             start,
+//             end,
+//             stops,
+//             tile_mode: TileMode::Clamp,
+//         }
+//     }
+
+//     fn even_stops(colors: Vec<ColorRgba>) -> Vec<ColorStop> {
+//         let count = colors.len();
+//         if count == 0 {
+//             return vec![];
+//         }
+//         colors
+//             .into_iter()
+//             .enumerate()
+//             .map(|(i, color)| ColorStop {
+//                 offset: i as f32 / (count - 1).max(1) as f32,
+//                 color,
+//             })
+//             .collect()
+//     }
+// }
+/// Most gradients have 2-4 stops, so inline up to 4
+pub type ColorStops = SmallVec<[ColorStop; 4]>;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LinearGradient {
+    pub start: (f32, f32),
+    pub end: (f32, f32),
+    pub stops: ColorStops,
+    pub tile_mode: TileMode,
+}
+
 impl LinearGradient {
-    /// Creates a simple top-to-bottom gradient
-    pub fn vertical(colors: Vec<ColorRgba>) -> Self {
+    pub fn vertical(colors: impl IntoColorStops) -> Self {
         Self {
             start: (0.5, 0.0),
             end: (0.5, 1.0),
-            stops: Self::even_stops(colors),
+            stops: colors.into_even_stops(),
             tile_mode: TileMode::Clamp,
         }
     }
 
-    /// Creates a simple left-to-right gradient
-    pub fn horizontal(colors: Vec<ColorRgba>) -> Self {
+    pub fn horizontal(colors: impl IntoColorStops) -> Self {
         Self {
             start: (0.0, 0.5),
             end: (1.0, 0.5),
-            stops: Self::even_stops(colors),
+            stops: colors.into_even_stops(),
             tile_mode: TileMode::Clamp,
         }
     }
 
-    /// Creates a gradient at a specific angle (in radians)
-    pub fn angled(angle: f32, colors: Vec<ColorRgba>) -> Self {
+    pub fn angled(angle: f32, colors: impl IntoColorStops) -> Self {
         let (dx, dy) = (angle.cos(), angle.sin());
         Self {
             start: (0.5 - dx * 0.5, 0.5 - dy * 0.5),
             end: (0.5 + dx * 0.5, 0.5 + dy * 0.5),
-            stops: Self::even_stops(colors),
+            stops: colors.into_even_stops(),
             tile_mode: TileMode::Clamp,
         }
     }
 
-    pub fn new(start: (f32, f32), end: (f32, f32), stops: Vec<ColorStop>) -> Self {
+    pub fn new(start: (f32, f32), end: (f32, f32), stops: impl Into<ColorStops>) -> Self {
         Self {
             start,
             end,
-            stops,
+            stops: stops.into(),
             tile_mode: TileMode::Clamp,
         }
+    }
+
+    pub fn with_tile_mode(mut self, mode: TileMode) -> Self {
+        self.tile_mode = mode;
+        self
     }
 
     fn even_stops(colors: Vec<ColorRgba>) -> Vec<ColorStop> {
@@ -1001,6 +1071,85 @@ impl LinearGradient {
     }
 }
 
+/// Trait for types that can be converted into evenly-spaced color stops
+pub trait IntoColorStops {
+    fn into_even_stops(self) -> ColorStops;
+}
+
+// Array implementations - zero allocation for common cases
+impl<const N: usize> IntoColorStops for [ColorRgba; N] {
+    fn into_even_stops(self) -> ColorStops {
+        even_stops_from_iter(self.into_iter(), N)
+    }
+}
+
+impl IntoColorStops for (ColorRgba, ColorRgba) {
+    fn into_even_stops(self) -> ColorStops {
+        smallvec![
+            ColorStop {
+                offset: 0.0,
+                color: self.0
+            },
+            ColorStop {
+                offset: 1.0,
+                color: self.1
+            },
+        ]
+    }
+}
+
+impl IntoColorStops for (ColorRgba, ColorRgba, ColorRgba) {
+    fn into_even_stops(self) -> ColorStops {
+        smallvec![
+            ColorStop {
+                offset: 0.0,
+                color: self.0
+            },
+            ColorStop {
+                offset: 0.5,
+                color: self.1
+            },
+            ColorStop {
+                offset: 1.0,
+                color: self.2
+            },
+        ]
+    }
+}
+
+// Vec fallback for dynamic cases
+impl IntoColorStops for Vec<ColorRgba> {
+    fn into_even_stops(self) -> ColorStops {
+        let len = self.len();
+        even_stops_from_iter(self.into_iter(), len)
+    }
+}
+
+// Direct ColorStops passthrough
+impl IntoColorStops for ColorStops {
+    fn into_even_stops(self) -> ColorStops {
+        self
+    }
+}
+
+fn even_stops_from_iter(iter: impl Iterator<Item = ColorRgba>, count: usize) -> ColorStops {
+    if count == 0 {
+        return ColorStops::new();
+    }
+
+    let divisor = (count - 1).max(1) as f32;
+
+    let mut stops = ColorStops::with_capacity(count);
+
+    for (i, color) in iter.enumerate() {
+        stops.push(ColorStop {
+            offset: i as f32 / divisor,
+            color,
+        });
+    }
+
+    stops
+}
 impl RadialGradient {
     /// Creates a simple radial gradient from center
     pub fn circle(colors: Vec<ColorRgba>) -> Self {

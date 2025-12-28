@@ -74,8 +74,6 @@ impl GestureDetectorBuilder {
         F: FnOnce(&mut BuildContext),
     {
         let id = self.id.with_seed(context.id_seed);
-
-        let size = Size::new(SizeConstraint::Wrap, SizeConstraint::Wrap);
         let widget_ref = WidgetRef::new(WidgetType::of::<GestureDetector>(), id);
 
         let state = context

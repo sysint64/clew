@@ -1,3 +1,4 @@
+use std::alloc::System;
 use std::{sync::Arc, time::Duration};
 
 use tech_paws_ui::assets::Assets;
@@ -33,6 +34,7 @@ use tech_paws_ui_desktop::{
     window_manager::{WindowDescriptor, WindowManager},
 };
 use tech_paws_ui_tiny_skia::TinySkiaRenderer;
+use tracy_client::ProfiledAllocator;
 use ui_kit::button;
 
 mod ui_kit;
@@ -327,20 +329,19 @@ impl Component<DemoApplication, CounterComponentEvent> for Counter {
 #[allow(dead_code)]
 #[profiling::function]
 fn ui_benchmark(ctx: &mut BuildContext) {
-    let build_time = std::time::Instant::now();
-
     vstack().fill_max_width().build(ctx, |ctx| {
         // gap().height(128.).show(ctx);
 
-        for i in 0..50 {
+        for i in 0..500 {
             hstack().fill_max_width().build(ctx, |ctx| {
-                for j in 0..10 {
+                for j in 0..30 {
                     // hstack().show(ctx, |ctx| {});
                     if button(&bumpalo::format!(in &ctx.phase_allocator, "Button {}_{}", i, j))
                         .id((i, j))
                         .build(ctx)
                         .clicked()
                     {
+                        // if button("Button")
                         // if button_id("Button", (i, j)).show(ctx) {
                         println!("Button {i}_{j} Clicked");
                         // 1000 total buttons

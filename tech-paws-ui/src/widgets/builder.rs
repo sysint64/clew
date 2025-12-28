@@ -5,8 +5,14 @@ use std::{
     sync::Arc,
 };
 
+use rustc_hash::FxHasher;
+use smallvec::SmallVec;
+
 use crate::{
-    layout::LayoutCommand, state::WidgetsStates, text::{FontResources, StringId, StringInterner, TextId, TextsResources}, AlignX, AlignY, View, ViewId, WidgetRef
+    AlignX, AlignY, View, ViewId, WidgetRef,
+    layout::LayoutCommand,
+    state::WidgetsStates,
+    text::{FontResources, StringId, StringInterner, TextId, TextsResources},
 };
 // use bumpalo::{Bump, collections::Vec};
 
@@ -17,6 +23,11 @@ pub enum ApplicationEvent {
 
 pub trait ApplicationEventLoopProxy: Send + Sync {
     fn send_event(&self, event: ApplicationEvent);
+}
+
+pub struct UserDataStack<'a> {
+    data: &'a (dyn Any + Send),
+    parent: Option<&'a UserDataStack<'a>>,
 }
 
 pub struct BuildContext<'a, 'b> {
@@ -35,36 +46,67 @@ pub struct BuildContext<'a, 'b> {
     pub broadcast_async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     pub event_loop_proxy: Arc<dyn ApplicationEventLoopProxy>,
     pub id_seed: Option<u64>,
-    pub user_data: Vec<Box<dyn Any + Send>>,
-    pub decorators: Vec<WidgetRef>,
+    // pub user_data: Vec<Box<dyn Any + Send>>,
+    pub user_data: Option<&'a UserDataStack<'a>>,
+    pub decorators: &'a mut SmallVec<[WidgetRef; 8]>,
     pub phase_allocator: &'a bumpalo::Bump,
 }
 
 impl BuildContext<'_, '_> {
+    pub fn with_user_data<F, T: Any + Send>(&mut self, data: T, callback: F)
+    where
+        F: FnOnce(&mut Self),
+    {
+        // Store as raw pointer to avoid lifetime issues
+        let data_ref: &(dyn Any + Send) = &data;
+        let node = UserDataStack {
+            data: unsafe { &*(data_ref as *const _) },
+            parent: self.user_data.take(),
+        };
+
+        self.user_data = Some(unsafe { &*(&node as *const _) });
+
+        callback(self);
+
+        // Restore parent, dropping our node's reference
+        self.user_data = node.parent;
+    }
+
     pub fn of<T: 'static>(&self) -> Option<&T> {
-        for data in self.user_data.iter().rev() {
-            let data = data.downcast_ref::<T>();
-
-            if data.is_some() {
-                return data;
+        let mut current = self.user_data;
+        while let Some(node) = current {
+            if let Some(data) = node.data.downcast_ref::<T>() {
+                return Some(data);
             }
+            current = node.parent;
         }
-
         None
     }
+
+    // pub fn with_user_data<F, T: Any + Send + 'static>(&mut self, data: T, callback: F)
+    // where
+    //     F: FnOnce(&mut BuildContext),
+    // {
+    //     self.user_data.push(Box::new(data));
+    //     callback(self);
+    //     self.user_data.pop();
+    // }
+
+    // pub fn of<T: 'static>(&self) -> Option<&T> {
+    //     for data in self.user_data.iter().rev() {
+    //         let data = data.downcast_ref::<T>();
+
+    //         if data.is_some() {
+    //             return data;
+    //         }
+    //     }
+
+    //     None
+    // }
 
     #[profiling::function]
     pub fn push_layout_command(&mut self, command: LayoutCommand) {
         self.layout_commands.push(command);
-    }
-
-    pub fn with_user_data<F, T: Any + Send + 'static>(&mut self, data: T, callback: F)
-    where
-        F: FnOnce(&mut BuildContext),
-    {
-        self.user_data.push(Box::new(data));
-        callback(self);
-        self.user_data.pop();
     }
 
     pub fn with_id_seed<F, T>(&mut self, seed: u64, callback: F) -> T
@@ -76,7 +118,7 @@ impl BuildContext<'_, '_> {
         // Combine with parent seed, to support nested scopes
         self.id_seed = Some(match last_id_seed {
             Some(parent) => {
-                let mut hasher = DefaultHasher::new();
+                let mut hasher = FxHasher::default();
                 parent.hash(&mut hasher);
                 seed.hash(&mut hasher);
                 hasher.finish()

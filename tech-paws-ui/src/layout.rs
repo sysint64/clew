@@ -6,6 +6,7 @@ use crate::{
     text::{FontResources, TextId, TextsResources},
 };
 use glam::Vec2;
+use smallvec::{SmallVec, smallvec};
 
 pub(crate) const RENDER_DEBUG_BOUNDARIES: bool = true;
 
@@ -20,7 +21,7 @@ pub struct WidgetPlacement {
 #[derive(Debug, Clone)]
 pub enum LayoutCommand {
     BeginContainer {
-        decorators: Vec<WidgetRef>,
+        decorators: SmallVec<[WidgetRef; 8]>,
         kind: ContainerKind,
         constraints: Constraints,
         size: Size,
@@ -35,7 +36,7 @@ pub enum LayoutCommand {
     EndAlign,
     Child {
         widget_ref: WidgetRef,
-        decorators: Vec<WidgetRef>,
+        decorators: SmallVec<[WidgetRef; 8]>,
         constraints: Constraints,
         padding: EdgeInsets,
         size: Size,
@@ -125,7 +126,7 @@ struct LayoutContainerCommand {
 
 #[derive(Debug, Default, Clone)]
 struct LayoutContainer {
-    widget_ref: Vec<WidgetRef>,
+    widget_ref: SmallVec<[WidgetRef; 8]>,
     zindex: i32,
     idx: usize,
     axis: StackAxis,
@@ -134,7 +135,7 @@ struct LayoutContainer {
 
 #[derive(Debug, Default, Clone)]
 struct Pass2LayoutContainer {
-    widget_ref: Vec<WidgetRef>,
+    widget_ref: SmallVec<[WidgetRef; 8]>,
     axis: StackAxisPass2,
     zindex: i32,
     idx: usize,
@@ -338,7 +339,7 @@ impl LayoutState {
     fn clear(&mut self) {
         self.parent_container = LayoutContainer {
             idx: 0,
-            widget_ref: vec![],
+            widget_ref: smallvec![],
             zindex: 0,
             axis: StackAxis::None,
             command: Default::default(),
@@ -612,7 +613,7 @@ pub fn layout(
                 match kind {
                     ContainerKind::VStack { spacing, .. } => {
                         layout_state.parent_container = LayoutContainer {
-                            widget_ref: vec![],
+                            widget_ref: smallvec![],
                             zindex: 0,
                             idx: layout_state.current_idx(),
                             axis: StackAxis::Vertical { spacing: *spacing },
@@ -788,7 +789,7 @@ pub fn layout(
         axis: StackAxisPass2::None,
         padding: EdgeInsets::ZERO,
         zindex: 0,
-        widget_ref: vec![],
+        widget_ref: smallvec![],
     };
     layout_state.push_align(AlignX::Left, AlignY::Top);
 

@@ -75,15 +75,30 @@ impl VelloRenderer {
 
         // Create the surface
         let surface = render_cx
-            .create_surface(window.clone(), width, height, wgpu::PresentMode::AutoVsync)
+            .create_surface(window.clone(), width, height, wgpu::PresentMode::Immediate)
+            // .create_surface(window.clone(), width, height, wgpu::PresentMode::AutoVsync)
             .await
             .expect("Failed to create surface");
+
+        #[cfg(target_os = "macos")]
+        #[allow(invalid_reference_casting)]
+        unsafe {
+            if let Some(hal_surface) = surface.surface.as_hal::<wgpu::hal::api::Metal>() {
+                let raw = (&*hal_surface) as *const wgpu::hal::metal::Surface
+                    as *mut wgpu::hal::metal::Surface;
+                (*raw).present_with_transaction = true;
+            }
+        }
 
         let device = &render_cx.devices[surface.dev_id].device;
 
         // Create Vello renderer
         let renderer = vello::Renderer::new(device, RendererOptions::default())
             .expect("Failed to create Vello renderer");
+
+        // let mut config = surface.config.clone();
+        // config.desired_maximum_frame_latency = 4;
+        // surface.surface.configure(device, &config);
 
         Self {
             render_cx,
@@ -122,6 +137,8 @@ impl VelloRenderer {
 
     /// End frame and present
     pub fn end_frame(&mut self, fill_color: &ColorRgb) {
+        profiling::scope!("end_frame");
+
         let Some(surface) = &self.surface else { return };
         let Some(renderer) = &mut self.renderer else {
             return;
@@ -130,21 +147,6 @@ impl VelloRenderer {
         let device = &self.render_cx.devices[surface.dev_id].device;
         let queue = &self.render_cx.devices[surface.dev_id].queue;
 
-        let surface_texture = surface
-            .surface
-            .get_current_texture()
-            .expect("Failed to get surface texture");
-
-        #[cfg(target_os = "macos")]
-        #[allow(invalid_reference_casting)]
-        unsafe {
-            if let Some(hal_surface) = surface.surface.as_hal::<wgpu::hal::api::Metal>() {
-                let raw = (&*hal_surface) as *const wgpu::hal::metal::Surface
-                    as *mut wgpu::hal::metal::Surface;
-                (*raw).present_with_transaction = true;
-            }
-        }
-
         let render_params = RenderParams {
             base_color: convert_rgb_color(fill_color),
             width: self.current_width,
@@ -152,31 +154,52 @@ impl VelloRenderer {
             antialiasing_method: AaConfig::Msaa16,
         };
 
-        renderer
-            .render_to_texture(
-                device,
-                queue,
-                &self.scene,
+        {
+            profiling::scope!("render_to_texture");
+            renderer
+                .render_to_texture(
+                    device,
+                    queue,
+                    &self.scene,
+                    &surface.target_view,
+                    &render_params,
+                )
+                .expect("Failed to render to surface");
+        }
+
+        let surface_texture = {
+            profiling::scope!("get_current_texture");
+
+            surface
+                .surface
+                .get_current_texture()
+                .expect("Failed to get surface texture")
+        };
+
+        {
+            profiling::scope!("blit_and_present");
+
+            let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Surface Blit"),
+            });
+            surface.blitter.copy(
+                &device,
+                &mut encoder,
                 &surface.target_view,
-                &render_params,
-            )
-            .expect("Failed to render to surface");
+                &surface_texture
+                    .texture
+                    .create_view(&wgpu::TextureViewDescriptor::default()),
+            );
+            queue.submit([encoder.finish()]);
+            surface_texture.present();
+        }
 
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Surface Blit"),
-        });
-        surface.blitter.copy(
-            &device,
-            &mut encoder,
-            &surface.target_view,
-            &surface_texture
-                .texture
-                .create_view(&wgpu::TextureViewDescriptor::default()),
-        );
-        queue.submit([encoder.finish()]);
-        surface_texture.present();
+        // device.poll(wgpu::PollType::Poll).unwrap();
 
-        device.poll(wgpu::PollType::Wait).unwrap();
+        // {
+        //     profiling::scope!("device_poll");
+        //     device.poll(wgpu::PollType::Wait).unwrap();
+        // }
     }
 
     /// Draw a filled rectangle with optional border
@@ -531,7 +554,6 @@ impl Renderer for VelloRenderer {
         }
 
         self.end_frame(&fill_color);
-
         tracy_client::frame_mark();
     }
 }

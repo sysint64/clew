@@ -1,5 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
+use pollster::FutureExt;
 use tech_paws_ui::assets::Assets;
 use tech_paws_ui::identifiable::Identifiable;
 // use tech_paws_ui::widgets::button::button;
@@ -31,6 +32,7 @@ use tech_paws_ui_desktop::{
     window_manager::{WindowDescriptor, WindowManager},
 };
 use tech_paws_ui_tiny_skia::TinySkiaRenderer;
+use tech_paws_ui_vello::VelloRenderer;
 use ui_kit::button;
 
 mod ui_kit;
@@ -113,7 +115,14 @@ impl ApplicationDelegate<CounterEvent> for DemoApplication {
     }
 
     fn create_renderer(window: Arc<winit::window::Window>) -> Box<dyn Renderer> {
-        Box::new(TinySkiaRenderer::new(window.clone(), window.clone()))
+        Box::new(
+            VelloRenderer::new(
+                window.clone(),
+                window.inner_size().width,
+                window.inner_size().height,
+            )
+            .block_on(),
+        )
     }
 }
 
@@ -405,7 +414,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracy_client::Client::start();
 
     env_logger::Builder::new()
-        .filter(None, log::LevelFilter::Debug)
+        .filter(None, log::LevelFilter::Info)
         .init();
 
     log::info!("Starting app");

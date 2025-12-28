@@ -3,8 +3,9 @@ resolver = "3"
 members = [
     "tech-paws-ui",
     "tech-paws-ui-desktop",
-    "tech-paws-ui-tiny-skia",
     "tech-paws-ui-derive",
+    "tech-paws-ui-tiny-skia",
+    "tech-paws-ui-vello",
     "examples/hello_world",
 ]
 
@@ -26,4 +27,5 @@ profiling = "1.0"
 tracy-client = "0.18.3"
 
 [patch.crates-io]
-cosmic-text = { path = "/Users/sys.int64/dev/lib/cosmic-text" }
+# cosmic-text = { path = "/Users/sys.int64/dev/lib/cosmic-text" }
+cosmic-text = { git = "https://github.com/tech-paws/cosmic-text.git", branch = "tech_paws" }

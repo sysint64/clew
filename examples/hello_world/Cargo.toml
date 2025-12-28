@@ -8,6 +8,7 @@ tech-paws-ui = { path = "../../tech-paws-ui" }
 tech-paws-ui-desktop = { path = "../../tech-paws-ui-desktop" }
 tech-paws-ui-tiny-skia = { path = "../../tech-paws-ui-tiny-skia" }
 tech-paws-ui-derive = { path = "../../tech-paws-ui-derive" }
+tech-paws-ui-vello = { path = "../../tech-paws-ui-vello" }
 puffin_http = "0.16.1"
 puffin = "0.19.1"
 
@@ -18,3 +19,4 @@ env_logger = "0.10"
 tokio = { version = "1.47.1", features = ["full"] }
 tracy-client = { workspace = true }
 profiling = { workspace = true }
+pollster = "0.4.0"

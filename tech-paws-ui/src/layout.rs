@@ -8,7 +8,7 @@ use crate::{
 use glam::Vec2;
 use smallvec::{SmallVec, smallvec};
 
-pub(crate) const RENDER_DEBUG_BOUNDARIES: bool = false;
+pub(crate) const RENDER_DEBUG_BOUNDARIES: bool = true;
 
 #[derive(Debug)]
 pub struct WidgetPlacement {

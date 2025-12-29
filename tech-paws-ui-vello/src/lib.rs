@@ -348,7 +348,6 @@ impl VelloRenderer {
             if let Some(vello_font) = self.font_cache.get_or_insert(font_id, font_system) {
                 // Assuming uniform font size within a run (common case)
                 let font_size = glyphs.first().map(|(_, s)| *s).unwrap_or(16.0);
-
                 let glyph_iter = glyphs.into_iter().map(|(g, _)| g);
 
                 self.scene
@@ -498,13 +497,14 @@ impl Renderer for VelloRenderer {
                             > = HashMap::new();
 
                             for glyph in run.glyphs.iter() {
-                                let physical = glyph.physical((text_x, line_y), 1.0);
+                                let physical =
+                                    glyph.physical((text_x.floor(), line_y.floor()), 1.0);
                                 let font_size = f32::from_bits(physical.cache_key.font_size_bits);
 
                                 let vello_glyph = Glyph {
                                     id: physical.cache_key.glyph_id as u32,
-                                    x: physical.x as f32,
-                                    y: physical.y as f32,
+                                    x: text_x + glyph.x + glyph.x_offset,
+                                    y: glyph.y - glyph.y_offset + line_y,
                                 };
 
                                 font_glyphs
@@ -519,7 +519,10 @@ impl Renderer for VelloRenderer {
                                     .font_cache
                                     .get_or_insert(font_id, &mut fonts.font_system)
                                 {
-                                    let font_size = glyphs.first().map(|(_, s)| *s).unwrap_or(16.0);
+                                    let font_size = glyphs
+                                        .first()
+                                        .map(|(_, s)| *s)
+                                        .unwrap_or(12.0 * view.scale_factor);
                                     let glyph_iter = glyphs.into_iter().map(|(g, _)| g);
 
                                     self.scene

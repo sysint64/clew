@@ -193,6 +193,21 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
             winit::event::WindowEvent::Resized(size) => {
                 window.ui_state.view.size = PhysicalSize::new(size.width, size.height);
                 self.force_redraw = true;
+
+                window.ui_state.user_input.mouse_left_pressed = false;
+                window.ui_state.user_input.mouse_right_pressed = false;
+                window.ui_state.user_input.mouse_middle_pressed = false;
+                window.ui_state.user_input.mouse_left_released = false;
+                window.ui_state.user_input.mouse_right_released = false;
+                window.ui_state.user_input.mouse_middle_released = false;
+                window.ui_state.user_input.mouse_pressed = false;
+                window.ui_state.user_input.mouse_released = false;
+                window.ui_state.user_input.mouse_x = -1.;
+                window.ui_state.user_input.mouse_y = -1.;
+                window.ui_state.user_input.mouse_wheel_delta_x = 0.;
+                window.ui_state.user_input.mouse_wheel_delta_y = 0.;
+                window.ui_state.user_input.mouse_left_click_count = 0;
+
                 self.window_manager.request_redraw(window_id);
             }
             winit::event::WindowEvent::ScaleFactorChanged { scale_factor, .. } => {

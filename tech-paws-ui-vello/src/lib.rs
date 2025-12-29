@@ -480,15 +480,11 @@ impl Renderer for VelloRenderer {
                         .map(|c| convert_rgba_color(&c))
                         .unwrap_or_else(|| Color::from_rgba8(0, 0, 0, 255));
 
-                    // Round text origin to prevent subpixel jiggling
-                    let text_x = x.round();
-                    let text_y = y.round();
-
                     text.get_mut(*text_id).with_buffer_mut(|buffer| {
                         let brush = Brush::Solid(color);
 
                         for run in buffer.layout_runs() {
-                            let line_y = text_y + run.line_y.round();
+                            let line_y = y + run.line_y.round();
 
                             // Group by font
                             let mut font_glyphs: HashMap<
@@ -498,12 +494,12 @@ impl Renderer for VelloRenderer {
 
                             for glyph in run.glyphs.iter() {
                                 let physical =
-                                    glyph.physical((text_x.floor(), line_y.floor()), 1.0);
+                                    glyph.physical((*x, line_y), 1.0);
                                 let font_size = f32::from_bits(physical.cache_key.font_size_bits);
 
                                 let vello_glyph = Glyph {
                                     id: physical.cache_key.glyph_id as u32,
-                                    x: text_x + glyph.x + glyph.x_offset,
+                                    x: x + glyph.x + glyph.x_offset,
                                     y: glyph.y - glyph.y_offset + line_y,
                                 };
 

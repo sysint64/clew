@@ -8,7 +8,7 @@ use crate::{
 use glam::Vec2;
 use smallvec::{SmallVec, smallvec};
 
-pub(crate) const RENDER_DEBUG_BOUNDARIES: bool = false;
+pub(crate) const RENDER_DEBUG_BOUNDARIES: bool = true;
 
 #[derive(Debug)]
 pub struct WidgetPlacement {
@@ -34,6 +34,11 @@ pub enum LayoutCommand {
         align_y: AlignY,
     },
     EndAlign,
+    BeginOffset {
+        offset_x: f32,
+        offset_y: f32,
+    },
+    EndOffset,
     Child {
         widget_ref: WidgetRef,
         decorators: SmallVec<[WidgetRef; 8]>,
@@ -147,6 +152,15 @@ pub(crate) struct TextLayout {
     pub(crate) text_id: TextId,
 }
 
+pub(crate) struct LayoutMeasure {
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) width: f32,
+    pub(crate) height: f32,
+    pub(crate) overflow_x: f32,
+    pub(crate) overflow_y: f32,
+}
+
 #[derive(Default)]
 pub(crate) struct LayoutState {
     cursor: usize,
@@ -177,7 +191,11 @@ pub(crate) struct LayoutState {
     align_x_stack: Vec<AlignX>,
     align_y_stack: Vec<AlignY>,
 
+    offsets_stack_cursor: usize,
+    offsets_stack: Vec<Vec2>,
+
     pub(crate) texts: Vec<TextLayout>,
+    pub(crate) scroll_areas: Vec<LayoutMeasure>,
 }
 
 impl LayoutState {
@@ -300,6 +318,35 @@ impl LayoutState {
     }
 
     #[inline]
+    fn push_offset(&mut self, offset: Vec2) {
+        let last_offset = if self.offsets_stack_cursor > 0 {
+            self.get_offset()
+        } else {
+            Vec2::ZERO
+        };
+
+        if self.offsets_stack.len() <= self.offsets_stack_cursor {
+            self.offsets_stack.push(last_offset + offset);
+        } else {
+            self.offsets_stack[self.offsets_stack_cursor] = last_offset + offset;
+        }
+
+        self.offsets_stack_cursor += 1;
+    }
+
+    #[inline]
+    fn pop_offset(&mut self) -> Vec2 {
+        self.offsets_stack_cursor -= 1;
+
+        self.offsets_stack[self.offsets_stack_cursor]
+    }
+
+    #[inline]
+    fn get_offset(&mut self) -> Vec2 {
+        self.offsets_stack[self.offsets_stack_cursor - 1]
+    }
+
+    #[inline]
     fn push_container(&mut self, container: LayoutContainer) {
         if self.containers_stack.len() <= self.containers_stack_cursor {
             self.containers_stack.push(container);
@@ -348,8 +395,10 @@ impl LayoutState {
         self.position_cursor = 0;
         self.containers_stack_cursor = 0;
         self.align_stack_cursor = 0;
+        self.offsets_stack_cursor = 0;
 
         self.texts.clear();
+        self.scroll_areas.clear();
     }
 
     fn add_flex_sum(&mut self, size: Size) {
@@ -765,7 +814,10 @@ pub fn layout(
                 layout_state.add_size(*size, *constraints, Vec2::ZERO, EdgeInsets::ZERO);
             }
             LayoutCommand::BeginAlign { .. } | LayoutCommand::EndAlign => {
-                // Nothing
+                // No-op
+            }
+            LayoutCommand::BeginOffset { .. } | LayoutCommand::EndOffset => {
+                // No-op
             }
         }
     }
@@ -792,11 +844,13 @@ pub fn layout(
         widget_ref: smallvec![],
     };
     layout_state.push_align(AlignX::Left, AlignY::Top);
+    layout_state.push_offset(Vec2::new(0., 0.));
 
     for command in commands {
         let mut go_next = true;
         let container_idx = layout_state.pass2_parent_container.idx;
 
+        let offset = layout_state.get_offset();
         let container_position = layout_state.positions[layout_state.position_cursor - 1];
         let container_resize = layout_state.resizes[container_idx];
         let container_offset = layout_state.offsets[container_idx];
@@ -921,6 +975,14 @@ pub fn layout(
                 layout_state.pop_align();
                 continue;
             }
+            LayoutCommand::BeginOffset { offset_x, offset_y } => {
+                layout_state.push_offset(Vec2::new(*offset_x, *offset_y));
+                continue;
+            }
+            LayoutCommand::EndOffset => {
+                layout_state.pop_offset();
+                continue;
+            }
             LayoutCommand::BeginContainer {
                 kind,
                 constraints,
@@ -1003,7 +1065,7 @@ pub fn layout(
 
                 if RENDER_DEBUG_BOUNDARIES {
                     if rect_contains_boundary(
-                        Rect::from_pos_size(position, widget_size),
+                        Rect::from_pos_size(position + offset, widget_size),
                         Rect::from_pos_size(Vec2::ZERO, root_size),
                     ) {
                         widget_placements.push(WidgetPlacement {
@@ -1013,7 +1075,7 @@ pub fn layout(
                             },
                             zindex: i32::MAX,
                             boundary: Rect::ZERO,
-                            rect: Rect::from_pos_size(current_position, widget_size),
+                            rect: Rect::from_pos_size(current_position + offset, widget_size),
                         });
 
                         widget_placements.push(WidgetPlacement {
@@ -1023,7 +1085,10 @@ pub fn layout(
                             },
                             zindex: i32::MAX,
                             boundary: Rect::ZERO,
-                            rect: boundary,
+                            rect: Rect::from_pos_size(
+                                boundary.position() + offset,
+                                boundary.size(),
+                            ),
                         });
                     }
                 }
@@ -1033,14 +1098,14 @@ pub fn layout(
 
                 for widget_ref in decorators {
                     if rect_contains_boundary(
-                        Rect::from_pos_size(position, widget_size),
+                        Rect::from_pos_size(position + offset, widget_size),
                         Rect::from_pos_size(Vec2::ZERO, root_size),
                     ) {
                         widget_placements.push(WidgetPlacement {
                             widget_ref: *widget_ref,
                             zindex: *zindex,
                             boundary: Rect::ZERO,
-                            rect: Rect::from_pos_size(current_position, widget_size),
+                            rect: Rect::from_pos_size(current_position + offset, widget_size),
                         });
                     }
                 }
@@ -1192,9 +1257,12 @@ pub fn layout(
                                 widget_size.x,
                             ),
                             align_y.position(boundary.height, widget_size.y),
-                        ),
+                        )
+                        + offset,
                     widget_size,
                 );
+
+                let boundary = Rect::from_pos_size(boundary.position() + offset, boundary.size());
 
                 // Don't render anything outside the screen view
                 if rect_contains_boundary(

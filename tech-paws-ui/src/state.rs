@@ -15,7 +15,7 @@ use crate::{
     io::UserInput,
     layout::{LayoutCommand, LayoutState, WidgetPlacement},
     render::RenderState,
-    widgets::{colored_box, decorated_box, gesture_detector, svg, text},
+    widgets::{colored_box, decorated_box, gesture_detector, scroll_area, svg, text},
 };
 
 pub trait WidgetState: Any + Send + 'static {
@@ -51,6 +51,7 @@ pub struct WidgetsStates {
     // pub data: FxHashMap<WidgetId, Box<dyn WidgetState>>,
     // pub last: FxHashMap<WidgetId, Box<dyn WidgetState>>,
     pub decorated_box: TypedWidgetStates<decorated_box::State>,
+    pub scroll_area: TypedWidgetStates<scroll_area::State>,
     pub text: TypedWidgetStates<text::State>,
     pub gesture_detector: TypedWidgetStates<gesture_detector::State>,
     pub colored_box: TypedWidgetStates<colored_box::State>,
@@ -359,6 +360,7 @@ impl WidgetsStates {
         self.gesture_detector.sweep(interaction);
         self.custom.sweep(interaction);
         self.text.sweep(interaction);
+        self.scroll_area.sweep(interaction);
 
         // self.data
         //     .retain(|id, _| self.accessed_this_frame.contains(id));

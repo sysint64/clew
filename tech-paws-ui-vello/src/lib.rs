@@ -497,6 +497,8 @@ impl Renderer for VelloRenderer {
                                     glyph.physical((*x, line_y), 1.0);
                                 let font_size = f32::from_bits(physical.cache_key.font_size_bits);
 
+                                // Use raw floating-point positions for smooth subpixel rendering
+                                // This prevents jiggling with justified text during resize
                                 let vello_glyph = Glyph {
                                     id: physical.cache_key.glyph_id as u32,
                                     x: x + glyph.x + glyph.x_offset,

@@ -7,6 +7,7 @@ pub mod gap;
 pub mod gesture_detector;
 pub mod hstack;
 pub mod scope;
+pub mod scroll_area;
 pub mod svg;
 pub mod text;
 pub mod view;

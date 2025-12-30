@@ -14,7 +14,7 @@ use super::builder::BuildContext;
 
 pub struct ScrollAreaWidget;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ScrollDirection {
     Horizontal,
     Vertical,
@@ -36,6 +36,7 @@ pub struct State {
     offset_y: f32,
     overflow_x: bool,
     overflow_y: bool,
+    scroll_direction: ScrollDirection,
 }
 
 impl WidgetState for State {
@@ -65,6 +66,12 @@ impl ScrollAreaBuilder {
         self
     }
 
+    pub fn scroll_direction(mut self, scroll_direction: ScrollDirection) -> Self {
+        self.scroll_direction = scroll_direction;
+
+        self
+    }
+
     #[profiling::function]
     pub fn build<F>(self, context: &mut BuildContext, callback: F)
     where
@@ -87,7 +94,10 @@ impl ScrollAreaBuilder {
                     offset_y: 0.,
                     overflow_x: false,
                     overflow_y: false,
+                    scroll_direction: self.scroll_direction,
                 });
+
+            state.scroll_direction = self.scroll_direction;
 
             (state.offset_x, state.offset_y)
         };
@@ -136,12 +146,29 @@ pub fn handle_interaction(
     widget_state: &mut State,
     layout_measure: &LayoutMeasure,
 ) {
-    if input.mouse_wheel_delta_y != 0. {
-        widget_state.offset_y += input.mouse_wheel_delta_y as f32;
+    if widget_state.scroll_direction == ScrollDirection::Vertical
+        || widget_state.scroll_direction == ScrollDirection::Both
+    {
+        if input.mouse_wheel_delta_y != 0. {
+            widget_state.offset_y += input.mouse_wheel_delta_y as f32;
+        }
+
+        widget_state.offset_y = widget_state.offset_y.clamp(
+            f32::min(0., -(layout_measure.wrap_height - layout_measure.height)),
+            0.,
+        );
     }
 
-    widget_state.offset_y = widget_state.offset_y.clamp(
-        f32::min(0., -(layout_measure.wrap_height - layout_measure.height)),
-        0.,
-    );
+    if widget_state.scroll_direction == ScrollDirection::Horizontal
+        || widget_state.scroll_direction == ScrollDirection::Both
+    {
+        if input.mouse_wheel_delta_x != 0. {
+            widget_state.offset_x += input.mouse_wheel_delta_x as f32;
+        }
+
+        widget_state.offset_x = widget_state.offset_x.clamp(
+            f32::min(0., -(layout_measure.wrap_width - layout_measure.width)),
+            0.,
+        );
+    }
 }

@@ -9,7 +9,7 @@ use tech_paws_ui::widgets::decorated_box::decorated_box;
 use tech_paws_ui::widgets::gap::gap;
 use tech_paws_ui::widgets::gesture_detector::{GestureDetectorResponse, gesture_detector};
 use tech_paws_ui::widgets::hstack::hstack;
-use tech_paws_ui::widgets::scroll_area::scroll_area;
+use tech_paws_ui::widgets::scroll_area::{ScrollDirection, scroll_area};
 use tech_paws_ui::widgets::svg::svg;
 use tech_paws_ui::widgets::text::text;
 use tech_paws_ui::{
@@ -174,12 +174,16 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
-        scroll_area().fill_max_size().build(ctx, |ctx| {
-            vstack().fill_max_width().build(ctx, |ctx| {
-                component::<Counter>(app).build(ctx);
-                component(app).state(&mut self.counter).build(ctx);
+        scroll_area()
+            .scroll_direction(ScrollDirection::Both)
+            .fill_max_size()
+            .build(ctx, |ctx| {
+                // hstack().fill_max_width().build(ctx, |ctx| {
+                hstack().build(ctx, |ctx| {
+                    component::<Counter>(app).build(ctx);
+                    component(app).state(&mut self.counter).build(ctx);
+                });
             });
-        });
     }
 }
 

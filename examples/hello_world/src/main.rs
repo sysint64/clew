@@ -238,6 +238,7 @@ impl Component for Counter {
         vstack()
             .main_axis_alignment(MainAxisAlignment::Center)
             .cross_axis_alignment(CrossAxisAlignment::Center)
+            // .fill_max_width()
             .fill_max_size()
             .padding(EdgeInsets::all(12.))
             .build(ctx, |ctx| {
@@ -259,7 +260,7 @@ impl Component for Counter {
                 });
 
                 button("Button").build(ctx);
-                gap().fill_max_height().build(ctx);
+                // gap().fill_max_height().build(ctx);
                 button("Button").build(ctx);
 
                 // colored_box(ColorRgba::from_hex(0xFFCC0000)).build(ctx, |ctx| {

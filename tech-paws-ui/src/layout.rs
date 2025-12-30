@@ -1265,10 +1265,12 @@ pub fn layout(
                 let boundary = Rect::from_pos_size(boundary.position() + offset, boundary.size());
 
                 // Don't render anything outside the screen view
-                if rect_contains_boundary(
+                let should_render = rect_contains_boundary(
                     decorators_rect,
                     Rect::from_pos_size(Vec2::ZERO, root_size),
-                ) {
+                );
+
+                if should_render {
                     for widget_ref in decorators {
                         widget_placements.push(WidgetPlacement {
                             widget_ref: *widget_ref,
@@ -1277,58 +1279,59 @@ pub fn layout(
                             rect: decorators_rect,
                         });
                     }
+                }
 
-                    let rect = Rect::from_pos_size(
-                        decorators_rect.position() + Vec2::new(padding.left, padding.top),
-                        decorators_rect.size()
-                            - Vec2::new(padding.horizontal(), padding.vertical()),
-                    );
+                let rect = Rect::from_pos_size(
+                    decorators_rect.position() + Vec2::new(padding.left, padding.top),
+                    decorators_rect.size() - Vec2::new(padding.horizontal(), padding.vertical()),
+                );
 
+                if should_render {
                     widget_placements.push(WidgetPlacement {
                         widget_ref: *widget_ref,
                         zindex: *zindex,
                         boundary,
                         rect,
                     });
+                }
 
-                    if let DeriveWrapSize::Text(text_id) = derive_wrap_size {
-                        layout_state.texts.push(TextLayout {
-                            width: rect.width * view.scale_factor,
-                            text_id: *text_id,
-                        });
-                    };
+                if let DeriveWrapSize::Text(text_id) = derive_wrap_size {
+                    layout_state.texts.push(TextLayout {
+                        width: rect.width * view.scale_factor,
+                        text_id: *text_id,
+                    });
+                };
 
-                    if RENDER_DEBUG_BOUNDARIES {
-                        widget_placements.push(WidgetPlacement {
-                            widget_ref: WidgetRef {
-                                widget_type: WidgetType::of::<DebugBoundary>(),
-                                id: WidgetId::auto(),
-                            },
-                            zindex: i32::MAX,
-                            boundary: Rect::ZERO,
-                            rect: boundary,
-                        });
+                if RENDER_DEBUG_BOUNDARIES {
+                    widget_placements.push(WidgetPlacement {
+                        widget_ref: WidgetRef {
+                            widget_type: WidgetType::of::<DebugBoundary>(),
+                            id: WidgetId::auto(),
+                        },
+                        zindex: i32::MAX,
+                        boundary: Rect::ZERO,
+                        rect: boundary,
+                    });
 
-                        widget_placements.push(WidgetPlacement {
-                            widget_ref: WidgetRef {
-                                widget_type: WidgetType::of::<DebugBoundary>(),
-                                id: WidgetId::auto(),
-                            },
-                            zindex: i32::MAX,
-                            boundary: Rect::ZERO,
-                            rect,
-                        });
+                    widget_placements.push(WidgetPlacement {
+                        widget_ref: WidgetRef {
+                            widget_type: WidgetType::of::<DebugBoundary>(),
+                            id: WidgetId::auto(),
+                        },
+                        zindex: i32::MAX,
+                        boundary: Rect::ZERO,
+                        rect,
+                    });
 
-                        widget_placements.push(WidgetPlacement {
-                            widget_ref: WidgetRef {
-                                widget_type: WidgetType::of::<DebugBoundary>(),
-                                id: WidgetId::auto(),
-                            },
-                            zindex: i32::MAX,
-                            boundary: Rect::ZERO,
-                            rect: decorators_rect,
-                        });
-                    }
+                    widget_placements.push(WidgetPlacement {
+                        widget_ref: WidgetRef {
+                            widget_type: WidgetType::of::<DebugBoundary>(),
+                            id: WidgetId::auto(),
+                        },
+                        zindex: i32::MAX,
+                        boundary: Rect::ZERO,
+                        rect: decorators_rect,
+                    });
                 }
 
                 current_idx += 1;

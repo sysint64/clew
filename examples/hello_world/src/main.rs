@@ -238,7 +238,6 @@ impl Component for Counter {
         vstack()
             .main_axis_alignment(MainAxisAlignment::Center)
             .cross_axis_alignment(CrossAxisAlignment::Center)
-            // .fill_max_width()
             .fill_max_size()
             .padding(EdgeInsets::all(12.))
             .build(ctx, |ctx| {

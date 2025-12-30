@@ -1,15 +1,18 @@
 use std::any::Any;
 
 use crate::{
-    Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, impl_id, impl_size_methods,
-    layout::{ContainerKind, LayoutCommand},
+    Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
+    impl_size_methods,
+    interaction::InteractionState,
+    io::UserInput,
+    layout::{ContainerKind, LayoutCommand, LayoutMeasure},
     state::WidgetState,
 };
 use std::hash::Hash;
 
 use super::builder::BuildContext;
 
-pub struct ScrollViewWidget;
+pub struct ScrollAreaWidget;
 
 #[derive(Clone, Copy, Debug)]
 pub enum ScrollDirection {
@@ -68,17 +71,41 @@ impl ScrollAreaBuilder {
         F: FnOnce(&mut BuildContext),
     {
         let id = self.id.with_seed(context.id_seed);
+        let widget_ref = WidgetRef::new(WidgetType::of::<ScrollAreaWidget>(), id);
 
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
-        let widget_refs = std::mem::take(context.decorators);
+        let mut widget_refs = std::mem::take(context.decorators);
+        widget_refs.push(widget_ref);
 
-        context.push_layout_command(LayoutCommand::BeginOffset {
-            offset_x: 0.,
-            offset_y: -100.,
+        let (offset_x, offset_y) = {
+            let state = context
+                .widgets_states
+                .scroll_area
+                .get_or_insert(id, || State {
+                    offset_x: 0.,
+                    offset_y: 0.,
+                    overflow_x: false,
+                    overflow_y: false,
+                });
+
+            (state.offset_x, state.offset_y)
+        };
+
+        context.push_layout_command(LayoutCommand::BeginContainer {
+            decorators: widget_refs,
+            zindex: 0,
+            padding: self.padding,
+            kind: ContainerKind::Measure { id },
+            size: self.size,
+            constraints: self.constraints,
         });
+
+        context.push_layout_command(LayoutCommand::BeginOffset { offset_x, offset_y });
         callback(context);
         context.push_layout_command(LayoutCommand::EndOffset);
+
+        context.push_layout_command(LayoutCommand::EndContainer);
 
         context.current_zindex = last_zindex;
 
@@ -87,16 +114,6 @@ impl ScrollAreaBuilder {
             .scroll_area
             .accessed_this_frame
             .insert(id);
-
-        let state = context
-            .widgets_states
-            .scroll_area
-            .get_or_insert(id, || State {
-                offset_x: 0.,
-                offset_y: 0.,
-                overflow_x: false,
-                overflow_y: false,
-            });
     }
 }
 
@@ -110,4 +127,21 @@ pub fn scroll_area() -> ScrollAreaBuilder {
         padding: EdgeInsets::ZERO,
         scroll_direction: ScrollDirection::Vertical,
     }
+}
+
+pub fn handle_interaction(
+    id: WidgetId,
+    input: &UserInput,
+    interaction: &mut InteractionState,
+    widget_state: &mut State,
+    layout_measure: &LayoutMeasure,
+) {
+    if input.mouse_wheel_delta_y != 0. {
+        widget_state.offset_y += input.mouse_wheel_delta_y as f32;
+    }
+
+    widget_state.offset_y = widget_state.offset_y.clamp(
+        f32::min(0., -(layout_measure.wrap_height - layout_measure.height)),
+        0.,
+    );
 }

@@ -13,7 +13,7 @@ use crate::{
     LayoutDirection, View, WidgetId, WidgetRef,
     interaction::InteractionState,
     io::UserInput,
-    layout::{LayoutCommand, LayoutState, WidgetPlacement},
+    layout::{LayoutCommand, LayoutMeasure, LayoutState, WidgetPlacement},
     render::RenderState,
     widgets::{colored_box, decorated_box, gesture_detector, scroll_area, svg, text},
 };
@@ -50,6 +50,8 @@ pub struct UiState {
 pub struct WidgetsStates {
     // pub data: FxHashMap<WidgetId, Box<dyn WidgetState>>,
     // pub last: FxHashMap<WidgetId, Box<dyn WidgetState>>,
+    pub layout_measures: TypedWidgetStates<LayoutMeasure>,
+
     pub decorated_box: TypedWidgetStates<decorated_box::State>,
     pub scroll_area: TypedWidgetStates<scroll_area::State>,
     pub text: TypedWidgetStates<text::State>,
@@ -361,6 +363,7 @@ impl WidgetsStates {
         self.custom.sweep(interaction);
         self.text.sweep(interaction);
         self.scroll_area.sweep(interaction);
+        self.layout_measures.clear();
 
         // self.data
         //     .retain(|id, _| self.accessed_this_frame.contains(id));

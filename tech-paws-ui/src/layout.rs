@@ -1,14 +1,11 @@
 use crate::{
-    AlignX, AlignY, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets, LayoutDirection,
-    MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, WidgetRef, WidgetType,
-    assets::Assets,
-    rect_contains_boundary,
-    text::{FontResources, TextId, TextsResources},
+    AlignX, AlignY, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets, LayoutDirection, MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, WidgetRef, WidgetType, assets::Assets, rect_contains_boundary, state::TypedWidgetStates, text::{FontResources, TextId, TextsResources}
 };
 use glam::Vec2;
 use smallvec::{SmallVec, smallvec};
 
-pub(crate) const RENDER_DEBUG_BOUNDARIES: bool = true;
+pub(crate) const RENDER_CONTAINER_DEBUG_BOUNDARIES: bool = false;
+pub(crate) const RENDER_CHILD_DEBUG_BOUNDARIES: bool = false;
 
 #[derive(Debug)]
 pub struct WidgetPlacement {
@@ -88,6 +85,9 @@ pub enum ContainerKind {
     },
     #[default]
     ZStack,
+    Measure {
+        id: WidgetId,
+    },
 }
 
 #[derive(Default, Debug, Clone, Copy)]
@@ -152,13 +152,14 @@ pub(crate) struct TextLayout {
     pub(crate) text_id: TextId,
 }
 
+#[derive(Debug, Clone)]
 pub(crate) struct LayoutMeasure {
     pub(crate) x: f32,
     pub(crate) y: f32,
     pub(crate) width: f32,
     pub(crate) height: f32,
-    pub(crate) overflow_x: f32,
-    pub(crate) overflow_y: f32,
+    pub(crate) wrap_width: f32,
+    pub(crate) wrap_height: f32,
 }
 
 #[derive(Default)]
@@ -195,7 +196,6 @@ pub(crate) struct LayoutState {
     offsets_stack: Vec<Vec2>,
 
     pub(crate) texts: Vec<TextLayout>,
-    pub(crate) scroll_areas: Vec<LayoutMeasure>,
 }
 
 impl LayoutState {
@@ -398,7 +398,6 @@ impl LayoutState {
         self.offsets_stack_cursor = 0;
 
         self.texts.clear();
-        self.scroll_areas.clear();
     }
 
     fn add_flex_sum(&mut self, size: Size) {
@@ -627,6 +626,7 @@ pub fn layout(
     view: &View,
     commands: &[LayoutCommand],
     widget_placements: &mut Vec<WidgetPlacement>,
+    layout_measures: &mut TypedWidgetStates<LayoutMeasure>,
     text: &mut TextsResources,
     fonts: &mut FontResources,
     assets: &Assets,
@@ -707,6 +707,20 @@ pub fn layout(
                             },
                         };
                     }
+                    ContainerKind::Measure { id } => {
+                        layout_state.parent_container = LayoutContainer {
+                            idx: layout_state.current_idx(),
+                            zindex: *zindex,
+                            widget_ref: widget_ref.clone(),
+                            axis: StackAxis::None,
+                            command: LayoutContainerCommand {
+                                kind: *kind,
+                                constraints: *constraints,
+                                size: *size,
+                                padding: *padding,
+                            },
+                        };
+                    }
                     ContainerKind::Flow {
                         spacing, rtl_aware, ..
                     } => {
@@ -753,6 +767,7 @@ pub fn layout(
                         wrap_size.y = wrap_size.y.max(0.);
                     }
                     ContainerKind::ZStack => {}
+                    ContainerKind::Measure { id } => {}
                 };
 
                 wrap_size.x += padding.horizontal();
@@ -856,6 +871,7 @@ pub fn layout(
         let container_offset = layout_state.offsets[container_idx];
         let container_size_resized = layout_state.actual_sizes[container_idx] + container_resize;
         let container_size = layout_state.actual_sizes[container_idx];
+        let container_wrap_size = layout_state.wrap_sizes[container_idx];
 
         let flex_x = layout_state.flex_x[current_idx];
         let flex_y = layout_state.flex_y[current_idx];
@@ -1063,34 +1079,28 @@ pub fn layout(
                     align_y.position(boundary.height, widget_size.y),
                 );
 
-                if RENDER_DEBUG_BOUNDARIES {
-                    if rect_contains_boundary(
-                        Rect::from_pos_size(position + offset, widget_size),
-                        Rect::from_pos_size(Vec2::ZERO, root_size),
-                    ) {
-                        widget_placements.push(WidgetPlacement {
-                            widget_ref: WidgetRef {
-                                widget_type: WidgetType::of::<DebugBoundary>(),
-                                id: WidgetId::auto(),
-                            },
-                            zindex: i32::MAX,
-                            boundary: Rect::ZERO,
-                            rect: Rect::from_pos_size(current_position + offset, widget_size),
-                        });
+                let current_container_position = current_position + offset;
 
-                        widget_placements.push(WidgetPlacement {
-                            widget_ref: WidgetRef {
-                                widget_type: WidgetType::of::<DebugBoundary>(),
-                                id: WidgetId::auto(),
-                            },
-                            zindex: i32::MAX,
-                            boundary: Rect::ZERO,
-                            rect: Rect::from_pos_size(
-                                boundary.position() + offset,
-                                boundary.size(),
-                            ),
-                        });
-                    }
+                if RENDER_CONTAINER_DEBUG_BOUNDARIES {
+                    widget_placements.push(WidgetPlacement {
+                        widget_ref: WidgetRef {
+                            widget_type: WidgetType::of::<DebugBoundary>(),
+                            id: WidgetId::auto(),
+                        },
+                        zindex: i32::MAX,
+                        boundary: Rect::ZERO,
+                        rect: Rect::from_pos_size(current_container_position, widget_size),
+                    });
+
+                    widget_placements.push(WidgetPlacement {
+                        widget_ref: WidgetRef {
+                            widget_type: WidgetType::of::<DebugBoundary>(),
+                            id: WidgetId::auto(),
+                        },
+                        zindex: i32::MAX,
+                        boundary: Rect::ZERO,
+                        rect: Rect::from_pos_size(boundary.position() + offset, boundary.size()),
+                    });
                 }
 
                 current_position.x += padding.left;
@@ -1168,6 +1178,27 @@ pub fn layout(
                             widget_ref: decorators.clone(),
                             axis: StackAxisPass2::None,
                         };
+
+                        current_idx += 1;
+                        go_next = false;
+                    }
+                    ContainerKind::Measure { id } => {
+                        layout_state.pass2_parent_container = Pass2LayoutContainer {
+                            padding: *padding,
+                            idx: current_idx,
+                            zindex: *zindex,
+                            widget_ref: decorators.clone(),
+                            axis: StackAxisPass2::None,
+                        };
+
+                        layout_measures.set(*id, LayoutMeasure {
+                            x: current_container_position.x,
+                            y: current_container_position.y,
+                            width: widget_size.x,
+                            height: widget_size.y,
+                            wrap_width: container_wrap_size.x,
+                            wrap_height: container_wrap_size.y,
+                        });
 
                         current_idx += 1;
                         go_next = false;
@@ -1302,7 +1333,7 @@ pub fn layout(
                     });
                 };
 
-                if RENDER_DEBUG_BOUNDARIES {
+                if RENDER_CHILD_DEBUG_BOUNDARIES {
                     widget_placements.push(WidgetPlacement {
                         widget_ref: WidgetRef {
                             widget_type: WidgetType::of::<DebugBoundary>(),

@@ -39,6 +39,14 @@ pub struct State {
     scroll_direction: ScrollDirection,
 }
 
+#[derive(Clone, PartialEq)]
+pub struct ScrollAreaResponse {
+    pub offset_x: f32,
+    pub offset_y: f32,
+    pub overflow_x: bool,
+    pub overflow_y: bool,
+}
+
 impl WidgetState for State {
     #[inline]
     fn as_any(&self) -> &dyn Any {
@@ -85,7 +93,7 @@ impl ScrollAreaBuilder {
         let mut widget_refs = std::mem::take(context.decorators);
         widget_refs.push(widget_ref);
 
-        let (offset_x, offset_y) = {
+        let (offset_x, offset_y, response) = {
             let state = context
                 .widgets_states
                 .scroll_area
@@ -99,7 +107,16 @@ impl ScrollAreaBuilder {
 
             state.scroll_direction = self.scroll_direction;
 
-            (state.offset_x, state.offset_y)
+            (
+                state.offset_x,
+                state.offset_y,
+                ScrollAreaResponse {
+                    offset_x: state.offset_x,
+                    offset_y: state.offset_y,
+                    overflow_x: state.overflow_x,
+                    overflow_y: state.overflow_y,
+                },
+            )
         };
 
         context.push_layout_command(LayoutCommand::BeginContainer {
@@ -112,7 +129,7 @@ impl ScrollAreaBuilder {
         });
 
         context.push_layout_command(LayoutCommand::BeginOffset { offset_x, offset_y });
-        callback(context);
+        context.with_user_data(response, callback);
         context.push_layout_command(LayoutCommand::EndOffset);
 
         context.push_layout_command(LayoutCommand::EndContainer);

@@ -5,10 +5,10 @@ use glam::Vec2;
 use smallvec::{SmallVec, smallvec};
 
 use crate::{
-    AlignX, AlignY, Border, BorderRadius, BorderSide, BoxShape, ColorRgba, Constraints, Gradient,
-    LinearGradient, RadialGradient, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
-    impl_width_methods,
-    layout::{ContainerKind, LayoutCommand, WidgetPlacement},
+    AlignX, AlignY, Border, BorderRadius, BorderSide, BoxShape, ColorRgba, Constraints, EdgeInsets,
+    Gradient, LinearGradient, RadialGradient, Size, SizeConstraint, WidgetId, WidgetRef,
+    WidgetType, impl_id, impl_size_methods, impl_width_methods,
+    layout::{ContainerKind, DeriveWrapSize, LayoutCommand, WidgetPlacement},
     render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
     state::WidgetState,
     text::StringId,
@@ -21,11 +21,24 @@ pub struct DecoratedBox;
 
 pub struct DecoratedBoxBuilder {
     id: WidgetId,
+    zindex: Option<i32>,
     color: Option<ColorRgba>,
     gradients: SmallVec<[Gradient; 4]>,
     border_radius: Option<BorderRadius>,
     border: Option<Border>,
+    shape: BoxShape,
+}
+
+pub struct DecoratedBoxChildBuilder {
+    id: WidgetId,
+    size: Size,
+    constraints: Constraints,
+    padding: EdgeInsets,
     zindex: Option<i32>,
+    color: Option<ColorRgba>,
+    gradients: SmallVec<[Gradient; 4]>,
+    border_radius: Option<BorderRadius>,
+    border: Option<Border>,
     shape: BoxShape,
 }
 
@@ -100,6 +113,70 @@ impl DecoratedBoxBuilder {
         self
     }
 
+    fn to_child(self) -> DecoratedBoxChildBuilder {
+        DecoratedBoxChildBuilder {
+            id: self.id,
+            zindex: None,
+            size: Size::default(),
+            padding: EdgeInsets::ZERO,
+            constraints: Constraints {
+                min_width: 0.,
+                min_height: 0.,
+                max_width: f32::INFINITY,
+                max_height: f32::INFINITY,
+            },
+            color: self.color,
+            gradients: self.gradients,
+            border_radius: self.border_radius,
+            border: self.border,
+            shape: self.shape,
+        }
+    }
+
+    pub fn size<T: Into<Size>>(self, size: T) -> DecoratedBoxChildBuilder {
+        self.to_child().size(size)
+    }
+
+    pub fn width<T: Into<SizeConstraint>>(mut self, size: T) -> DecoratedBoxChildBuilder {
+        self.to_child().width(size)
+    }
+
+    pub fn height<T: Into<SizeConstraint>>(mut self, size: T) -> DecoratedBoxChildBuilder {
+        self.to_child().height(size)
+    }
+
+    pub fn fill_max_width(mut self) -> DecoratedBoxChildBuilder {
+        self.to_child().fill_max_width()
+    }
+
+    pub fn fill_max_height(mut self) -> DecoratedBoxChildBuilder {
+        self.to_child().fill_max_height()
+    }
+
+    pub fn fill_max_size(mut self) -> DecoratedBoxChildBuilder {
+        self.to_child().fill_max_size()
+    }
+
+    pub fn constraints(mut self, constraints: Constraints) -> DecoratedBoxChildBuilder {
+        self.to_child().constraints(constraints)
+    }
+
+    pub fn max_width(mut self, value: f32) -> DecoratedBoxChildBuilder {
+        self.to_child().max_width(value)
+    }
+
+    pub fn max_height(mut self, value: f32) -> DecoratedBoxChildBuilder {
+        self.to_child().max_height(value)
+    }
+
+    pub fn min_width(mut self, value: f32) -> DecoratedBoxChildBuilder {
+        self.to_child().min_width(value)
+    }
+
+    pub fn min_height(mut self, value: f32) -> DecoratedBoxChildBuilder {
+        self.to_child().min_height(value)
+    }
+
     #[profiling::function]
     pub fn build<F>(self, context: &mut BuildContext, callback: F)
     where
@@ -123,6 +200,44 @@ impl DecoratedBoxBuilder {
                 color: self.color,
                 shape: self.shape,
                 gradients: self.gradients,
+                border_radius: self.border_radius,
+                border: self.border,
+            },
+        );
+    }
+}
+
+impl DecoratedBoxChildBuilder {
+    impl_id!();
+    impl_size_methods!();
+
+    pub fn padding(mut self, padding: EdgeInsets) -> Self {
+        self.padding = padding;
+
+        self
+    }
+
+    pub fn build(&self, context: &mut BuildContext) {
+        let id = self.id.with_seed(context.id_seed);
+        let widget_ref = WidgetRef::new(WidgetType::of::<DecoratedBox>(), id);
+        let decorators = std::mem::take(context.decorators);
+
+        context.push_layout_command(LayoutCommand::Child {
+            widget_ref,
+            decorators,
+            padding: self.padding,
+            constraints: self.constraints,
+            size: self.size,
+            zindex: self.zindex.unwrap_or(context.current_zindex),
+            derive_wrap_size: DeriveWrapSize::Constraints,
+        });
+
+        context.widgets_states.decorated_box.set(
+            id,
+            State {
+                color: self.color,
+                shape: self.shape,
+                gradients: self.gradients.clone(),
                 border_radius: self.border_radius,
                 border: self.border,
             },

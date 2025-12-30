@@ -3,10 +3,16 @@ use std::ops::Mul;
 use glam::{Vec2, Vec4};
 use smallvec::{SmallVec, smallvec};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Axis {
     Horizontal,
     Vertical,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Clip {
+    None,
+    HardEdge,
 }
 
 #[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
@@ -224,6 +230,46 @@ impl EdgeInsets {
         right: 0.0,
         bottom: 0.0,
     };
+
+    pub fn new() -> Self {
+        Self::ZERO
+    }
+
+    pub fn left(self, value: f32) -> Self {
+        Self {
+            top: self.top,
+            left: value,
+            right: self.right,
+            bottom: self.bottom,
+        }
+    }
+
+    pub fn top(self, value: f32) -> Self {
+        Self {
+            top: value,
+            left: self.left,
+            right: self.right,
+            bottom: self.bottom,
+        }
+    }
+
+    pub fn right(self, value: f32) -> Self {
+        Self {
+            top: self.top,
+            left: self.left,
+            right: value,
+            bottom: self.bottom,
+        }
+    }
+
+    pub fn bottom(self, value: f32) -> Self {
+        Self {
+            top: self.top,
+            left: self.left,
+            right: self.right,
+            bottom: value,
+        }
+    }
 
     /// Creates a new [`EdgeInsets`] with all sides set to the same value.
     ///

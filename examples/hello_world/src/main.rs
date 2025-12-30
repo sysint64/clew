@@ -5,11 +5,12 @@ use tech_paws_ui::assets::Assets;
 use tech_paws_ui::identifiable::Identifiable;
 // use tech_paws_ui::widgets::button::button;
 use tech_paws_ui::state::WidgetState;
+use tech_paws_ui::widgets::colored_box::colored_box;
 use tech_paws_ui::widgets::decorated_box::decorated_box;
 use tech_paws_ui::widgets::gap::gap;
 use tech_paws_ui::widgets::gesture_detector::{GestureDetectorResponse, gesture_detector};
 use tech_paws_ui::widgets::hstack::hstack;
-use tech_paws_ui::widgets::scroll_area::{ScrollDirection, scroll_area};
+use tech_paws_ui::widgets::scroll_area::{ScrollAreaResponse, ScrollDirection, scroll_area};
 use tech_paws_ui::widgets::svg::svg;
 use tech_paws_ui::widgets::text::text;
 use tech_paws_ui::{
@@ -175,14 +176,30 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
         scroll_area()
-            .scroll_direction(ScrollDirection::Both)
+            // .scroll_direction(ScrollDirection::Both)
             .fill_max_size()
             .build(ctx, |ctx| {
-                // hstack().fill_max_width().build(ctx, |ctx| {
-                hstack().build(ctx, |ctx| {
-                    component::<Counter>(app).build(ctx);
-                    component(app).state(&mut self.counter).build(ctx);
-                });
+                vstack()
+                    .padding(EdgeInsets::new().right(16.))
+                    .fill_max_width()
+                    .build(ctx, |ctx| {
+                        component::<Counter>(app).build(ctx);
+                        component(app).state(&mut self.counter).build(ctx);
+                    });
+
+                let response = ctx.of::<ScrollAreaResponse>().unwrap();
+
+                // println!("{}", response.offset_y);
+                // gesture_detector().build(context, callback);
+                let color = ColorRgba::from_hex(0xFFFFFF00).with_opacity(1.);
+
+                decorated_box()
+                    .color(color)
+                    .border_radius(BorderRadius::all(2.))
+                    .width(4.)
+                    .padding(EdgeInsets::all(16.))
+                    .fill_max_height()
+                    .build(ctx);
             });
     }
 }

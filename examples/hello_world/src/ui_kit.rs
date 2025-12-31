@@ -45,52 +45,55 @@ impl<'a> ButtonBuilder<'a> {
     #[profiling::function]
     pub fn build(self, ctx: &mut BuildContext) -> ButtonResponse {
         let response = scope(self.id).build(ctx, |ctx| {
-            gesture_detector().build(ctx, |ctx| {
-                let response = ctx.of::<GestureDetectorResponse>().unwrap();
+            gesture_detector()
+                .clickable(true)
+                .focusable(true)
+                .build(ctx, |ctx| {
+                    let response = ctx.of::<GestureDetectorResponse>().unwrap();
 
-                let gradient = {
-                    if response.is_active() && response.is_hot() {
-                        LinearGradient::vertical((
-                            ColorRgba::from_hex(0xFF1C1C1C),
-                            ColorRgba::from_hex(0xFF212121),
-                        ))
+                    let gradient = {
+                        if response.is_active() && response.is_hot() {
+                            LinearGradient::vertical((
+                                ColorRgba::from_hex(0xFF1C1C1C),
+                                ColorRgba::from_hex(0xFF212121),
+                            ))
+                        } else if response.is_hot() {
+                            LinearGradient::vertical((
+                                ColorRgba::from_hex(0xFF383838),
+                                ColorRgba::from_hex(0xFF2E2E2E),
+                            ))
+                        } else {
+                            LinearGradient::vertical((
+                                ColorRgba::from_hex(0xFF2F2F2F),
+                                ColorRgba::from_hex(0xFF272727),
+                            ))
+                        }
+                    };
+
+                    let border_color = if response.is_focused() {
+                        ColorRgba::from_hex(0xFF357CCE)
+                    } else if response.is_active() && response.is_hot() {
+                        ColorRgba::from_hex(0xFF414141)
                     } else if response.is_hot() {
-                        LinearGradient::vertical((
-                            ColorRgba::from_hex(0xFF383838),
-                            ColorRgba::from_hex(0xFF2E2E2E),
-                        ))
+                        ColorRgba::from_hex(0xFF616161)
                     } else {
-                        LinearGradient::vertical((
-                            ColorRgba::from_hex(0xFF2F2F2F),
-                            ColorRgba::from_hex(0xFF272727),
-                        ))
-                    }
-                };
+                        ColorRgba::from_hex(0xFF414141)
+                    };
 
-                let border_color = if response.is_focused() {
-                    ColorRgba::from_hex(0xFF357CCE)
-                } else if response.is_active() && response.is_hot() {
-                    ColorRgba::from_hex(0xFF414141)
-                } else if response.is_hot() {
-                    ColorRgba::from_hex(0xFF616161)
-                } else {
-                    ColorRgba::from_hex(0xFF414141)
-                };
-
-                decorated_box()
-                    .border_radius(BorderRadius::all(3.))
-                    .add_linear_gradient(gradient)
-                    .border(Border::all(BorderSide::new(1., border_color)))
-                    .build(ctx, |ctx| {
-                        text(self.text)
-                            .text_align_x(AlignX::Center)
-                            .text_align_y(AlignY::Center)
-                            .width(self.width)
-                            .constraints(self.constraints)
-                            .padding(EdgeInsets::symmetric(12., 8.))
-                            .build(ctx);
-                    });
-            })
+                    decorated_box()
+                        .border_radius(BorderRadius::all(3.))
+                        .add_linear_gradient(gradient)
+                        .border(Border::all(BorderSide::new(1., border_color)))
+                        .build(ctx, |ctx| {
+                            text(self.text)
+                                .text_align_x(AlignX::Center)
+                                .text_align_y(AlignY::Center)
+                                .width(self.width)
+                                .constraints(self.constraints)
+                                .padding(EdgeInsets::symmetric(12., 8.))
+                                .build(ctx);
+                        });
+                })
         });
 
         ButtonResponse {

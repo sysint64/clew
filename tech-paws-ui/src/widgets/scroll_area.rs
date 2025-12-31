@@ -201,7 +201,7 @@ pub fn handle_interaction(
             0.,
         );
 
-        widget_state.overflow_y = widget_state.height - layout_measure.height < 0.;
+        widget_state.overflow_y = layout_measure.height - layout_measure.wrap_height <= 0.;
         widget_state.fraction_y = layout_measure.height / layout_measure.wrap_height;
         widget_state.height = layout_measure.height;
         widget_state.progress_y =

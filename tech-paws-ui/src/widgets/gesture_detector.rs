@@ -11,14 +11,36 @@ use super::builder::BuildContext;
 
 pub struct GestureDetectorBuilder {
     id: WidgetId,
+    focusable: bool,
+    clickable: bool,
+    dragable: bool,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct State {
     clicked: bool,
     is_active: bool,
     is_hot: bool,
     is_focused: bool,
+    clickable: bool,
+    dragable: bool,
+    focusable: bool,
+    drag_start_x: f32,
+    drag_start_y: f32,
+    drag_x: f32,
+    drag_y: f32,
+    drag_delta_x: f32,
+    drag_delta_y: f32,
+    drag_state: DragState,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DragState {
+    #[default]
+    None,
+    Start,
+    Update,
+    End,
 }
 
 pub struct GestureDetector;
@@ -46,6 +68,13 @@ pub struct GestureDetectorResponse {
     is_active: bool,
     is_hot: bool,
     is_focused: bool,
+    drag_start_x: f32,
+    drag_start_y: f32,
+    drag_x: f32,
+    drag_y: f32,
+    drag_delta_x: f32,
+    drag_delta_y: f32,
+    drag_state: DragState,
 }
 
 impl GestureDetectorResponse {
@@ -73,6 +102,24 @@ impl GestureDetectorResponse {
 impl GestureDetectorBuilder {
     impl_id!();
 
+    pub fn clickable(mut self, value: bool) -> Self {
+        self.clickable = value;
+
+        self
+    }
+
+    pub fn focusable(mut self, value: bool) -> Self {
+        self.focusable = value;
+
+        self
+    }
+
+    pub fn dragable(mut self, value: bool) -> Self {
+        self.dragable = value;
+
+        self
+    }
+
     #[profiling::function]
     pub fn build<F>(self, context: &mut BuildContext, callback: F) -> GestureDetectorResponse
     where
@@ -84,18 +131,24 @@ impl GestureDetectorBuilder {
         let state = context
             .widgets_states
             .gesture_detector
-            .get_or_insert(id, || State {
-                clicked: false,
-                is_active: false,
-                is_hot: false,
-                is_focused: false,
-            });
+            .get_or_insert(id, State::default);
+
+        state.clickable = self.clickable;
+        state.dragable = self.dragable;
+        state.focusable = self.focusable;
 
         let response = GestureDetectorResponse {
             clicked: state.clicked,
             is_active: state.is_active,
             is_hot: state.is_hot,
             is_focused: state.is_focused,
+            drag_start_x: state.drag_start_x,
+            drag_start_y: state.drag_start_y,
+            drag_x: state.drag_x,
+            drag_y: state.drag_y,
+            drag_delta_x: state.drag_delta_x,
+            drag_delta_y: state.drag_delta_y,
+            drag_state: state.drag_state,
         };
 
         context.decorators.push(widget_ref);
@@ -115,6 +168,9 @@ impl GestureDetectorBuilder {
 pub fn gesture_detector() -> GestureDetectorBuilder {
     GestureDetectorBuilder {
         id: WidgetId::auto(),
+        clickable: false,
+        dragable: false,
+        focusable: false,
     }
 }
 
@@ -126,20 +182,30 @@ pub fn handle_interaction(
 ) {
     widget_state.clicked = false;
 
-    if interaction.is_active(&id) {
-        if input.mouse_released {
-            if interaction.is_hot(&id) {
-                interaction.set_inactive(&id);
-                interaction.focused = Some(id);
-                widget_state.clicked = true;
-            } else {
-                interaction.set_inactive(&id);
+    if widget_state.clickable {
+        if interaction.is_active(&id) {
+            if input.mouse_released {
+                if interaction.is_hot(&id) {
+                    interaction.set_inactive(&id);
+                    widget_state.clicked = true;
+
+                    if widget_state.focusable {
+                        interaction.focused = Some(id);
+                    }
+                } else {
+                    interaction.set_inactive(&id);
+                }
             }
+        } else if input.mouse_left_pressed && interaction.is_hot(&id) {
+            if widget_state.focusable {
+                interaction.focused = Some(id);
+            }
+
+            interaction.set_active(&id);
         }
-    } else if input.mouse_left_pressed && interaction.is_hot(&id) {
-        interaction.focused = Some(id);
-        interaction.set_active(&id);
     }
+
+    if widget_state.dragable {}
 
     widget_state.is_active = interaction.is_active(&id);
     widget_state.is_hot = interaction.is_hot(&id);

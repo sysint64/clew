@@ -177,34 +177,64 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
         zstack().fill_max_size().build(ctx, |ctx| {
-            let response = scroll_area()
-                .fill_max_size()
-                .build(ctx, |ctx| {
-                    vstack()
-                        .padding(EdgeInsets::new().right(16.))
-                        .fill_max_width()
-                        .build(ctx, |ctx| {
-                            component::<Counter>(app).build(ctx);
-                            component(app).state(&mut self.counter).build(ctx);
-                        });
-                });
+            let response = scroll_area().fill_max_size().build(ctx, |ctx| {
+                let response = ctx.of::<ScrollAreaResponse>().unwrap();
 
-            let color = ColorRgba::from_hex(0xFFFFFF00).with_opacity(1.);
-            let bar_height = (response.height - 16.) * response.fraction_y;
+                vstack()
+                    .padding(if response.overflow_y {
+                        EdgeInsets::new().right(16.)
+                    } else {
+                        EdgeInsets::ZERO
+                    })
+                    .fill_max_width()
+                    .build(ctx, |ctx| {
+                        component::<Counter>(app).build(ctx);
+                        // component(app).state(&mut self.counter).build(ctx);
+                    });
+            });
 
-            zstack()
-                .fill_max_size()
-                .align_x(AlignX::Right)
-                .build(ctx, |ctx| {
-                    decorated_box()
-                        .color(color)
-                        .border_radius(BorderRadius::all(2.))
-                        .width(4.)
-                        .height(bar_height)
-                        .offset_y((response.height - 16. - bar_height) * response.progress_y)
-                        .padding(EdgeInsets::all(8.))
-                        .build(ctx);
-                });
+            if response.overflow_y {
+                let bar_height = (response.height - 16.) * response.fraction_y;
+
+                zstack()
+                    .fill_max_size()
+                    .align_x(AlignX::Right)
+                    .build(ctx, |ctx| {
+                        gesture_detector()
+                            .clickable(true)
+                            .dragable(true)
+                            .focusable(true)
+                            .build(ctx, |ctx| {
+                                let gesture = ctx.of::<GestureDetectorResponse>().unwrap();
+                                let color = ColorRgba::from_hex(0xFFFFFFFF).with_opacity(
+                                    if gesture.is_hot() || gesture.is_active() {
+                                        0.5
+                                    } else {
+                                        0.4
+                                    },
+                                );
+
+                                decorated_box()
+                                    .color(color)
+                                    .border_radius(BorderRadius::all(if gesture.is_active() {
+                                        0.
+                                    } else {
+                                        2.
+                                    }))
+                                    .width(if gesture.is_active() { 8. } else { 4. })
+                                    .height(bar_height)
+                                    .offset_y(
+                                        (response.height - 16. - bar_height) * response.progress_y,
+                                    )
+                                    .padding(if gesture.is_active() {
+                                        EdgeInsets::symmetric(6., 8.)
+                                    } else {
+                                        EdgeInsets::all(8.)
+                                    })
+                                    .build(ctx);
+                            });
+                    });
+            }
         });
     }
 }
@@ -295,6 +325,7 @@ impl Component for Counter {
                     .padding(EdgeInsets::all(8.))
                     .build(ctx, |ctx| {
                         if gesture_detector()
+                            .clickable(true)
                             .build(ctx, |ctx| {
                                 let response = ctx.of::<GestureDetectorResponse>().unwrap();
 

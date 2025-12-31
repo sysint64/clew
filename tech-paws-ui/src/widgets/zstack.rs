@@ -54,9 +54,6 @@ impl ZStackBuilder {
     where
         F: FnOnce(&mut BuildContext),
     {
-        let size = Size::new(SizeConstraint::Wrap, SizeConstraint::Wrap);
-        let mut constraints = Constraints::default();
-
         let widgets = std::mem::take(context.decorators);
         let last_zindex = context.current_zindex;
         context.current_zindex += 1;
@@ -65,9 +62,12 @@ impl ZStackBuilder {
             decorators: widgets,
             zindex: last_zindex,
             padding: self.padding,
-            kind: ContainerKind::ZStack,
-            size,
-            constraints,
+            kind: ContainerKind::ZStack {
+                align_x: self.align_x,
+                align_y: self.align_y,
+            },
+            size: self.size,
+            constraints: self.constraints,
         });
         callback(context);
         context.push_layout_command(LayoutCommand::EndContainer);

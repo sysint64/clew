@@ -13,6 +13,7 @@ use tech_paws_ui::widgets::hstack::hstack;
 use tech_paws_ui::widgets::scroll_area::{ScrollAreaResponse, ScrollDirection, scroll_area};
 use tech_paws_ui::widgets::svg::svg;
 use tech_paws_ui::widgets::text::text;
+use tech_paws_ui::widgets::zstack::zstack;
 use tech_paws_ui::{
     AlignX, AlignY, ColorRgb,
     render::Renderer,
@@ -193,13 +194,18 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
                 // gesture_detector().build(context, callback);
                 let color = ColorRgba::from_hex(0xFFFFFF00).with_opacity(1.);
 
-                decorated_box()
-                    .color(color)
-                    .border_radius(BorderRadius::all(2.))
-                    .width(4.)
-                    .padding(EdgeInsets::all(16.))
-                    .fill_max_height()
-                    .build(ctx);
+                zstack()
+                    .fill_max_size()
+                    .align_x(AlignX::Right)
+                    .build(ctx, |ctx| {
+                        decorated_box()
+                            .color(color)
+                            .border_radius(BorderRadius::all(2.))
+                            .width(4.)
+                            .padding(EdgeInsets::all(3.))
+                            .fill_max_height()
+                            .build(ctx);
+                    });
             });
     }
 }

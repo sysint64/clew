@@ -132,22 +132,6 @@ impl BuildContext<'_, '_> {
         result
     }
 
-    pub fn with_align<F>(&mut self, align_x: Option<AlignX>, align_y: Option<AlignY>, callback: F)
-    where
-        F: FnOnce(&mut BuildContext),
-    {
-        if align_x.is_some() || align_y.is_some() {
-            self.push_layout_command(LayoutCommand::BeginAlign {
-                align_x: align_x.unwrap_or(AlignX::Left),
-                align_y: align_y.unwrap_or(AlignY::Top),
-            });
-            callback(self);
-            self.push_layout_command(LayoutCommand::EndAlign);
-        } else {
-            callback(self);
-        }
-    }
-
     pub fn emit<E: Any + Send + 'static>(&mut self, event: E) {
         self.next_event_queue.push(Arc::new(event));
     }

@@ -12,8 +12,8 @@ use crate::{
     state::WidgetState,
     text::{StringId, TextId},
 };
-use std::{any::Any, hash::Hash, rc::Rc};
 use smallvec::smallvec;
+use std::{any::Any, hash::Hash, rc::Rc};
 
 pub struct ButtonBuilder<'a> {
     id: WidgetId,
@@ -86,77 +86,17 @@ impl<'a> ButtonBuilder<'a> {
                 })
         });
 
-        // if let Some(padding) = self.padding {
-        //     let mut padding_containts = self.constraints;
-        //     padding_containts.expand(padding);
-
-        //     // context.push_layout_command(LayoutCommand::BeginContainer {
-        //     //     widget_ref: vec![],
-        //     //     zindex: 0,
-        //     //     padding: self.padding,
-        //     //     kind: ContainerKind::ZStack,
-        //     //     size,
-        //     //     constraints: self.constraints,
-        //     // });
-
-        //     context.with_align(self.align_x, self.align_y, |context| {
-        //         context.push_layout_command(LayoutCommand::Child {
-        //             widget_refs: vec![widget_ref],
-        //             constraints: self.constraints,
-        //             size,
-        //             zindex: self.zindex.unwrap_or(context.current_zindex),
-        //             derive_wrap_size: DeriveWrapSize::Text {
-        //                 padding: EdgeInsets::symmetric(8., 4.),
-        //                 text_id,
-        //             },
-        //         });
-        //     });
-
-        //     // context.push_layout_command(LayoutCommand::EndContainer);
-        // } else {
-        //     context.with_align(self.align_x, self.align_y, |context| {
-        //         context.push_layout_command(LayoutCommand::Child {
-        //             widget_refs: vec![widget_ref],
-        //             constraints: self.constraints,
-        //             size,
-        //             derive_wrap_size: DeriveWrapSize::Text {
-        //                 padding: EdgeInsets::symmetric(8., 4.),
-        //                 text_id,
-        //             },
-        //             zindex: self.zindex.unwrap_or(context.current_zindex),
-        //         });
-        //     });
-        // }
-
-        context.with_align(self.align_x, self.align_y, |context| {
-            context.push_layout_command(LayoutCommand::Child {
-                widget_ref: widget_ref,
-                decorators: smallvec![],
-                constraints: self.constraints,
-                size,
-                padding: self.padding.unwrap_or(EdgeInsets::ZERO),
-                derive_wrap_size: DeriveWrapSize::Text(text_id),
-                zindex: self.zindex.unwrap_or(context.current_zindex),
-            });
+        context.push_layout_command(LayoutCommand::Child {
+            widget_ref: widget_ref,
+            decorators: smallvec![],
+            constraints: self.constraints,
+            size,
+            padding: self.padding.unwrap_or(EdgeInsets::ZERO),
+            derive_wrap_size: DeriveWrapSize::Text(text_id),
+            zindex: self.zindex.unwrap_or(context.current_zindex),
         });
 
-        // context.widgets_states.accessed_this_frame.insert(id);
-
-        // let mut state = context
-        //     .widgets_states
-        //     .get_or_insert::<State, _>(id, || State {
-        //         clicked: false,
-        //         text_id,
-        //     });
-
-        // state.text_id = text_id;
-
-        // ButtonResponse {
-            // clicked: state.clicked,
-        // }
-        ButtonResponse {
-            clicked: false,
-        }
+        ButtonResponse { clicked: false }
     }
 }
 

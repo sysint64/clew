@@ -1,5 +1,10 @@
 use crate::{
-    AlignX, AlignY, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets, LayoutDirection, MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, WidgetRef, WidgetType, assets::Assets, rect_contains_boundary, state::TypedWidgetStates, text::{FontResources, TextId, TextsResources}
+    AlignX, AlignY, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets, LayoutDirection,
+    MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, WidgetRef, WidgetType,
+    assets::Assets,
+    rect_contains_boundary,
+    state::TypedWidgetStates,
+    text::{FontResources, TextId, TextsResources},
 };
 use glam::Vec2;
 use smallvec::{SmallVec, smallvec};
@@ -26,11 +31,6 @@ pub enum LayoutCommand {
         padding: EdgeInsets,
     },
     EndContainer,
-    BeginAlign {
-        align_x: AlignX,
-        align_y: AlignY,
-    },
-    EndAlign,
     BeginOffset {
         offset_x: f32,
         offset_y: f32,
@@ -66,6 +66,8 @@ pub enum WrapKind {
 
 #[derive(Debug, Default, Clone, Copy)]
 pub enum ContainerKind {
+    #[default]
+    None,
     VStack {
         spacing: f32,
         main_axis_alignment: MainAxisAlignment,
@@ -83,8 +85,10 @@ pub enum ContainerKind {
         run_spacing: f32,
         rtl_aware: bool,
     },
-    #[default]
-    ZStack,
+    ZStack {
+        align_x: AlignX,
+        align_y: AlignY,
+    },
     Measure {
         id: WidgetId,
     },
@@ -107,6 +111,10 @@ enum StackAxis {
 enum StackAxisPass2 {
     #[default]
     None,
+    Align {
+        align_x: AlignX,
+        align_y: AlignY,
+    },
     Horizontal {
         rtl_aware: bool,
         spacing: f32,
@@ -284,37 +292,6 @@ impl LayoutState {
         self.position_cursor -= 1;
 
         self.positions[self.position_cursor]
-    }
-
-    #[inline]
-    fn push_align(&mut self, align_x: AlignX, align_y: AlignY) {
-        if self.align_x_stack.len() <= self.align_stack_cursor {
-            self.align_x_stack.push(align_x);
-            self.align_y_stack.push(align_y);
-        } else {
-            self.align_x_stack[self.align_stack_cursor] = align_x;
-            self.align_y_stack[self.align_stack_cursor] = align_y;
-        }
-
-        self.align_stack_cursor += 1;
-    }
-
-    #[inline]
-    fn pop_align(&mut self) -> (AlignX, AlignY) {
-        self.align_stack_cursor -= 1;
-
-        (
-            self.align_x_stack[self.align_stack_cursor],
-            self.align_y_stack[self.align_stack_cursor],
-        )
-    }
-
-    #[inline]
-    fn get_align(&mut self) -> (AlignX, AlignY) {
-        (
-            self.align_x_stack[self.align_stack_cursor - 1],
-            self.align_y_stack[self.align_stack_cursor - 1],
-        )
     }
 
     #[inline]
@@ -693,7 +670,21 @@ pub fn layout(
                             },
                         };
                     }
-                    ContainerKind::ZStack => {
+                    ContainerKind::ZStack { .. } => {
+                        layout_state.parent_container = LayoutContainer {
+                            idx: layout_state.current_idx(),
+                            zindex: *zindex,
+                            widget_ref: widget_ref.clone(),
+                            axis: StackAxis::None,
+                            command: LayoutContainerCommand {
+                                kind: *kind,
+                                constraints: *constraints,
+                                size: *size,
+                                padding: *padding,
+                            },
+                        };
+                    }
+                    ContainerKind::None => {
                         layout_state.parent_container = LayoutContainer {
                             idx: layout_state.current_idx(),
                             zindex: *zindex,
@@ -766,7 +757,8 @@ pub fn layout(
                         wrap_size.y -= spacing;
                         wrap_size.y = wrap_size.y.max(0.);
                     }
-                    ContainerKind::ZStack => {}
+                    ContainerKind::ZStack { .. } => {}
+                    ContainerKind::None => {}
                     ContainerKind::Measure { id } => {}
                 };
 
@@ -828,9 +820,6 @@ pub fn layout(
                 layout_state.add_flex_sum(*size);
                 layout_state.add_size(*size, *constraints, Vec2::ZERO, EdgeInsets::ZERO);
             }
-            LayoutCommand::BeginAlign { .. } | LayoutCommand::EndAlign => {
-                // No-op
-            }
             LayoutCommand::BeginOffset { .. } | LayoutCommand::EndOffset => {
                 // No-op
             }
@@ -858,7 +847,6 @@ pub fn layout(
         zindex: 0,
         widget_ref: smallvec![],
     };
-    layout_state.push_align(AlignX::Left, AlignY::Top);
     layout_state.push_offset(Vec2::new(0., 0.));
 
     for command in commands {
@@ -866,6 +854,7 @@ pub fn layout(
         let container_idx = layout_state.pass2_parent_container.idx;
 
         let offset = layout_state.get_offset();
+
         let container_position = layout_state.positions[layout_state.position_cursor - 1];
         let container_resize = layout_state.resizes[container_idx];
         let container_offset = layout_state.offsets[container_idx];
@@ -882,6 +871,7 @@ pub fn layout(
 
             let mut size = match layout_state.pass2_parent_container.axis {
                 StackAxisPass2::None => container_size_resized.x,
+                StackAxisPass2::Align { .. } => container_size_resized.x,
                 StackAxisPass2::Horizontal { spacing, .. } => {
                     let flex_sum_x = layout_state.flex_sum_x[container_idx].max(1.);
                     let available_width =
@@ -903,6 +893,7 @@ pub fn layout(
 
             let mut size = match layout_state.pass2_parent_container.axis {
                 StackAxisPass2::None => container_size_resized.y,
+                StackAxisPass2::Align { .. } => container_size_resized.y,
                 StackAxisPass2::Horizontal { .. } => container_size_resized.y,
                 StackAxisPass2::Vertical { spacing, .. } => {
                     let flex_sum_y = layout_state.flex_sum_y[container_idx].max(1.);
@@ -922,6 +913,13 @@ pub fn layout(
 
         let (boundary_position, boundary_size) = match layout_state.pass2_parent_container.axis {
             StackAxisPass2::None => (
+                container_position,
+                Vec2::new(
+                    container_size.x - layout_state.pass2_parent_container.padding.horizontal(),
+                    container_size.y - layout_state.pass2_parent_container.padding.vertical(),
+                ),
+            ),
+            StackAxisPass2::Align { .. } => (
                 container_position,
                 Vec2::new(
                     container_size.x - layout_state.pass2_parent_container.padding.horizontal(),
@@ -958,6 +956,7 @@ pub fn layout(
 
         match layout_state.pass2_parent_container.axis {
             StackAxisPass2::None => {}
+            StackAxisPass2::Align { .. } => {}
             StackAxisPass2::Horizontal {
                 rtl_aware,
                 spacing,
@@ -983,14 +982,6 @@ pub fn layout(
         }
 
         match command {
-            LayoutCommand::BeginAlign { align_x, align_y } => {
-                layout_state.push_align(*align_x, *align_y);
-                continue;
-            }
-            LayoutCommand::EndAlign => {
-                layout_state.pop_align();
-                continue;
-            }
             LayoutCommand::BeginOffset { offset_x, offset_y } => {
                 layout_state.push_offset(Vec2::new(*offset_x, *offset_y));
                 continue;
@@ -1016,6 +1007,7 @@ pub fn layout(
 
                 let align_x = match layout_state.pass2_parent_container.axis {
                     StackAxisPass2::None => AlignX::Start,
+                    StackAxisPass2::Align { align_x, .. } => align_x,
                     StackAxisPass2::Horizontal {
                         rtl_aware,
                         spacing,
@@ -1052,6 +1044,7 @@ pub fn layout(
 
                 let align_y = match layout_state.pass2_parent_container.axis {
                     StackAxisPass2::None => AlignY::Top,
+                    StackAxisPass2::Align { align_y, .. } => align_y,
                     StackAxisPass2::Horizontal {
                         rtl_aware,
                         spacing,
@@ -1170,7 +1163,22 @@ pub fn layout(
                         go_next = false;
                     }
                     ContainerKind::Flow { .. } => todo!(),
-                    ContainerKind::ZStack => {
+                    ContainerKind::ZStack { align_x, align_y } => {
+                        layout_state.pass2_parent_container = Pass2LayoutContainer {
+                            padding: *padding,
+                            idx: current_idx,
+                            zindex: *zindex,
+                            widget_ref: decorators.clone(),
+                            axis: StackAxisPass2::Align {
+                                align_x: *align_x,
+                                align_y: *align_y,
+                            },
+                        };
+
+                        current_idx += 1;
+                        go_next = false;
+                    }
+                    ContainerKind::None => {
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             padding: *padding,
                             idx: current_idx,
@@ -1191,14 +1199,17 @@ pub fn layout(
                             axis: StackAxisPass2::None,
                         };
 
-                        layout_measures.set(*id, LayoutMeasure {
-                            x: current_container_position.x,
-                            y: current_container_position.y,
-                            width: widget_size.x,
-                            height: widget_size.y,
-                            wrap_width: container_wrap_size.x,
-                            wrap_height: container_wrap_size.y,
-                        });
+                        layout_measures.set(
+                            *id,
+                            LayoutMeasure {
+                                x: current_container_position.x,
+                                y: current_container_position.y,
+                                width: widget_size.x,
+                                height: widget_size.y,
+                                wrap_width: container_wrap_size.x,
+                                wrap_height: container_wrap_size.y,
+                            },
+                        );
 
                         current_idx += 1;
                         go_next = false;
@@ -1221,6 +1232,7 @@ pub fn layout(
             } => {
                 let align_x = match layout_state.pass2_parent_container.axis {
                     StackAxisPass2::None => AlignX::Start,
+                    StackAxisPass2::Align { align_x, .. } => align_x,
                     StackAxisPass2::Horizontal {
                         rtl_aware,
                         spacing,
@@ -1257,6 +1269,7 @@ pub fn layout(
 
                 let align_y = match layout_state.pass2_parent_container.axis {
                     StackAxisPass2::None => AlignY::Top,
+                    StackAxisPass2::Align { align_y, .. } => align_y,
                     StackAxisPass2::Horizontal {
                         rtl_aware,
                         spacing,
@@ -1392,6 +1405,7 @@ pub fn layout(
                     current_position.y += widget_size.y + spacing;
                 }
                 StackAxisPass2::None => {}
+                StackAxisPass2::Align { align_x, align_y } => {}
             }
         }
     }

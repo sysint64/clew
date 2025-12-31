@@ -76,7 +76,7 @@ impl HStackBuilder {
             constraints: self.constraints,
         });
 
-        context.with_align(self.align_x, self.align_y, |context| callback(context));
+        callback(context);
         context.push_layout_command(LayoutCommand::EndContainer);
 
         context.current_zindex = last_zindex;

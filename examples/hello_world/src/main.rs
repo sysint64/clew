@@ -17,6 +17,7 @@ use tech_paws_ui::widgets::scroll_area::{
 };
 use tech_paws_ui::widgets::svg::svg;
 use tech_paws_ui::widgets::text::text;
+use tech_paws_ui::widgets::widget::{Widget, widget};
 use tech_paws_ui::widgets::zstack::zstack;
 use tech_paws_ui::{
     AlignX, AlignY, ColorRgb,
@@ -199,7 +200,7 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
 
             if response.overflow_y {
                 ctx.with_user_data(response.clone(), |ctx| {
-                    component::<ScrollBar>(app).build(ctx);
+                    widget::<ScrollBar>().build(ctx);
                 });
             }
         });
@@ -212,12 +213,10 @@ struct ScrollBar {
     last_offset: f32,
 }
 
-impl Component for ScrollBar {
-    type App = DemoApplication;
-
+impl Widget for ScrollBar {
     type Event = ();
 
-    fn build(&mut self, app: &mut Self::App, ctx: &mut BuildContext) {
+    fn build(&mut self, ctx: &mut BuildContext) {
         zstack()
             .fill_max_size()
             .align_x(AlignX::Right)
@@ -231,7 +230,7 @@ impl Component for ScrollBar {
                         let color = ColorRgba::from_hex(0xFFFFFFFF).with_opacity(
                             if gesture.is_hot() || gesture.is_active() {
                                 0.5
-                            } else {ф
+                            } else {
                                 0.4
                             },
                         );

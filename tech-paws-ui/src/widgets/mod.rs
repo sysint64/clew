@@ -12,4 +12,5 @@ pub mod svg;
 pub mod text;
 pub mod view;
 pub mod vstack;
+pub mod widget;
 pub mod zstack;

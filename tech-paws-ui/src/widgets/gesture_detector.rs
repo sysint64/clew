@@ -1,5 +1,5 @@
 use crate::{
-    Constraints, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
+    Constraints, Size, SizeConstraint, View, WidgetId, WidgetRef, WidgetType, impl_id,
     interaction::InteractionState,
     io::UserInput,
     layout::{ContainerKind, LayoutCommand},
@@ -66,10 +66,10 @@ impl WidgetState for State {
 
 #[derive(Clone)]
 pub struct GestureDetectorResponse {
-    clicked: bool,
-    is_active: bool,
-    is_hot: bool,
-    is_focused: bool,
+    pub clicked: bool,
+    pub is_active: bool,
+    pub is_hot: bool,
+    pub is_focused: bool,
     pub drag_start_x: f32,
     pub drag_start_y: f32,
     pub drag_x: f32,
@@ -179,6 +179,7 @@ pub fn gesture_detector() -> GestureDetectorBuilder {
 pub fn handle_interaction(
     id: WidgetId,
     input: &UserInput,
+    view: &View,
     interaction: &mut InteractionState,
     widget_state: &mut State,
 ) {
@@ -230,22 +231,37 @@ pub fn handle_interaction(
 
     if widget_state.dragable {
         match widget_state.drag_state {
-            DragState::None => {}
-            DragState::Start => {
-                widget_state.drag_start_x = input.mouse_x;
-                widget_state.drag_start_y = input.mouse_y;
-                widget_state.last_x = input.mouse_x;
-                widget_state.last_y = input.mouse_y;
+            DragState::None => {
+                widget_state.drag_start_x = 0.;
+                widget_state.drag_start_y = 0.;
+                widget_state.last_x = 0.;
+                widget_state.last_y = 0.;
                 widget_state.drag_delta_x = 0.;
                 widget_state.drag_delta_y = 0.;
             }
-            DragState::Update | DragState::End => {
-                widget_state.drag_x = input.mouse_x;
-                widget_state.drag_y = input.mouse_y;
+            DragState::Start => {
+                widget_state.drag_start_x = input.mouse_x / view.scale_factor;
+                widget_state.drag_start_y = input.mouse_y / view.scale_factor;
+                widget_state.last_x = input.mouse_x / view.scale_factor;
+                widget_state.last_y = input.mouse_y / view.scale_factor;
+                widget_state.drag_delta_x = 0.;
+                widget_state.drag_delta_y = 0.;
+            }
+            DragState::Update => {
+                widget_state.drag_x = input.mouse_x / view.scale_factor;
+                widget_state.drag_y = input.mouse_y / view.scale_factor;
                 widget_state.drag_delta_x = widget_state.drag_x - widget_state.last_x;
                 widget_state.drag_delta_y = widget_state.drag_y - widget_state.last_y;
-                widget_state.last_x = input.mouse_x;
-                widget_state.last_y = input.mouse_y;
+                widget_state.last_x = input.mouse_x / view.scale_factor;
+                widget_state.last_y = input.mouse_y / view.scale_factor;
+            }
+            DragState::End => {
+                widget_state.drag_start_x = 0.;
+                widget_state.drag_start_y = 0.;
+                widget_state.last_x = 0.;
+                widget_state.last_y = 0.;
+                widget_state.drag_delta_x = 0.;
+                widget_state.drag_delta_y = 0.;
             }
         }
     }

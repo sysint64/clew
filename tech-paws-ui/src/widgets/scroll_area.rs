@@ -32,6 +32,8 @@ pub struct ScrollAreaBuilder {
 
 #[derive(Clone, PartialEq)]
 pub struct State {
+    last_offset_x: f32,
+    last_offset_y: f32,
     offset_x: f32,
     offset_y: f32,
     fraction_x: f32,
@@ -40,6 +42,7 @@ pub struct State {
     progress_y: f32,
     width: f32,
     height: f32,
+    content_height: f32,
     overflow_x: bool,
     overflow_y: bool,
     scroll_direction: ScrollDirection,
@@ -47,6 +50,7 @@ pub struct State {
 
 #[derive(Clone, PartialEq)]
 pub struct ScrollAreaResponse {
+    pub id: WidgetId,
     pub offset_x: f32,
     pub offset_y: f32,
     pub fraction_x: f32,
@@ -55,6 +59,7 @@ pub struct ScrollAreaResponse {
     pub progress_y: f32,
     pub width: f32,
     pub height: f32,
+    pub content_height: f32,
     pub overflow_x: bool,
     pub overflow_y: bool,
 }
@@ -110,6 +115,8 @@ impl ScrollAreaBuilder {
                 .widgets_states
                 .scroll_area
                 .get_or_insert(id, || State {
+                    last_offset_x: 0.,
+                    last_offset_y: 0.,
                     offset_x: 0.,
                     offset_y: 0.,
                     overflow_x: false,
@@ -121,6 +128,7 @@ impl ScrollAreaBuilder {
                     progress_y: 0.,
                     width: 0.,
                     height: 0.,
+                    content_height: 0.,
                 });
 
             state.scroll_direction = self.scroll_direction;
@@ -129,6 +137,7 @@ impl ScrollAreaBuilder {
                 state.offset_x,
                 state.offset_y,
                 ScrollAreaResponse {
+                    id,
                     offset_x: state.offset_x,
                     offset_y: state.offset_y,
                     overflow_x: state.overflow_x,
@@ -139,6 +148,7 @@ impl ScrollAreaBuilder {
                     progress_y: state.progress_y,
                     width: state.width,
                     height: state.height,
+                    content_height: state.content_height,
                 },
             )
         };
@@ -182,6 +192,22 @@ pub fn scroll_area() -> ScrollAreaBuilder {
     }
 }
 
+pub fn set_scroll_offset_y(context: &mut BuildContext, id: WidgetId, value: f32) {
+    let state = context.widgets_states.scroll_area.get_mut(id);
+
+    if let Some(state) = state {
+        state.offset_y = -value;
+    }
+}
+
+pub fn set_scroll_progress_y(context: &mut BuildContext, id: WidgetId, value: f32) {
+    let state = context.widgets_states.scroll_area.get_mut(id);
+
+    if let Some(state) = state {
+        state.offset_y = -(state.content_height - state.height) * value;
+    }
+}
+
 pub fn handle_interaction(
     id: WidgetId,
     input: &UserInput,
@@ -204,6 +230,7 @@ pub fn handle_interaction(
         widget_state.overflow_y = layout_measure.height - layout_measure.wrap_height <= 0.;
         widget_state.fraction_y = layout_measure.height / layout_measure.wrap_height;
         widget_state.height = layout_measure.height;
+        widget_state.content_height = layout_measure.wrap_height;
         widget_state.progress_y =
             -widget_state.offset_y / (layout_measure.wrap_height - layout_measure.height);
         widget_state.progress_y = widget_state.progress_y.clamp(0., 1.);

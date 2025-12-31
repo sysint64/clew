@@ -30,6 +30,11 @@ pub struct UserDataStack<'a> {
     parent: Option<&'a UserDataStack<'a>>,
 }
 
+pub struct MutUserDataStack<'a> {
+    data: &'a mut (dyn Any + Send),
+    parent: Option<&'a mut MutUserDataStack<'a>>,
+}
+
 pub struct BuildContext<'a, 'b> {
     pub current_zindex: i32,
     pub layout_commands: &'a mut Vec<LayoutCommand>,
@@ -48,6 +53,7 @@ pub struct BuildContext<'a, 'b> {
     pub id_seed: Option<u64>,
     // pub user_data: Vec<Box<dyn Any + Send>>,
     pub user_data: Option<&'a UserDataStack<'a>>,
+    pub scoped_user_data: Option<&'a mut MutUserDataStack<'a>>,
     pub decorators: &'a mut SmallVec<[WidgetRef; 8]>,
     pub phase_allocator: &'a bumpalo::Bump,
 }
@@ -72,6 +78,25 @@ impl BuildContext<'_, '_> {
         self.user_data = node.parent;
     }
 
+    pub fn scoped<F, T: Any + Send>(&mut self, data: &mut T, callback: F)
+    where
+        F: FnOnce(&mut Self),
+    {
+        // Store as raw pointer to avoid lifetime issues
+        let data_ref: &mut (dyn Any + Send) = data;
+        let mut node = MutUserDataStack {
+            data: unsafe { &mut *(data_ref as *mut _) },
+            parent: self.scoped_user_data.take(),
+        };
+
+        self.scoped_user_data = Some(unsafe { &mut *(&mut node as *mut _) });
+
+        callback(self);
+
+        // Restore parent, dropping our node's reference
+        self.scoped_user_data = node.parent;
+    }
+
     pub fn of<T: 'static>(&self) -> Option<&T> {
         let mut current = self.user_data;
         while let Some(node) = current {
@@ -79,6 +104,28 @@ impl BuildContext<'_, '_> {
                 return Some(data);
             }
             current = node.parent;
+        }
+        None
+    }
+
+    // pub fn of_mut<T: 'static>(&mut self) -> Option<&mut T> {
+    //     let mut current = self.scoped_user_data;
+    //     while let Some(node) = current {
+    //         if let Some(data) = node.data.downcast_mut::<T>() {
+    //             return Some(data);
+    //         }
+    //         current = node.parent;
+    //     }
+    //     None
+    // }
+
+    pub fn of_mut<T: 'static>(&mut self) -> Option<&mut T> {
+        let mut current = self.scoped_user_data.as_mut();
+        while let Some(node) = current {
+            if (*node.data).is::<T>() {
+                return Some(unsafe { &mut *(node.data as *mut dyn Any as *mut T) });
+            }
+            current = node.parent.as_mut();
         }
         None
     }

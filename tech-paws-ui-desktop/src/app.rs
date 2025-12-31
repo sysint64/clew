@@ -102,6 +102,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         event_loop_proxy,
         id_seed: None,
         user_data: None,
+        scoped_user_data: None,
         strings: &mut window_state.strings,
         phase_allocator: &mut window_state.ui_state.phase_allocator,
         decorators: &mut window_state.ui_state.decorators,

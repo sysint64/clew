@@ -118,6 +118,7 @@ pub fn handle_interaction(
             widgets::gesture_detector::handle_interaction(
                 placement.widget_ref.id,
                 user_input,
+                view,
                 interaction_state,
                 // widgets_states
                 //     .get_mut::<widgets::gesture_detector::State>(placement.widget_ref.id)

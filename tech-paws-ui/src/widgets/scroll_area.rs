@@ -42,6 +42,7 @@ pub struct State {
     progress_y: f32,
     width: f32,
     height: f32,
+    content_width: f32,
     content_height: f32,
     overflow_x: bool,
     overflow_y: bool,
@@ -59,6 +60,7 @@ pub struct ScrollAreaResponse {
     pub progress_y: f32,
     pub width: f32,
     pub height: f32,
+    pub content_width: f32,
     pub content_height: f32,
     pub overflow_x: bool,
     pub overflow_y: bool,
@@ -128,6 +130,7 @@ impl ScrollAreaBuilder {
                     progress_y: 0.,
                     width: 0.,
                     height: 0.,
+                    content_width: 0.,
                     content_height: 0.,
                 });
 
@@ -148,6 +151,7 @@ impl ScrollAreaBuilder {
                     progress_y: state.progress_y,
                     width: state.width,
                     height: state.height,
+                    content_width: state.content_width,
                     content_height: state.content_height,
                 },
             )
@@ -192,11 +196,27 @@ pub fn scroll_area() -> ScrollAreaBuilder {
     }
 }
 
+pub fn set_scroll_offset_x(context: &mut BuildContext, id: WidgetId, value: f32) {
+    let state = context.widgets_states.scroll_area.get_mut(id);
+
+    if let Some(state) = state {
+        state.offset_x = -value;
+    }
+}
+
 pub fn set_scroll_offset_y(context: &mut BuildContext, id: WidgetId, value: f32) {
     let state = context.widgets_states.scroll_area.get_mut(id);
 
     if let Some(state) = state {
         state.offset_y = -value;
+    }
+}
+
+pub fn set_scroll_progress_x(context: &mut BuildContext, id: WidgetId, value: f32) {
+    let state = context.widgets_states.scroll_area.get_mut(id);
+
+    if let Some(state) = state {
+        state.offset_x = -(state.content_width - state.width) * value;
     }
 }
 
@@ -247,5 +267,13 @@ pub fn handle_interaction(
             f32::min(0., -(layout_measure.wrap_width - layout_measure.width)),
             0.,
         );
+
+        widget_state.overflow_x = layout_measure.width - layout_measure.wrap_width <= 0.;
+        widget_state.fraction_x = layout_measure.width / layout_measure.wrap_width;
+        widget_state.width = layout_measure.width;
+        widget_state.content_width = layout_measure.wrap_width;
+        widget_state.progress_x =
+            -widget_state.offset_x / (layout_measure.wrap_width - layout_measure.width);
+        widget_state.progress_x = widget_state.progress_x.clamp(0., 1.);
     }
 }

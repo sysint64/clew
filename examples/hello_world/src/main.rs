@@ -13,7 +13,8 @@ use tech_paws_ui::widgets::gesture_detector::{
 };
 use tech_paws_ui::widgets::hstack::hstack;
 use tech_paws_ui::widgets::scroll_area::{
-    ScrollAreaResponse, ScrollDirection, scroll_area, set_scroll_offset_y, set_scroll_progress_y,
+    ScrollAreaResponse, ScrollDirection, scroll_area, set_scroll_offset_y, set_scroll_progress_x,
+    set_scroll_progress_y,
 };
 use tech_paws_ui::widgets::svg::svg;
 use tech_paws_ui::widgets::text::text;
@@ -182,25 +183,34 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
         zstack().fill_max_size().build(ctx, |ctx| {
-            let response = scroll_area().fill_max_size().build(ctx, |ctx| {
-                let response = ctx.of::<ScrollAreaResponse>().unwrap();
+            let response = scroll_area()
+                .scroll_direction(ScrollDirection::Both)
+                .fill_max_size()
+                .build(ctx, |ctx| {
+                    let response = ctx.of::<ScrollAreaResponse>().unwrap();
 
-                vstack()
-                    .padding(if response.overflow_y {
-                        EdgeInsets::new().right(16.)
-                    } else {
-                        EdgeInsets::ZERO
-                    })
-                    .fill_max_width()
-                    .build(ctx, |ctx| {
-                        component::<Counter>(app).build(ctx);
-                        component(app).state(&mut self.counter).build(ctx);
-                    });
-            });
+                    hstack()
+                        // .padding(if response.overflow_y {
+                        //     EdgeInsets::new().right(16.)
+                        // } else {
+                        //     EdgeInsets::ZERO
+                        // })
+                        // .fill_max_width()
+                        .build(ctx, |ctx| {
+                            component::<Counter>(app).build(ctx);
+                            component(app).state(&mut self.counter).build(ctx);
+                        });
+                });
 
             if response.overflow_y {
                 ctx.with_user_data(response.clone(), |ctx| {
-                    widget::<ScrollBar>().build(ctx);
+                    widget::<VerticalScrollBar>().build(ctx);
+                });
+            }
+
+            if response.overflow_x {
+                ctx.with_user_data(response.clone(), |ctx| {
+                    widget::<HorizontalScrollBar>().build(ctx);
                 });
             }
         });
@@ -208,12 +218,80 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
 }
 
 #[derive(WidgetState, Default)]
-struct ScrollBar {
+struct HorizontalScrollBar {
     offset: f32,
     last_offset: f32,
 }
 
-impl Widget for ScrollBar {
+impl Widget for HorizontalScrollBar {
+    type Event = ();
+
+    fn build(&mut self, ctx: &mut BuildContext) {
+        zstack()
+            .fill_max_size()
+            .align_y(AlignY::Bottom)
+            .build(ctx, |ctx| {
+                gesture_detector().dragable(true).build(ctx, |ctx| {
+                    let gesture = ctx.of::<GestureDetectorResponse>().unwrap().clone();
+
+                    let color = ColorRgba::from_hex(0xFFFFFFFF).with_opacity(
+                        if gesture.is_hot() || gesture.is_active() {
+                            0.5
+                        } else {
+                            0.4
+                        },
+                    );
+
+                    let response = ctx.of::<ScrollAreaResponse>().unwrap().clone();
+                    let horizontal_padding = 16.;
+                    let mut scroll_area_width = response.width - horizontal_padding;
+
+                    if response.overflow_y {
+                        scroll_area_width -= 8.;
+                    }
+
+                    let bar_width = scroll_area_width * response.fraction_x;
+
+                    if gesture.drag_state == DragState::None || gesture.drag_state == DragState::End
+                    {
+                        self.offset = (scroll_area_width - bar_width) * response.progress_x;
+                    } else {
+                        if gesture.drag_state == DragState::Start {
+                            self.last_offset = self.offset;
+                        } else {
+                            self.offset = self.last_offset + gesture.drag_x - gesture.drag_start_x;
+                            self.offset = self.offset.clamp(0., scroll_area_width - bar_width);
+
+                            let progress_x = self.offset / (scroll_area_width - bar_width);
+
+                            set_scroll_progress_x(ctx, response.id, progress_x);
+                        }
+                    }
+
+                    decorated_box()
+                        .color(color)
+                        .border_radius(BorderRadius::all(if gesture.is_active() { 0. } else { 2. }))
+                        .width(bar_width)
+                        .height(if gesture.is_active() { 8. } else { 4. })
+                        .offset_x(self.offset)
+                        .padding(if gesture.is_active() {
+                            EdgeInsets::symmetric(6., 8.)
+                        } else {
+                            EdgeInsets::all(8.)
+                        })
+                        .build(ctx);
+                });
+            });
+    }
+}
+
+#[derive(WidgetState, Default)]
+struct VerticalScrollBar {
+    offset: f32,
+    last_offset: f32,
+}
+
+impl Widget for VerticalScrollBar {
     type Event = ();
 
     fn build(&mut self, ctx: &mut BuildContext) {
@@ -221,62 +299,56 @@ impl Widget for ScrollBar {
             .fill_max_size()
             .align_x(AlignX::Right)
             .build(ctx, |ctx| {
-                gesture_detector()
-                    .dragable(true)
-                    .focusable(true)
-                    .build(ctx, |ctx| {
-                        let gesture = ctx.of::<GestureDetectorResponse>().unwrap().clone();
+                gesture_detector().dragable(true).build(ctx, |ctx| {
+                    let gesture = ctx.of::<GestureDetectorResponse>().unwrap().clone();
 
-                        let color = ColorRgba::from_hex(0xFFFFFFFF).with_opacity(
-                            if gesture.is_hot() || gesture.is_active() {
-                                0.5
-                            } else {
-                                0.4
-                            },
-                        );
-
-                        let response = ctx.of::<ScrollAreaResponse>().unwrap().clone();
-                        let vertical_padding = 16.;
-                        let scroll_area_height = response.height - vertical_padding;
-                        let bar_height = scroll_area_height * response.fraction_y;
-
-                        if gesture.drag_state == DragState::None
-                            || gesture.drag_state == DragState::End
-                        {
-                            self.offset = (scroll_area_height - bar_height) * response.progress_y;
+                    let color = ColorRgba::from_hex(0xFFFFFFFF).with_opacity(
+                        if gesture.is_hot() || gesture.is_active() {
+                            0.5
                         } else {
-                            if gesture.drag_state == DragState::Start {
-                                self.last_offset = self.offset;
-                            } else {
-                                self.offset =
-                                    self.last_offset + gesture.drag_y - gesture.drag_start_y;
+                            0.4
+                        },
+                    );
 
-                                self.offset =
-                                    self.offset.clamp(0., scroll_area_height - bar_height);
+                    let response = ctx.of::<ScrollAreaResponse>().unwrap().clone();
+                    let vertical_padding = 16.;
+                    let mut scroll_area_height = response.height - vertical_padding;
 
-                                let progress_y = self.offset / (scroll_area_height - bar_height);
+                    if response.overflow_x {
+                        scroll_area_height -= 8.;
+                    }
 
-                                set_scroll_progress_y(ctx, response.id, progress_y);
-                            }
+                    let bar_height = scroll_area_height * response.fraction_y;
+
+                    if gesture.drag_state == DragState::None || gesture.drag_state == DragState::End
+                    {
+                        self.offset = (scroll_area_height - bar_height) * response.progress_y;
+                    } else {
+                        if gesture.drag_state == DragState::Start {
+                            self.last_offset = self.offset;
+                        } else {
+                            self.offset = self.last_offset + gesture.drag_y - gesture.drag_start_y;
+                            self.offset = self.offset.clamp(0., scroll_area_height - bar_height);
+
+                            let progress_y = self.offset / (scroll_area_height - bar_height);
+
+                            set_scroll_progress_y(ctx, response.id, progress_y);
                         }
+                    }
 
-                        decorated_box()
-                            .color(color)
-                            .border_radius(BorderRadius::all(if gesture.is_active() {
-                                0.
-                            } else {
-                                2.
-                            }))
-                            .width(if gesture.is_active() { 8. } else { 4. })
-                            .height(bar_height)
-                            .offset_y(self.offset)
-                            .padding(if gesture.is_active() {
-                                EdgeInsets::symmetric(6., 8.)
-                            } else {
-                                EdgeInsets::all(8.)
-                            })
-                            .build(ctx);
-                    });
+                    decorated_box()
+                        .color(color)
+                        .border_radius(BorderRadius::all(if gesture.is_active() { 0. } else { 2. }))
+                        .width(if gesture.is_active() { 8. } else { 4. })
+                        .height(bar_height)
+                        .offset_y(self.offset)
+                        .padding(if gesture.is_active() {
+                            EdgeInsets::symmetric(6., 8.)
+                        } else {
+                            EdgeInsets::all(8.)
+                        })
+                        .build(ctx);
+                });
             });
     }
 }

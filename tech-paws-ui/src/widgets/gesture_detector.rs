@@ -27,6 +27,8 @@ pub struct State {
     focusable: bool,
     drag_start_x: f32,
     drag_start_y: f32,
+    last_x: f32,
+    last_y: f32,
     drag_x: f32,
     drag_y: f32,
     drag_delta_x: f32,
@@ -68,13 +70,13 @@ pub struct GestureDetectorResponse {
     is_active: bool,
     is_hot: bool,
     is_focused: bool,
-    drag_start_x: f32,
-    drag_start_y: f32,
-    drag_x: f32,
-    drag_y: f32,
-    drag_delta_x: f32,
-    drag_delta_y: f32,
-    drag_state: DragState,
+    pub drag_start_x: f32,
+    pub drag_start_y: f32,
+    pub drag_x: f32,
+    pub drag_y: f32,
+    pub drag_delta_x: f32,
+    pub drag_delta_y: f32,
+    pub drag_state: DragState,
 }
 
 impl GestureDetectorResponse {
@@ -182,12 +184,21 @@ pub fn handle_interaction(
 ) {
     widget_state.clicked = false;
 
-    if widget_state.clickable {
+    if widget_state.dragable {
+        widget_state.drag_state = match widget_state.drag_state {
+            DragState::None => DragState::None,
+            DragState::Start => DragState::Update,
+            DragState::Update => DragState::Update,
+            DragState::End => DragState::None,
+        };
+    }
+
+    if widget_state.clickable || widget_state.dragable {
         if interaction.is_active(&id) {
             if input.mouse_released {
                 if interaction.is_hot(&id) {
                     interaction.set_inactive(&id);
-                    widget_state.clicked = true;
+                    widget_state.clicked = widget_state.clickable;
 
                     if widget_state.focusable {
                         interaction.focused = Some(id);
@@ -195,8 +206,20 @@ pub fn handle_interaction(
                 } else {
                     interaction.set_inactive(&id);
                 }
+
+                if widget_state.dragable {
+                    if widget_state.drag_state == DragState::Update {
+                        widget_state.drag_state = DragState::End;
+                    }
+                }
             }
         } else if input.mouse_left_pressed && interaction.is_hot(&id) {
+            if widget_state.dragable {
+                if widget_state.drag_state == DragState::None {
+                    widget_state.drag_state = DragState::Start;
+                }
+            }
+
             if widget_state.focusable {
                 interaction.focused = Some(id);
             }
@@ -205,7 +228,27 @@ pub fn handle_interaction(
         }
     }
 
-    if widget_state.dragable {}
+    if widget_state.dragable {
+        match widget_state.drag_state {
+            DragState::None => {}
+            DragState::Start => {
+                widget_state.drag_start_x = input.mouse_x;
+                widget_state.drag_start_y = input.mouse_y;
+                widget_state.last_x = input.mouse_x;
+                widget_state.last_y = input.mouse_y;
+                widget_state.drag_delta_x = 0.;
+                widget_state.drag_delta_y = 0.;
+            }
+            DragState::Update | DragState::End => {
+                widget_state.drag_x = input.mouse_x;
+                widget_state.drag_y = input.mouse_y;
+                widget_state.drag_delta_x = widget_state.drag_x - widget_state.last_x;
+                widget_state.drag_delta_y = widget_state.drag_y - widget_state.last_y;
+                widget_state.last_x = input.mouse_x;
+                widget_state.last_y = input.mouse_y;
+            }
+        }
+    }
 
     widget_state.is_active = interaction.is_active(&id);
     widget_state.is_hot = interaction.is_hot(&id);

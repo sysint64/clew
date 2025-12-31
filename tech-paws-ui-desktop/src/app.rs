@@ -288,12 +288,13 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
 
                 match delta {
                     winit::event::MouseScrollDelta::LineDelta(x, y) => {
-                        window.ui_state.user_input.mouse_wheel_delta_x = x as f64 * 20.0; // Scale line delta
-                        window.ui_state.user_input.mouse_wheel_delta_y = y as f64 * 20.0;
+                        // Scale line delta
+                        window.ui_state.user_input.mouse_wheel_delta_x = x * 20.0;
+                        window.ui_state.user_input.mouse_wheel_delta_y = y * 20.0;
                     }
                     winit::event::MouseScrollDelta::PixelDelta(pos) => {
-                        window.ui_state.user_input.mouse_wheel_delta_x = pos.x;
-                        window.ui_state.user_input.mouse_wheel_delta_y = pos.y;
+                        window.ui_state.user_input.mouse_wheel_delta_x = pos.x as f32;
+                        window.ui_state.user_input.mouse_wheel_delta_y = pos.y as f32;
                     }
                 }
             }
@@ -302,8 +303,8 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
             winit::event::WindowEvent::CursorMoved { position, .. } => {
                 window.winit_window.request_redraw();
 
-                window.ui_state.user_input.mouse_x = position.x;
-                window.ui_state.user_input.mouse_y = position.y;
+                window.ui_state.user_input.mouse_x = position.x as f32;
+                window.ui_state.user_input.mouse_y = position.y as f32;
             }
 
             // Focus events

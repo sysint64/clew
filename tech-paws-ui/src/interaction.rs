@@ -64,16 +64,16 @@ pub fn handle_interaction(
 ) -> bool {
     if user_input.mouse_left_pressed {
         user_input.mouse_left_click_count = user_input.mouse_left_click_tracker.on_click(
-            user_input.mouse_x as f32,
-            user_input.mouse_y as f32,
+            user_input.mouse_x,
+            user_input.mouse_y,
             view.scale_factor,
         );
     }
 
-    let unscaled_mouse_x = user_input.mouse_x / view.scale_factor as f64;
-    let unscaled_mouse_y = user_input.mouse_y / view.scale_factor as f64;
+    let unscaled_mouse_x = user_input.mouse_x / view.scale_factor;
+    let unscaled_mouse_y = user_input.mouse_y / view.scale_factor;
 
-    let mouse_point = Vec2::new(unscaled_mouse_x as f32, unscaled_mouse_y as f32);
+    let mouse_point = Vec2::new(unscaled_mouse_x, unscaled_mouse_y);
 
     interaction_state.hot = None;
     interaction_state.hover.clear();

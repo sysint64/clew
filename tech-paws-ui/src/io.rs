@@ -15,10 +15,10 @@ pub struct UserInput {
     pub mouse_middle_released: bool,
     pub mouse_pressed: bool,
     pub mouse_released: bool,
-    pub mouse_x: f64,
-    pub mouse_y: f64,
-    pub mouse_wheel_delta_x: f64,
-    pub mouse_wheel_delta_y: f64,
+    pub mouse_x: f32,
+    pub mouse_y: f32,
+    pub mouse_wheel_delta_x: f32,
+    pub mouse_wheel_delta_y: f32,
     pub mouse_left_click_count: u32,
 
     // Keyboard state

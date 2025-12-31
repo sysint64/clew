@@ -8,7 +8,9 @@ use tech_paws_ui::state::WidgetState;
 use tech_paws_ui::widgets::colored_box::colored_box;
 use tech_paws_ui::widgets::decorated_box::decorated_box;
 use tech_paws_ui::widgets::gap::gap;
-use tech_paws_ui::widgets::gesture_detector::{GestureDetectorResponse, gesture_detector};
+use tech_paws_ui::widgets::gesture_detector::{
+    DragState, GestureDetectorResponse, gesture_detector,
+};
 use tech_paws_ui::widgets::hstack::hstack;
 use tech_paws_ui::widgets::scroll_area::{ScrollAreaResponse, ScrollDirection, scroll_area};
 use tech_paws_ui::widgets::svg::svg;
@@ -201,7 +203,6 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
                     .align_x(AlignX::Right)
                     .build(ctx, |ctx| {
                         gesture_detector()
-                            .clickable(true)
                             .dragable(true)
                             .focusable(true)
                             .build(ctx, |ctx| {
@@ -213,6 +214,16 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
                                         0.4
                                     },
                                 );
+
+                                if gesture.drag_state != DragState::None {
+                                    println!("STATE: {:?}", gesture.drag_state);
+                                    println!("START_X: {:?}", gesture.drag_start_x);
+                                    println!("START_Y: {:?}", gesture.drag_start_y);
+                                    println!("X: {:?}", gesture.drag_x);
+                                    println!("Y: {:?}", gesture.drag_y);
+                                    println!("DX: {:?}", gesture.drag_delta_x);
+                                    println!("DY: {:?}", gesture.drag_delta_y);
+                                }
 
                                 decorated_box()
                                     .color(color)

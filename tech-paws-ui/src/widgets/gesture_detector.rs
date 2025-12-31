@@ -214,7 +214,10 @@ pub fn handle_interaction(
                     }
                 }
             }
-        } else if input.mouse_left_pressed && interaction.is_hot(&id) {
+        } else if input.mouse_left_pressed
+            && interaction.is_hot(&id)
+            && interaction.active.is_none()
+        {
             if widget_state.dragable {
                 if widget_state.drag_state == DragState::None {
                     widget_state.drag_state = DragState::Start;
@@ -226,6 +229,7 @@ pub fn handle_interaction(
             }
 
             interaction.set_active(&id);
+            interaction.block_hover = widget_state.dragable;
         }
     }
 

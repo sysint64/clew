@@ -19,6 +19,7 @@ pub struct InteractionState {
     pub(crate) active: Option<WidgetId>,
     pub(crate) focused: Option<WidgetId>,
     pub(crate) was_focused: Option<WidgetId>,
+    pub(crate) block_hover: bool,
 }
 
 impl InteractionState {
@@ -49,6 +50,7 @@ impl InteractionState {
     pub(crate) fn set_inactive(&mut self, id: &WidgetId) {
         if self.is_active(id) {
             self.active = None;
+            self.block_hover = false;
         }
     }
 }
@@ -88,9 +90,14 @@ pub fn handle_interaction(
 
     for placement in widget_placements.iter().rev() {
         if placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>() {
-            if point_with_rect_hit_test(mouse_point, placement.rect) {
-                interaction_state.hot = Some(placement.widget_ref.id);
-                break;
+            if !interaction_state.block_hover
+                || interaction_state.active.is_none()
+                || interaction_state.active == Some(placement.widget_ref.id)
+            {
+                if point_with_rect_hit_test(mouse_point, placement.rect) {
+                    interaction_state.hot = Some(placement.widget_ref.id);
+                    break;
+                }
             }
         }
     }

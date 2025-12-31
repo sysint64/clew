@@ -176,37 +176,36 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
-        scroll_area()
-            // .scroll_direction(ScrollDirection::Both)
-            .fill_max_size()
-            .build(ctx, |ctx| {
-                vstack()
-                    .padding(EdgeInsets::new().right(16.))
-                    .fill_max_width()
-                    .build(ctx, |ctx| {
-                        component::<Counter>(app).build(ctx);
-                        component(app).state(&mut self.counter).build(ctx);
-                    });
+        zstack().fill_max_size().build(ctx, |ctx| {
+            let response = scroll_area()
+                .fill_max_size()
+                .build(ctx, |ctx| {
+                    vstack()
+                        .padding(EdgeInsets::new().right(16.))
+                        .fill_max_width()
+                        .build(ctx, |ctx| {
+                            component::<Counter>(app).build(ctx);
+                            component(app).state(&mut self.counter).build(ctx);
+                        });
+                });
 
-                let response = ctx.of::<ScrollAreaResponse>().unwrap();
+            let color = ColorRgba::from_hex(0xFFFFFF00).with_opacity(1.);
+            let bar_height = (response.height - 16.) * response.fraction_y;
 
-                // println!("{}", response.offset_y);
-                // gesture_detector().build(context, callback);
-                let color = ColorRgba::from_hex(0xFFFFFF00).with_opacity(1.);
-
-                zstack()
-                    .fill_max_size()
-                    .align_x(AlignX::Right)
-                    .build(ctx, |ctx| {
-                        decorated_box()
-                            .color(color)
-                            .border_radius(BorderRadius::all(2.))
-                            .width(4.)
-                            .padding(EdgeInsets::all(3.))
-                            .fill_max_height()
-                            .build(ctx);
-                    });
-            });
+            zstack()
+                .fill_max_size()
+                .align_x(AlignX::Right)
+                .build(ctx, |ctx| {
+                    decorated_box()
+                        .color(color)
+                        .border_radius(BorderRadius::all(2.))
+                        .width(4.)
+                        .height(bar_height)
+                        .offset_y((response.height - 16. - bar_height) * response.progress_y)
+                        .padding(EdgeInsets::all(8.))
+                        .build(ctx);
+                });
+        });
     }
 }
 

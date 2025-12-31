@@ -272,16 +272,6 @@ macro_rules! impl_width_methods {
 #[macro_export]
 macro_rules! impl_position_methods {
     () => {
-        pub fn align_x(mut self, align: AlignX) -> Self {
-            self.align_x = Some(align);
-            self
-        }
-
-        pub fn align_y(mut self, align: AlignY) -> Self {
-            self.align_y = Some(align);
-            self
-        }
-
         pub fn zindex(mut self, zindex: i32) -> Self {
             self.zindex = Some(zindex);
             self

@@ -34,6 +34,12 @@ pub struct ScrollAreaBuilder {
 pub struct State {
     offset_x: f32,
     offset_y: f32,
+    fraction_x: f32,
+    fraction_y: f32,
+    progress_x: f32,
+    progress_y: f32,
+    width: f32,
+    height: f32,
     overflow_x: bool,
     overflow_y: bool,
     scroll_direction: ScrollDirection,
@@ -43,6 +49,12 @@ pub struct State {
 pub struct ScrollAreaResponse {
     pub offset_x: f32,
     pub offset_y: f32,
+    pub fraction_x: f32,
+    pub fraction_y: f32,
+    pub progress_x: f32,
+    pub progress_y: f32,
+    pub width: f32,
+    pub height: f32,
     pub overflow_x: bool,
     pub overflow_y: bool,
 }
@@ -81,7 +93,7 @@ impl ScrollAreaBuilder {
     }
 
     #[profiling::function]
-    pub fn build<F>(self, context: &mut BuildContext, callback: F)
+    pub fn build<F>(self, context: &mut BuildContext, callback: F) -> ScrollAreaResponse
     where
         F: FnOnce(&mut BuildContext),
     {
@@ -103,6 +115,12 @@ impl ScrollAreaBuilder {
                     overflow_x: false,
                     overflow_y: false,
                     scroll_direction: self.scroll_direction,
+                    fraction_x: 0.,
+                    fraction_y: 0.,
+                    progress_x: 0.,
+                    progress_y: 0.,
+                    width: 0.,
+                    height: 0.,
                 });
 
             state.scroll_direction = self.scroll_direction;
@@ -115,6 +133,12 @@ impl ScrollAreaBuilder {
                     offset_y: state.offset_y,
                     overflow_x: state.overflow_x,
                     overflow_y: state.overflow_y,
+                    fraction_x: state.fraction_x,
+                    fraction_y: state.fraction_y,
+                    progress_x: state.progress_x,
+                    progress_y: state.progress_y,
+                    width: state.width,
+                    height: state.height,
                 },
             )
         };
@@ -129,7 +153,7 @@ impl ScrollAreaBuilder {
         });
 
         context.push_layout_command(LayoutCommand::BeginOffset { offset_x, offset_y });
-        context.with_user_data(response, callback);
+        context.with_user_data(response.clone(), callback);
         context.push_layout_command(LayoutCommand::EndOffset);
 
         context.push_layout_command(LayoutCommand::EndContainer);
@@ -141,6 +165,8 @@ impl ScrollAreaBuilder {
             .scroll_area
             .accessed_this_frame
             .insert(id);
+
+        response
     }
 }
 
@@ -174,6 +200,13 @@ pub fn handle_interaction(
             f32::min(0., -(layout_measure.wrap_height - layout_measure.height)),
             0.,
         );
+
+        widget_state.overflow_y = widget_state.height - layout_measure.height < 0.;
+        widget_state.fraction_y = layout_measure.height / layout_measure.wrap_height;
+        widget_state.height = layout_measure.height;
+        widget_state.progress_y =
+            -widget_state.offset_y / (layout_measure.wrap_height - layout_measure.height);
+        widget_state.progress_y = widget_state.progress_y.clamp(0., 1.);
     }
 
     if widget_state.scroll_direction == ScrollDirection::Horizontal

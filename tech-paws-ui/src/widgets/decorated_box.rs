@@ -27,6 +27,8 @@ pub struct DecoratedBoxBuilder {
     border_radius: Option<BorderRadius>,
     border: Option<Border>,
     shape: BoxShape,
+    offset_x: f32,
+    offset_y: f32,
 }
 
 pub struct DecoratedBoxChildBuilder {
@@ -40,6 +42,8 @@ pub struct DecoratedBoxChildBuilder {
     border_radius: Option<BorderRadius>,
     border: Option<Border>,
     shape: BoxShape,
+    offset_x: f32,
+    offset_y: f32,
 }
 
 #[derive(Clone, PartialEq)]
@@ -70,6 +74,25 @@ impl WidgetState for State {
 
 impl DecoratedBoxBuilder {
     impl_id!();
+
+    pub fn offset(mut self, x: f32, y: f32) -> Self {
+        self.offset_x = x;
+        self.offset_y = y;
+
+        self
+    }
+
+    pub fn offset_x(mut self, offset: f32) -> Self {
+        self.offset_x = offset;
+
+        self
+    }
+
+    pub fn offset_y(mut self, offset: f32) -> Self {
+        self.offset_y = offset;
+
+        self
+    }
 
     pub fn color(mut self, color: ColorRgba) -> Self {
         self.color = Some(color);
@@ -130,6 +153,8 @@ impl DecoratedBoxBuilder {
             border_radius: self.border_radius,
             border: self.border,
             shape: self.shape,
+            offset_x: self.offset_x,
+            offset_y: self.offset_y,
         }
     }
 
@@ -217,10 +242,36 @@ impl DecoratedBoxChildBuilder {
         self
     }
 
+    pub fn offset(mut self, x: f32, y: f32) -> Self {
+        self.offset_x = x;
+        self.offset_y = y;
+
+        self
+    }
+
+    pub fn offset_x(mut self, offset: f32) -> Self {
+        self.offset_x = offset;
+
+        self
+    }
+
+    pub fn offset_y(mut self, offset: f32) -> Self {
+        self.offset_y = offset;
+
+        self
+    }
+
     pub fn build(&self, context: &mut BuildContext) {
         let id = self.id.with_seed(context.id_seed);
         let widget_ref = WidgetRef::new(WidgetType::of::<DecoratedBox>(), id);
         let decorators = std::mem::take(context.decorators);
+
+        if self.offset_x != 0. || self.offset_y != 0. {
+            context.push_layout_command(LayoutCommand::BeginOffset {
+                offset_x: self.offset_x,
+                offset_y: self.offset_y,
+            });
+        }
 
         context.push_layout_command(LayoutCommand::Child {
             widget_ref,
@@ -231,6 +282,10 @@ impl DecoratedBoxChildBuilder {
             zindex: self.zindex.unwrap_or(context.current_zindex),
             derive_wrap_size: DeriveWrapSize::Constraints,
         });
+
+        if self.offset_x != 0. || self.offset_y != 0. {
+            context.push_layout_command(LayoutCommand::EndOffset);
+        }
 
         context.widgets_states.decorated_box.set(
             id,
@@ -255,6 +310,8 @@ pub fn decorated_box() -> DecoratedBoxBuilder {
         border_radius: None,
         border: None,
         shape: BoxShape::rect,
+        offset_x: 0.,
+        offset_y: 0.,
     }
 }
 

@@ -1119,16 +1119,18 @@ pub fn layout(
                 current_position.x += padding.left;
                 current_position.y += padding.top;
 
+                let inside_size = widget_size - Vec2::new(margin.horizontal(), margin.vertical());
+
                 for widget_ref in backgrounds {
                     if rect_contains_boundary(
-                        Rect::from_pos_size(position + offset, widget_size),
+                        Rect::from_pos_size(position + offset, inside_size),
                         Rect::from_pos_size(Vec2::ZERO, root_size),
                     ) {
                         widget_placements.push(WidgetPlacement {
                             widget_ref: *widget_ref,
                             zindex: *zindex,
                             boundary: Rect::ZERO,
-                            rect: Rect::from_pos_size(current_position + offset, widget_size),
+                            rect: Rect::from_pos_size(current_position + offset, inside_size),
                         });
                     }
                 }

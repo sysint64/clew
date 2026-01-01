@@ -76,8 +76,7 @@ impl ZStackBuilder {
         context.current_zindex += 1;
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            // backgrounds: widgets,
-            backgrounds: SmallVec::new(),
+            backgrounds: widgets,
             zindex: last_zindex,
             padding: self.padding,
             margin: self.margin,

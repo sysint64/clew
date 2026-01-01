@@ -22,6 +22,7 @@ pub struct SvgBuilder {
     zindex: Option<i32>,
     color: Option<ColorRgba>,
     padding: EdgeInsets,
+    margin: EdgeInsets,
 }
 
 #[derive(Clone, PartialEq)]
@@ -56,6 +57,12 @@ impl SvgBuilder {
         self
     }
 
+    pub fn margin(mut self, margin: EdgeInsets) -> Self {
+        self.margin = margin;
+
+        self
+    }
+
     pub fn color(mut self, color: ColorRgba) -> Self {
         self.color = Some(color);
 
@@ -70,8 +77,9 @@ impl SvgBuilder {
 
         context.push_layout_command(LayoutCommand::Child {
             widget_ref,
-            decorators,
+            backgrounds: decorators,
             padding: self.padding,
+            margin: self.margin,
             constraints: self.constraints,
             size: self.size,
             zindex: self.zindex.unwrap_or(context.current_zindex),
@@ -103,6 +111,7 @@ pub fn svg(asset_id: &'static str) -> SvgBuilder {
             max_height: f32::INFINITY,
         },
         padding: EdgeInsets::ZERO,
+        margin: EdgeInsets::ZERO,
     }
 }
 

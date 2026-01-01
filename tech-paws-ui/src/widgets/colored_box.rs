@@ -158,8 +158,9 @@ impl ColoredBoxChildBuilder {
 
         context.push_layout_command(LayoutCommand::Child {
             widget_ref,
-            decorators,
+            backgrounds: decorators,
             padding: self.padding,
+            margin: EdgeInsets::ZERO,
             constraints: self.constraints,
             size: self.size,
             zindex: self.zindex.unwrap_or(context.current_zindex),

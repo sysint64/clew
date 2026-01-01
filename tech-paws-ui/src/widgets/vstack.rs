@@ -10,14 +10,16 @@ use super::builder::BuildContext;
 
 pub struct VStackBuilder {
     size: Size,
-    rtl_aware: bool,
-    spacing: f32,
     constraints: Constraints,
     zindex: Option<i32>,
+    padding: EdgeInsets,
+    margin: EdgeInsets,
+    backgrounds: SmallVec<[WidgetRef; 8]>,
+
+    rtl_aware: bool,
+    spacing: f32,
     main_axis_alignment: MainAxisAlignment,
     cross_axis_alignment: CrossAxisAlignment,
-    padding: EdgeInsets,
-    backgrounds: SmallVec<[WidgetRef; 8]>,
 }
 
 impl VStackBuilder {
@@ -26,6 +28,12 @@ impl VStackBuilder {
 
     pub fn padding(mut self, padding: EdgeInsets) -> Self {
         self.padding = padding;
+
+        self
+    }
+
+    pub fn margin(mut self, margin: EdgeInsets) -> Self {
+        self.margin = margin;
 
         self
     }
@@ -71,9 +79,10 @@ impl VStackBuilder {
         backgrounds.append(&mut self.backgrounds);
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            decorators: backgrounds,
+            backgrounds: backgrounds,
             zindex: 0,
             padding: self.padding,
+            margin: self.margin,
             kind: ContainerKind::VStack {
                 spacing: self.spacing,
                 rtl_aware: self.rtl_aware,
@@ -100,6 +109,7 @@ pub fn vstack() -> VStackBuilder {
         main_axis_alignment: MainAxisAlignment::default(),
         cross_axis_alignment: CrossAxisAlignment::default(),
         padding: EdgeInsets::ZERO,
+        margin: EdgeInsets::ZERO,
         backgrounds: SmallVec::new(),
     }
 }

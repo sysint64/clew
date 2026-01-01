@@ -27,6 +27,7 @@ pub struct ScrollAreaBuilder {
     constraints: Constraints,
     zindex: Option<i32>,
     padding: EdgeInsets,
+    margin: EdgeInsets,
     scroll_direction: ScrollDirection,
 }
 
@@ -89,6 +90,12 @@ impl ScrollAreaBuilder {
 
     pub fn padding(mut self, padding: EdgeInsets) -> Self {
         self.padding = padding;
+
+        self
+    }
+
+    pub fn margin(mut self, margin: EdgeInsets) -> Self {
+        self.margin = margin;
 
         self
     }
@@ -158,9 +165,10 @@ impl ScrollAreaBuilder {
         };
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            decorators: widget_refs,
+            backgrounds: widget_refs,
             zindex: 0,
             padding: self.padding,
+            margin: self.margin,
             kind: ContainerKind::Measure { id },
             size: self.size,
             constraints: self.constraints,
@@ -192,6 +200,7 @@ pub fn scroll_area() -> ScrollAreaBuilder {
         constraints: Constraints::default(),
         zindex: None,
         padding: EdgeInsets::ZERO,
+        margin: EdgeInsets::ZERO,
         scroll_direction: ScrollDirection::Vertical,
     }
 }

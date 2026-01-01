@@ -23,15 +23,17 @@ pub struct DecoratedBoxBuilder {
     id: WidgetId,
     size: Size,
     constraints: Constraints,
-    padding: EdgeInsets,
     zindex: Option<i32>,
+    padding: EdgeInsets,
+    margin: EdgeInsets,
+    offset_x: f32,
+    offset_y: f32,
+
     color: Option<ColorRgba>,
     gradients: SmallVec<[Gradient; 4]>,
     border_radius: Option<BorderRadius>,
     border: Option<Border>,
     shape: BoxShape,
-    offset_x: f32,
-    offset_y: f32,
 }
 
 pub struct DecorationBuilder {
@@ -140,6 +142,12 @@ impl DecoratedBoxBuilder {
         self
     }
 
+    pub fn margin(mut self, margin: EdgeInsets) -> Self {
+        self.margin = margin;
+
+        self
+    }
+
     pub fn offset(mut self, x: f32, y: f32) -> Self {
         self.offset_x = x;
         self.offset_y = y;
@@ -205,7 +213,7 @@ impl DecoratedBoxBuilder {
     pub fn build(self, context: &mut BuildContext) {
         let id = self.id.with_seed(context.id_seed);
         let widget_ref = WidgetRef::new(WidgetType::of::<DecoratedBox>(), id);
-        let decorators = std::mem::take(context.decorators);
+        let backgrounds = std::mem::take(context.decorators);
 
         if self.offset_x != 0. || self.offset_y != 0. {
             context.push_layout_command(LayoutCommand::BeginOffset {
@@ -216,8 +224,9 @@ impl DecoratedBoxBuilder {
 
         context.push_layout_command(LayoutCommand::Child {
             widget_ref,
-            decorators,
+            backgrounds,
             padding: self.padding,
+            margin: self.margin,
             constraints: self.constraints,
             size: self.size,
             zindex: self.zindex.unwrap_or(context.current_zindex),
@@ -256,6 +265,7 @@ pub fn decorated_box() -> DecoratedBoxBuilder {
         size: Size::default(),
         constraints: Constraints::default(),
         padding: EdgeInsets::ZERO,
+        margin: EdgeInsets::ZERO,
     }
 }
 

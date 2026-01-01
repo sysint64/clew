@@ -88,10 +88,11 @@ impl<'a> ButtonBuilder<'a> {
 
         context.push_layout_command(LayoutCommand::Child {
             widget_ref: widget_ref,
-            decorators: smallvec![],
+            backgrounds: smallvec![],
             constraints: self.constraints,
             size,
             padding: self.padding.unwrap_or(EdgeInsets::ZERO),
+            margin: EdgeInsets::ZERO,
             derive_wrap_size: DeriveWrapSize::Text(text_id),
             zindex: self.zindex.unwrap_or(context.current_zindex),
         });

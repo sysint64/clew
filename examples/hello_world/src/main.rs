@@ -184,6 +184,7 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
         zstack()
             .fill_max_size()
+            .margin(EdgeInsets::all(16.))
             .background(
                 decoration()
                     .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
@@ -221,41 +222,6 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
                     });
                 }
             });
-
-        colored_box(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2)).build(ctx, |ctx| {
-            zstack().fill_max_size().build(ctx, |ctx| {
-                let response = scroll_area()
-                    .scroll_direction(ScrollDirection::Both)
-                    .fill_max_size()
-                    .build(ctx, |ctx| {
-                        let response = ctx.of::<ScrollAreaResponse>().unwrap();
-
-                        hstack()
-                            // .padding(if response.overflow_y {
-                            //     EdgeInsets::new().right(16.)
-                            // } else {
-                            //     EdgeInsets::ZERO
-                            // })
-                            // .fill_max_width()
-                            .build(ctx, |ctx| {
-                                component::<Counter>(app).build(ctx);
-                                component(app).state(&mut self.counter).build(ctx);
-                            });
-                    });
-
-                if response.overflow_y {
-                    ctx.with_user_data(response.clone(), |ctx| {
-                        widget::<VerticalScrollBar>().build(ctx);
-                    });
-                }
-
-                if response.overflow_x {
-                    ctx.with_user_data(response.clone(), |ctx| {
-                        widget::<HorizontalScrollBar>().build(ctx);
-                    });
-                }
-            });
-        });
     }
 }
 

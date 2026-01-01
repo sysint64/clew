@@ -15,6 +15,7 @@ pub struct HStackBuilder {
     main_axis_alignment: MainAxisAlignment,
     cross_axis_alignment: CrossAxisAlignment,
     padding: EdgeInsets,
+    margin: EdgeInsets,
 }
 
 impl HStackBuilder {
@@ -23,6 +24,12 @@ impl HStackBuilder {
 
     pub fn padding(mut self, padding: EdgeInsets) -> Self {
         self.padding = padding;
+
+        self
+    }
+
+    pub fn margin(mut self, margin: EdgeInsets) -> Self {
+        self.margin = margin;
 
         self
     }
@@ -61,9 +68,10 @@ impl HStackBuilder {
         let widget_refs = std::mem::take(context.decorators);
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            decorators: widget_refs,
+            backgrounds: widget_refs,
             zindex: 0,
             padding: self.padding,
+            margin: self.margin,
             kind: ContainerKind::HStack {
                 spacing: self.spacing,
                 rtl_aware: self.rtl_aware,
@@ -91,5 +99,6 @@ pub fn hstack() -> HStackBuilder {
         main_axis_alignment: MainAxisAlignment::default(),
         cross_axis_alignment: CrossAxisAlignment::default(),
         padding: EdgeInsets::ZERO,
+        margin: EdgeInsets::ZERO,
     }
 }

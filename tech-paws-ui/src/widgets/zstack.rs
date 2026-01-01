@@ -19,14 +19,15 @@ use super::builder::BuildContext;
 pub struct ZStack;
 
 pub struct ZStackBuilder {
+    size: Size,
+    constraints: Constraints,
+    zindex: Option<i32>,
     padding: EdgeInsets,
     margin: EdgeInsets,
+    backgrounds: SmallVec<[WidgetRef; 8]>,
+
     align_x: AlignX,
     align_y: AlignY,
-    zindex: Option<i32>,
-    constraints: Constraints,
-    backgrounds: SmallVec<[WidgetRef; 8]>,
-    size: Size,
 }
 
 impl ZStackBuilder {
@@ -53,8 +54,8 @@ impl ZStackBuilder {
         self
     }
 
-    pub fn margin(mut self, padding: EdgeInsets) -> Self {
-        self.padding = padding;
+    pub fn margin(mut self, margin: EdgeInsets) -> Self {
+        self.margin = margin;
 
         self
     }
@@ -75,9 +76,11 @@ impl ZStackBuilder {
         context.current_zindex += 1;
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            decorators: widgets,
+            // backgrounds: widgets,
+            backgrounds: SmallVec::new(),
             zindex: last_zindex,
             padding: self.padding,
+            margin: self.margin,
             kind: ContainerKind::ZStack {
                 align_x: self.align_x,
                 align_y: self.align_y,

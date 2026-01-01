@@ -1,4 +1,4 @@
-use std::ops::Mul;
+use std::ops::{Add, Mul};
 
 use glam::{Vec2, Vec4};
 use smallvec::{SmallVec, smallvec};
@@ -386,6 +386,19 @@ impl EdgeInsets {
     /// ```
     pub fn vertical(&self) -> f32 {
         self.top + self.bottom
+    }
+}
+
+impl Add<EdgeInsets> for EdgeInsets {
+    type Output = Self;
+
+    fn add(self, rhs: EdgeInsets) -> Self::Output {
+        Self {
+            top: self.top + rhs.top,
+            left: self.left + rhs.left,
+            right: self.right + rhs.right,
+            bottom: self.bottom + rhs.bottom,
+        }
     }
 }
 

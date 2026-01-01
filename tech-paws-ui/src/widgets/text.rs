@@ -26,9 +26,10 @@ pub struct TextBuilder<'a> {
     color: ColorRgba,
     backgrounds: SmallVec<[WidgetRef; 8]>,
     text_align_x: AlignX,
-    text_align_y: AlignY,
+    vertical_align: AlignY,
     text_align: TextAlign,
     padding: EdgeInsets,
+    margin: EdgeInsets,
 }
 
 #[derive(Clone, PartialEq)]
@@ -68,6 +69,12 @@ impl<'a> TextBuilder<'a> {
         self
     }
 
+    pub fn margin(mut self, margin: EdgeInsets) -> Self {
+        self.margin = margin;
+
+        self
+    }
+
     pub fn background(mut self, decorator: WidgetRef) -> Self {
         self.backgrounds.push(decorator);
 
@@ -93,7 +100,7 @@ impl<'a> TextBuilder<'a> {
     }
 
     pub fn text_align_y(mut self, text_align_y: AlignY) -> Self {
-        self.text_align_y = text_align_y;
+        self.vertical_align = text_align_y;
 
         self
     }
@@ -151,13 +158,14 @@ impl<'a> TextBuilder<'a> {
             });
         }
 
-        let mut decorators = std::mem::take(context.decorators);
-        decorators.append(&mut self.backgrounds);
+        let mut backgrounds = std::mem::take(context.decorators);
+        backgrounds.append(&mut self.backgrounds);
 
         context.push_layout_command(LayoutCommand::Child {
             widget_ref,
-            decorators,
+            backgrounds,
             padding: self.padding,
+            margin: self.margin,
             constraints: self.constraints,
             size: self.size,
             zindex: self.zindex.unwrap_or(context.current_zindex),
@@ -172,7 +180,7 @@ impl<'a> TextBuilder<'a> {
             color: self.color,
             text_align: self.text_align,
             text_align_x: self.text_align_x,
-            text_align_y: self.text_align_y,
+            text_align_y: self.vertical_align,
         });
 
         if let Some(text_data) = text_data {
@@ -200,9 +208,10 @@ pub fn text(text: &str) -> TextBuilder<'_> {
             max_height: f32::INFINITY,
         },
         text_align_x: AlignX::Start,
-        text_align_y: AlignY::Top,
+        vertical_align: AlignY::Top,
         text_align: TextAlign::Left,
         padding: EdgeInsets::ZERO,
+        margin: EdgeInsets::ZERO,
     }
 }
 

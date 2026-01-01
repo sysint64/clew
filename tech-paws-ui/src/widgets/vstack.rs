@@ -1,6 +1,8 @@
+use smallvec::SmallVec;
+
 use crate::{
     AlignX, AlignY, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, Size,
-    SizeConstraint, impl_position_methods, impl_size_methods,
+    SizeConstraint, WidgetRef, impl_position_methods, impl_size_methods,
     layout::{ContainerKind, LayoutCommand},
 };
 
@@ -15,6 +17,7 @@ pub struct VStackBuilder {
     main_axis_alignment: MainAxisAlignment,
     cross_axis_alignment: CrossAxisAlignment,
     padding: EdgeInsets,
+    backgrounds: SmallVec<[WidgetRef; 8]>,
 }
 
 impl VStackBuilder {
@@ -39,6 +42,12 @@ impl VStackBuilder {
         self
     }
 
+    pub fn background(mut self, decorator: WidgetRef) -> Self {
+        self.backgrounds.push(decorator);
+
+        self
+    }
+
     pub fn main_axis_alignment(mut self, value: MainAxisAlignment) -> Self {
         self.main_axis_alignment = value;
 
@@ -52,16 +61,17 @@ impl VStackBuilder {
     }
 
     #[profiling::function]
-    pub fn build<F>(self, context: &mut BuildContext, callback: F)
+    pub fn build<F>(mut self, context: &mut BuildContext, callback: F)
     where
         F: FnOnce(&mut BuildContext),
     {
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
-        let widget_refs = std::mem::take(context.decorators);
+        let mut backgrounds = std::mem::take(context.decorators);
+        backgrounds.append(&mut self.backgrounds);
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            decorators: widget_refs,
+            decorators: backgrounds,
             zindex: 0,
             padding: self.padding,
             kind: ContainerKind::VStack {
@@ -90,5 +100,6 @@ pub fn vstack() -> VStackBuilder {
         main_axis_alignment: MainAxisAlignment::default(),
         cross_axis_alignment: CrossAxisAlignment::default(),
         padding: EdgeInsets::ZERO,
+        backgrounds: SmallVec::new(),
     }
 }

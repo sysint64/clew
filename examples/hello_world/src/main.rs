@@ -6,7 +6,7 @@ use tech_paws_ui::identifiable::Identifiable;
 // use tech_paws_ui::widgets::button::button;
 use tech_paws_ui::state::WidgetState;
 use tech_paws_ui::widgets::colored_box::colored_box;
-use tech_paws_ui::widgets::decorated_box::decorated_box;
+use tech_paws_ui::widgets::decorated_box::{decorated_box, decoration};
 use tech_paws_ui::widgets::gap::gap;
 use tech_paws_ui::widgets::gesture_detector::{
     DragState, GestureDetectorResponse, gesture_detector,
@@ -182,37 +182,79 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
-        zstack().fill_max_size().build(ctx, |ctx| {
-            let response = scroll_area()
-                .scroll_direction(ScrollDirection::Both)
-                .fill_max_size()
-                .build(ctx, |ctx| {
-                    let response = ctx.of::<ScrollAreaResponse>().unwrap();
+        zstack()
+            .fill_max_size()
+            .background(
+                decoration()
+                    .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
+                    .build(ctx),
+            )
+            .build(ctx, |ctx| {
+                let response = scroll_area()
+                    .scroll_direction(ScrollDirection::Both)
+                    .fill_max_size()
+                    .build(ctx, |ctx| {
+                        let response = ctx.of::<ScrollAreaResponse>().unwrap();
 
-                    hstack()
-                        // .padding(if response.overflow_y {
-                        //     EdgeInsets::new().right(16.)
-                        // } else {
-                        //     EdgeInsets::ZERO
-                        // })
-                        // .fill_max_width()
-                        .build(ctx, |ctx| {
-                            component::<Counter>(app).build(ctx);
-                            component(app).state(&mut self.counter).build(ctx);
-                        });
-                });
+                        hstack()
+                            // .padding(if response.overflow_y {
+                            //     EdgeInsets::new().right(16.)
+                            // } else {
+                            //     EdgeInsets::ZERO
+                            // })
+                            // .fill_max_width()
+                            .build(ctx, |ctx| {
+                                component::<Counter>(app).build(ctx);
+                                component(app).state(&mut self.counter).build(ctx);
+                            });
+                    });
 
-            if response.overflow_y {
-                ctx.with_user_data(response.clone(), |ctx| {
-                    widget::<VerticalScrollBar>().build(ctx);
-                });
-            }
+                if response.overflow_y {
+                    ctx.with_user_data(response.clone(), |ctx| {
+                        widget::<VerticalScrollBar>().build(ctx);
+                    });
+                }
 
-            if response.overflow_x {
-                ctx.with_user_data(response.clone(), |ctx| {
-                    widget::<HorizontalScrollBar>().build(ctx);
-                });
-            }
+                if response.overflow_x {
+                    ctx.with_user_data(response.clone(), |ctx| {
+                        widget::<HorizontalScrollBar>().build(ctx);
+                    });
+                }
+            });
+
+        colored_box(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2)).build(ctx, |ctx| {
+            zstack().fill_max_size().build(ctx, |ctx| {
+                let response = scroll_area()
+                    .scroll_direction(ScrollDirection::Both)
+                    .fill_max_size()
+                    .build(ctx, |ctx| {
+                        let response = ctx.of::<ScrollAreaResponse>().unwrap();
+
+                        hstack()
+                            // .padding(if response.overflow_y {
+                            //     EdgeInsets::new().right(16.)
+                            // } else {
+                            //     EdgeInsets::ZERO
+                            // })
+                            // .fill_max_width()
+                            .build(ctx, |ctx| {
+                                component::<Counter>(app).build(ctx);
+                                component(app).state(&mut self.counter).build(ctx);
+                            });
+                    });
+
+                if response.overflow_y {
+                    ctx.with_user_data(response.clone(), |ctx| {
+                        widget::<VerticalScrollBar>().build(ctx);
+                    });
+                }
+
+                if response.overflow_x {
+                    ctx.with_user_data(response.clone(), |ctx| {
+                        widget::<HorizontalScrollBar>().build(ctx);
+                    });
+                }
+            });
         });
     }
 }
@@ -307,67 +349,65 @@ impl Component for Counter {
                             .build(ctx, |ctx| {
                                 let response = ctx.of::<GestureDetectorResponse>().unwrap();
 
-                                decorated_box()
-                                    .color(ColorRgba::from_hex(0xFFCC0000))
-                                    .shape(if response.is_hot() {
-                                        BoxShape::oval
-                                    } else {
-                                        BoxShape::rect
-                                    })
-                                    .border_radius(BorderRadius::all(8.))
-                                    .border(Border::all(BorderSide::new(
-                                        1.,
-                                        if response.is_focused() {
-                                            ColorRgba::from_hex(0xFF00DD00)
-                                        } else {
-                                            ColorRgba::from_hex(0xFF007700)
-                                        },
-                                    )))
-                                    .add_linear_gradient(LinearGradient::vertical(vec![
-                                        ColorRgba::from_hex(0xFF2F2F2F),
-                                        ColorRgba::from_hex(0xFF272727),
-                                    ]))
-                                    .add_radial_gradient(RadialGradient::circle(vec![
-                                        if response.is_active() {
-                                            ColorRgba::from_hex(0xFFFF0000)
-                                        } else {
-                                            ColorRgba::from_hex(0x00000000)
-                                        },
-                                        if response.is_active() {
-                                            ColorRgba::from_hex(0x00000000)
-                                        } else {
-                                            ColorRgba::from_hex(0xFFFF0000)
-                                        },
-                                    ]))
+                                vstack()
+                                    .fill_max_height()
+                                    .fill_max_width()
+                                    .cross_axis_alignment(CrossAxisAlignment::Stretch)
+                                    .background(
+                                        decoration()
+                                            .color(ColorRgba::from_hex(0xFFCC0000))
+                                            .shape(if response.is_hot() {
+                                                BoxShape::oval
+                                            } else {
+                                                BoxShape::rect
+                                            })
+                                            .border_radius(BorderRadius::all(8.))
+                                            .border(Border::all(BorderSide::new(
+                                                1.,
+                                                if response.is_focused() {
+                                                    ColorRgba::from_hex(0xFF00DD00)
+                                                } else {
+                                                    ColorRgba::from_hex(0xFF007700)
+                                                },
+                                            )))
+                                            .add_linear_gradient(LinearGradient::vertical(vec![
+                                                ColorRgba::from_hex(0xFF2F2F2F),
+                                                ColorRgba::from_hex(0xFF272727),
+                                            ]))
+                                            .add_radial_gradient(RadialGradient::circle(vec![
+                                                if response.is_active() {
+                                                    ColorRgba::from_hex(0xFFFF0000)
+                                                } else {
+                                                    ColorRgba::from_hex(0x00000000)
+                                                },
+                                                if response.is_active() {
+                                                    ColorRgba::from_hex(0x00000000)
+                                                } else {
+                                                    ColorRgba::from_hex(0xFFFF0000)
+                                                },
+                                            ])).build(ctx)
+                                    )
                                     .build(ctx, |ctx| {
-                                        // padding(EdgeInsets::all(8.)).build(ctx, |ctx| {
                                         vstack()
                                             .fill_max_height()
-                                            .fill_max_width()
-                                            .cross_axis_alignment(CrossAxisAlignment::Stretch)
+                                            .cross_axis_alignment(
+                                                CrossAxisAlignment::Stretch,
+                                            )
                                             .build(ctx, |ctx| {
-                                                vstack()
-                                                    .fill_max_height()
-                                                    .cross_axis_alignment(
-                                                        CrossAxisAlignment::Stretch,
-                                                    )
-                                                    .build(ctx, |ctx| {
-                                                        text("Counter:")
-                                                            .text_align_x(AlignX::Center)
-                                                            .text_align_y(AlignY::Center)
-                                                            .build(ctx);
+                                                text("Counter:")
+                                                    .text_align_x(AlignX::Center)
+                                                    .text_align_y(AlignY::Center)
+                                                    .build(ctx);
 
-                                                        text(&format!("{}", app.counter))
-                                                            .text_align_x(AlignX::Center)
-                                                            .text_align_y(AlignY::Center)
-                                                            .build(ctx);
-                                                    });
-                                                text("TEST BUTTON")
+                                                text(&format!("{}", app.counter))
                                                     .text_align_x(AlignX::Center)
                                                     .text_align_y(AlignY::Center)
                                                     .build(ctx);
                                             });
-                                        // });
+                                        text("TEST BUTTON")
+                                            .text_align_x(AlignX::Center)
+                                            .text_align_y(AlignY::Center)
+                                            .build(ctx);
                                     });
                             })
                             .clicked()

@@ -1,6 +1,7 @@
 use std::any::Any;
 
 use glam::Vec2;
+use smallvec::{SmallVec, smallvec};
 
 use crate::{
     AlignX, AlignY, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, TextAlign, WidgetId,
@@ -23,6 +24,7 @@ pub struct TextBuilder<'a> {
     constraints: Constraints,
     zindex: Option<i32>,
     color: ColorRgba,
+    backgrounds: SmallVec<[WidgetRef; 8]>,
     text_align_x: AlignX,
     text_align_y: AlignY,
     text_align: TextAlign,
@@ -66,6 +68,12 @@ impl<'a> TextBuilder<'a> {
         self
     }
 
+    pub fn background(mut self, decorator: WidgetRef) -> Self {
+        self.backgrounds.push(decorator);
+
+        self
+    }
+
     pub fn color(mut self, color: ColorRgba) -> Self {
         self.color = color;
 
@@ -91,7 +99,7 @@ impl<'a> TextBuilder<'a> {
     }
 
     #[profiling::function]
-    pub fn build(&self, context: &mut BuildContext) {
+    pub fn build(mut self, context: &mut BuildContext) {
         let id = self.id.with_seed(context.id_seed);
 
         let widget_ref = WidgetRef::new(WidgetType::of::<TextWidget>(), id);
@@ -143,7 +151,8 @@ impl<'a> TextBuilder<'a> {
             });
         }
 
-        let decorators = std::mem::take(context.decorators);
+        let mut decorators = std::mem::take(context.decorators);
+        decorators.append(&mut self.backgrounds);
 
         context.push_layout_command(LayoutCommand::Child {
             widget_ref,
@@ -181,6 +190,7 @@ pub fn text(text: &str) -> TextBuilder<'_> {
         id: WidgetId::auto(),
         text,
         color: ColorRgba::from_hex(0xFFFFFFFF),
+        backgrounds: smallvec![],
         size: Size::default(),
         zindex: None,
         constraints: Constraints {

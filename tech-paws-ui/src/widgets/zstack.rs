@@ -2,6 +2,7 @@ use std::any::Any;
 use std::hash::Hash;
 
 use glam::Vec2;
+use smallvec::SmallVec;
 
 use crate::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets, Size,
@@ -19,10 +20,12 @@ pub struct ZStack;
 
 pub struct ZStackBuilder {
     padding: EdgeInsets,
+    margin: EdgeInsets,
     align_x: AlignX,
     align_y: AlignY,
     zindex: Option<i32>,
     constraints: Constraints,
+    backgrounds: SmallVec<[WidgetRef; 8]>,
     size: Size,
 }
 
@@ -50,11 +53,24 @@ impl ZStackBuilder {
         self
     }
 
-    pub fn build<F>(&self, context: &mut BuildContext, callback: F)
+    pub fn margin(mut self, padding: EdgeInsets) -> Self {
+        self.padding = padding;
+
+        self
+    }
+
+    pub fn background(mut self, decorator: WidgetRef) -> Self {
+        self.backgrounds.push(decorator);
+
+        self
+    }
+
+    pub fn build<F>(mut self, context: &mut BuildContext, callback: F)
     where
         F: FnOnce(&mut BuildContext),
     {
-        let widgets = std::mem::take(context.decorators);
+        let mut widgets = std::mem::take(context.decorators);
+        widgets.append(&mut self.backgrounds);
         let last_zindex = context.current_zindex;
         context.current_zindex += 1;
 
@@ -80,10 +96,12 @@ impl ZStackBuilder {
 pub fn zstack() -> ZStackBuilder {
     ZStackBuilder {
         padding: EdgeInsets::ZERO,
+        margin: EdgeInsets::ZERO,
         align_x: AlignX::Left,
         align_y: AlignY::Top,
         zindex: None,
         constraints: Constraints::default(),
         size: Size::default(),
+        backgrounds: SmallVec::new(),
     }
 }

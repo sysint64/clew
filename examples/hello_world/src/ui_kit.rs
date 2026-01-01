@@ -8,7 +8,14 @@ use tech_paws_ui::{
     state::WidgetState,
     text::{StringId, TextId},
     widgets::{
-        builder::BuildContext, decorated_box::decorated_box, gesture_detector::{DragState, GestureDetectorResponse, gesture_detector}, scope::scope, scroll_area::{ScrollAreaResponse, set_scroll_progress_x, set_scroll_progress_y}, text::text, widget::Widget, zstack::zstack
+        builder::BuildContext,
+        decorated_box::{decorated_box, decoration},
+        gesture_detector::{DragState, GestureDetectorResponse, gesture_detector},
+        scope::scope,
+        scroll_area::{ScrollAreaResponse, set_scroll_progress_x, set_scroll_progress_y},
+        text::text,
+        widget::Widget,
+        zstack::zstack,
     },
 };
 use tech_paws_ui_derive::WidgetState;
@@ -77,19 +84,20 @@ impl<'a> ButtonBuilder<'a> {
                         ColorRgba::from_hex(0xFF414141)
                     };
 
-                    decorated_box()
-                        .border_radius(BorderRadius::all(3.))
-                        .add_linear_gradient(gradient)
-                        .border(Border::all(BorderSide::new(1., border_color)))
-                        .build(ctx, |ctx| {
-                            text(self.text)
-                                .text_align_x(AlignX::Center)
-                                .text_align_y(AlignY::Center)
-                                .width(self.width)
-                                .constraints(self.constraints)
-                                .padding(EdgeInsets::symmetric(12., 8.))
-                                .build(ctx);
-                        });
+                    text(self.text)
+                        .background(
+                            decoration()
+                                .border_radius(BorderRadius::all(3.))
+                                .add_linear_gradient(gradient)
+                                .border(Border::all(BorderSide::new(1., border_color)))
+                                .build(ctx),
+                        )
+                        .text_align_x(AlignX::Center)
+                        .text_align_y(AlignY::Center)
+                        .width(self.width)
+                        .constraints(self.constraints)
+                        .padding(EdgeInsets::symmetric(12., 8.))
+                        .build(ctx);
                 })
         });
 
@@ -249,6 +257,19 @@ impl Widget for VerticalScrollBar {
                             EdgeInsets::all(8.)
                         })
                         .build(ctx);
+
+                    // decorated_box()
+                    //     .color(color)
+                    //     .border_radius(BorderRadius::all(if gesture.is_active() { 0. } else { 2. }))
+                    //     .width(if gesture.is_active() { 8. } else { 4. })
+                    //     .height(bar_height)
+                    //     .offset_y(self.offset)
+                    //     .padding(if gesture.is_active() {
+                    //         EdgeInsets::symmetric(6., 8.)
+                    //     } else {
+                    //         EdgeInsets::all(8.)
+                    //     })
+                    //     .build(ctx);
                 });
             });
     }

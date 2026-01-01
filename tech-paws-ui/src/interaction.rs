@@ -5,7 +5,7 @@ use glam::Vec2;
 use crate::{
     LayoutWidget, View, WidgetId, WidgetType,
     io::UserInput,
-    layout::WidgetPlacement,
+    layout::{LayoutItem, WidgetPlacement},
     point_with_rect_hit_test,
     state::WidgetsStates,
     text::{FontResources, TextsResources},
@@ -62,7 +62,7 @@ pub fn handle_interaction(
     view: &View,
     _text: &mut TextsResources,
     _fonts: &mut FontResources,
-    widget_placements: &[WidgetPlacement],
+    layout_items: &[LayoutItem],
 ) -> bool {
     if user_input.mouse_left_pressed {
         user_input.mouse_left_click_count = user_input.mouse_left_click_tracker.on_click(
@@ -80,23 +80,27 @@ pub fn handle_interaction(
     interaction_state.hot = None;
     interaction_state.hover.clear();
 
-    for placement in widget_placements.iter() {
-        if placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>() {
-            if point_with_rect_hit_test(mouse_point, placement.rect) {
-                interaction_state.hover.insert(placement.widget_ref.id);
+    for layout_item in layout_items.iter() {
+        if let LayoutItem::Placement(placement) = layout_item {
+            if placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>() {
+                if point_with_rect_hit_test(mouse_point, placement.rect) {
+                    interaction_state.hover.insert(placement.widget_ref.id);
+                }
             }
         }
     }
 
-    for placement in widget_placements.iter().rev() {
-        if placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>() {
-            if !interaction_state.block_hover
-                || interaction_state.active.is_none()
-                || interaction_state.active == Some(placement.widget_ref.id)
-            {
-                if point_with_rect_hit_test(mouse_point, placement.rect) {
-                    interaction_state.hot = Some(placement.widget_ref.id);
-                    break;
+    for layout_item in layout_items.iter().rev() {
+        if let LayoutItem::Placement(placement) = layout_item {
+            if placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>() {
+                if !interaction_state.block_hover
+                    || interaction_state.active.is_none()
+                    || interaction_state.active == Some(placement.widget_ref.id)
+                {
+                    if point_with_rect_hit_test(mouse_point, placement.rect) {
+                        interaction_state.hot = Some(placement.widget_ref.id);
+                        break;
+                    }
                 }
             }
         }
@@ -104,78 +108,81 @@ pub fn handle_interaction(
 
     let mut need_to_redraw = false;
 
-    for placement in widget_placements.iter() {
-        // if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>() {
-        //     widgets::button::handle_interaction(
-        //         placement.widget_ref.id,
-        //         user_input,
-        //         interaction_state,
-        //         widgets_states
-        //             .get_mut::<widgets::button::State>(placement.widget_ref.id)
-        //             .unwrap(),
-        //     );
+    for layout_item in layout_items.iter() {
+        if let LayoutItem::Placement(placement) = layout_item {
+            // if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>() {
+            //     widgets::button::handle_interaction(
+            //         placement.widget_ref.id,
+            //         user_input,
+            //         interaction_state,
+            //         widgets_states
+            //             .get_mut::<widgets::button::State>(placement.widget_ref.id)
+            //             .unwrap(),
+            //     );
 
-        //     need_to_redraw = need_to_redraw
-        //         || widgets_states.update_last::<widgets::button::State>(placement.widget_ref.id);
-        // }
+            //     need_to_redraw = need_to_redraw
+            //         || widgets_states.update_last::<widgets::button::State>(placement.widget_ref.id);
+            // }
 
-        if placement.widget_ref.widget_type
-            == WidgetType::of::<widgets::gesture_detector::GestureDetector>()
-        {
-            widgets::gesture_detector::handle_interaction(
-                placement.widget_ref.id,
-                user_input,
-                view,
-                interaction_state,
-                // widgets_states
-                //     .get_mut::<widgets::gesture_detector::State>(placement.widget_ref.id)
-                //     .unwrap(),
-                widgets_states
-                    .gesture_detector
-                    .get_mut(placement.widget_ref.id)
-                    .unwrap(),
-            );
+            if placement.widget_ref.widget_type
+                == WidgetType::of::<widgets::gesture_detector::GestureDetector>()
+            {
+                widgets::gesture_detector::handle_interaction(
+                    placement.widget_ref.id,
+                    user_input,
+                    view,
+                    interaction_state,
+                    // widgets_states
+                    //     .get_mut::<widgets::gesture_detector::State>(placement.widget_ref.id)
+                    //     .unwrap(),
+                    widgets_states
+                        .gesture_detector
+                        .get_mut(placement.widget_ref.id)
+                        .unwrap(),
+                );
 
-            need_to_redraw = need_to_redraw
-                || widgets_states
-                    .update_last::<widgets::gesture_detector::State>(placement.widget_ref.id);
-        }
+                need_to_redraw = need_to_redraw
+                    || widgets_states
+                        .update_last::<widgets::gesture_detector::State>(placement.widget_ref.id);
+            }
 
-        if placement.widget_ref.widget_type
-            == WidgetType::of::<widgets::scroll_area::ScrollAreaWidget>()
-        {
-            widgets::scroll_area::handle_interaction(
-                placement.widget_ref.id,
-                user_input,
-                interaction_state,
-                widgets_states
-                    .scroll_area
-                    .get_mut(placement.widget_ref.id)
-                    .unwrap(),
-                widgets_states
-                    .layout_measures
-                    .get_mut(placement.widget_ref.id)
-                    .unwrap(),
-            );
+            if placement.widget_ref.widget_type
+                == WidgetType::of::<widgets::scroll_area::ScrollAreaWidget>()
+            {
+                widgets::scroll_area::handle_interaction(
+                    placement.widget_ref.id,
+                    user_input,
+                    interaction_state,
+                    widgets_states
+                        .scroll_area
+                        .get_mut(placement.widget_ref.id)
+                        .unwrap(),
+                    widgets_states
+                        .layout_measures
+                        .get_mut(placement.widget_ref.id)
+                        .unwrap(),
+                );
 
-            need_to_redraw = need_to_redraw
-                || widgets_states
-                    .update_last::<widgets::gesture_detector::State>(placement.widget_ref.id);
-        }
+                need_to_redraw = need_to_redraw
+                    || widgets_states
+                        .update_last::<widgets::gesture_detector::State>(placement.widget_ref.id);
+            }
 
-        if placement.widget_ref.widget_type
-            == WidgetType::of::<widgets::decorated_box::DecoratedBox>()
-        {
-            need_to_redraw = need_to_redraw
-                || widgets_states
-                    .update_last::<widgets::decorated_box::State>(placement.widget_ref.id);
-        }
+            if placement.widget_ref.widget_type
+                == WidgetType::of::<widgets::decorated_box::DecoratedBox>()
+            {
+                need_to_redraw = need_to_redraw
+                    || widgets_states
+                        .update_last::<widgets::decorated_box::State>(placement.widget_ref.id);
+            }
 
-        if placement.widget_ref.widget_type == WidgetType::of::<widgets::colored_box::ColoredBox>()
-        {
-            need_to_redraw = need_to_redraw
-                || widgets_states
-                    .update_last::<widgets::colored_box::State>(placement.widget_ref.id);
+            if placement.widget_ref.widget_type
+                == WidgetType::of::<widgets::colored_box::ColoredBox>()
+            {
+                need_to_redraw = need_to_redraw
+                    || widgets_states
+                        .update_last::<widgets::colored_box::State>(placement.widget_ref.id);
+            }
         }
     }
 

@@ -9,10 +9,11 @@ pub enum Axis {
     Vertical,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Clip {
-    None,
-    HardEdge,
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ClipShape {
+    Rect,
+    RoundedRect { border_radius: BorderRadius },
+    Oval,
 }
 
 #[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
@@ -761,6 +762,13 @@ pub struct BorderSide {
 }
 
 impl BorderRadius {
+    pub const ZERO: Self = Self {
+        top_left: 0.,
+        top_right: 0.,
+        bottom_left: 0.,
+        bottom_right: 0.,
+    };
+
     /// Creates a BorderRadius with individual values for each corner
     pub fn new(top_left: f32, top_right: f32, bottom_left: f32, bottom_right: f32) -> Self {
         Self {

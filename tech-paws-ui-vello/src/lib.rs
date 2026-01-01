@@ -2,7 +2,8 @@ use cosmic_text::{Buffer, FontSystem};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use std::{collections::HashMap, sync::Arc};
 use tech_paws_ui::{
-    Border, BorderRadius, BorderSide, ColorRgb, ColorRgba, Gradient, Rect, TileMode, View,
+    Border, BorderRadius, BorderSide, ClipShape, ColorRgb, ColorRgba, Gradient, Rect, TileMode,
+    View,
     assets::Assets,
     render::{Fill, RenderCommand, RenderState, Renderer},
     text::{FontResources, TextsResources},
@@ -292,23 +293,6 @@ impl VelloRenderer {
         }
     }
 
-    /// Push a clip rectangle
-    pub fn push_clip(&mut self, rect: &Rect) {
-        let clip_rect = vello::kurbo::Rect::new(
-            rect.x as f64,
-            rect.y as f64,
-            (rect.x + rect.width) as f64,
-            (rect.y + rect.height) as f64,
-        );
-
-        self.scene.push_clip_layer(Affine::IDENTITY, &clip_rect);
-    }
-
-    /// Pop the current clip
-    pub fn pop_clip(&mut self) {
-        self.scene.pop_layer();
-    }
-
     /// Draw text from a cosmic_text Buffer
     pub fn draw_text(
         &mut self,
@@ -493,8 +477,7 @@ impl Renderer for VelloRenderer {
                             > = HashMap::new();
 
                             for glyph in run.glyphs.iter() {
-                                let physical =
-                                    glyph.physical((*x, line_y), 1.0);
+                                let physical = glyph.physical((*x, line_y), 1.0);
                                 let font_size = f32::from_bits(physical.cache_key.font_size_bits);
 
                                 // Use raw floating-point positions for smooth subpixel rendering
@@ -533,11 +516,51 @@ impl Renderer for VelloRenderer {
                         }
                     });
                 }
-                RenderCommand::PushClipRect(rect) => {
-                    self.push_clip(rect);
-                }
+                RenderCommand::PushClip { rect, shape } => match shape {
+                    ClipShape::Rect => {
+                        self.scene.push_clip_layer(
+                            Affine::IDENTITY,
+                            &vello::kurbo::Rect::new(
+                                rect.x as f64,
+                                rect.y as f64,
+                                (rect.x + rect.width) as f64,
+                                (rect.y + rect.height) as f64,
+                            ),
+                        );
+                    }
+                    ClipShape::RoundedRect { border_radius } => self.scene.push_clip_layer(
+                        Affine::IDENTITY,
+                        &vello::kurbo::RoundedRect::new(
+                            rect.x as f64,
+                            rect.y as f64,
+                            (rect.x + rect.width) as f64,
+                            (rect.y + rect.height) as f64,
+                            RoundedRectRadii {
+                                top_left: border_radius.top_left as f64,
+                                top_right: border_radius.top_right as f64,
+                                bottom_right: border_radius.bottom_right as f64,
+                                bottom_left: border_radius.bottom_left as f64,
+                            },
+                        ),
+                    ),
+                    ClipShape::Oval => {
+                        let center = vello::kurbo::Point::new(
+                            (rect.x + rect.width / 2.0) as f64,
+                            (rect.y + rect.height / 2.0) as f64,
+                        );
+                        let radii = vello::kurbo::Vec2::new(
+                            (rect.width / 2.0) as f64,
+                            (rect.height / 2.0) as f64,
+                        );
+
+                        self.scene.push_clip_layer(
+                            Affine::IDENTITY,
+                            &vello::kurbo::Ellipse::new(center, radii, 0.0),
+                        );
+                    }
+                },
                 RenderCommand::PopClip => {
-                    self.pop_clip();
+                    self.scene.pop_layer();
                 }
                 RenderCommand::Svg {
                     boundary,

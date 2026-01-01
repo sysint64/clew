@@ -1,8 +1,8 @@
 use smallvec::SmallVec;
 
 use crate::{
-    AlignX, AlignY, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, Size,
-    SizeConstraint, WidgetRef, impl_position_methods, impl_size_methods,
+    AlignX, AlignY, ClipShape, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment,
+    Size, SizeConstraint, WidgetRef, impl_position_methods, impl_size_methods,
     layout::{ContainerKind, LayoutCommand},
 };
 
@@ -20,11 +20,18 @@ pub struct VStackBuilder {
     spacing: f32,
     main_axis_alignment: MainAxisAlignment,
     cross_axis_alignment: CrossAxisAlignment,
+    clip_shape: Option<ClipShape>,
 }
 
 impl VStackBuilder {
     impl_size_methods!();
     impl_position_methods!();
+
+    pub fn clip_shape(mut self, clip_shape: Option<ClipShape>) -> Self {
+        self.clip_shape = clip_shape;
+
+        self
+    }
 
     pub fn padding(mut self, padding: EdgeInsets) -> Self {
         self.padding = padding;
@@ -91,6 +98,7 @@ impl VStackBuilder {
             },
             size: self.size,
             constraints: self.constraints,
+            clip_shape: self.clip_shape,
         });
         callback(context);
         context.push_layout_command(LayoutCommand::EndContainer);
@@ -111,5 +119,6 @@ pub fn vstack() -> VStackBuilder {
         padding: EdgeInsets::ZERO,
         margin: EdgeInsets::ZERO,
         backgrounds: SmallVec::new(),
+        clip_shape: Some(ClipShape::Rect),
     }
 }

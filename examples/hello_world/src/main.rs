@@ -31,8 +31,8 @@ use tech_paws_ui::{
     },
 };
 use tech_paws_ui::{
-    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, CrossAxisAlignment, EdgeInsets,
-    LinearGradient, MainAxisAlignment, RadialGradient, TextAlign,
+    Border, BorderRadius, BorderSide, BoxShape, ClipShape, ColorRgba, CrossAxisAlignment,
+    EdgeInsets, LinearGradient, MainAxisAlignment, RadialGradient, TextAlign,
 };
 use tech_paws_ui_derive::{Identifiable, WidgetState};
 use tech_paws_ui_desktop::{
@@ -184,16 +184,20 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
         zstack()
             .fill_max_size()
+            // .clip_shape(Some(ClipShape::Oval))
+            .clip_shape(Some(ClipShape::RoundedRect {
+                border_radius: BorderRadius::all(16.),
+            }))
             .margin(EdgeInsets::all(16.))
-            .background(
-                decoration()
-                    .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
-                    .build(ctx),
-            )
             .build(ctx, |ctx| {
                 let response = scroll_area()
                     .scroll_direction(ScrollDirection::Both)
                     .fill_max_size()
+                    .background(
+                        decoration()
+                            .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
+                            .build(ctx),
+                    )
                     .build(ctx, |ctx| {
                         let response = ctx.of::<ScrollAreaResponse>().unwrap();
 

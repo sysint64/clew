@@ -1,6 +1,7 @@
 use crate::{
-    AlignX, AlignY, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets, LayoutDirection,
-    MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, WidgetRef, WidgetType,
+    AlignX, AlignY, BorderRadius, ClipShape, Constraints, CrossAxisAlignment, DebugBoundary,
+    EdgeInsets, LayoutDirection, MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId,
+    WidgetRef, WidgetType,
     assets::Assets,
     rect_contains_boundary,
     state::TypedWidgetStates,
@@ -20,6 +21,13 @@ pub struct WidgetPlacement {
     pub rect: Rect,
 }
 
+#[derive(Debug)]
+pub enum LayoutItem {
+    Placement(WidgetPlacement),
+    PushClip { rect: Rect, shape: ClipShape },
+    PopClip,
+}
+
 #[derive(Debug, Clone)]
 pub enum LayoutCommand {
     BeginContainer {
@@ -30,6 +38,7 @@ pub enum LayoutCommand {
         zindex: i32,
         padding: EdgeInsets,
         margin: EdgeInsets,
+        clip_shape: Option<ClipShape>,
     },
     EndContainer,
     BeginOffset {
@@ -156,6 +165,7 @@ struct Pass2LayoutContainer {
     idx: usize,
     padding: EdgeInsets,
     margin: EdgeInsets,
+    clipping: bool,
 }
 
 pub(crate) struct TextLayout {
@@ -429,13 +439,13 @@ impl LayoutState {
         size: Size,
         constraints: Constraints,
         wrap_size: Vec2,
-        padding: EdgeInsets,
+        insets: EdgeInsets,
     ) -> Vec2 {
         let wrap_size = apply_constraints(wrap_size, constraints);
 
         let mut size = Vec2::new(
-            self.add_width(size.width, wrap_size.x, padding.horizontal()),
-            self.add_height(size.height, wrap_size.y, padding.vertical()),
+            self.add_width(size.width, wrap_size.x, insets.horizontal()),
+            self.add_height(size.height, wrap_size.y, insets.vertical()),
         );
 
         size = apply_constraints(size, constraints);
@@ -446,13 +456,13 @@ impl LayoutState {
         size
     }
 
-    fn add_width(&mut self, width: SizeConstraint, wrap_width: f32, padding: f32) -> f32 {
+    fn add_width(&mut self, width: SizeConstraint, wrap_width: f32, insets: f32) -> f32 {
         let wrap_size = self.wrap_sizes.get_mut(self.parent_container.idx).unwrap();
         let flex_sizes = self.flex_sizes.get_mut(self.parent_container.idx).unwrap();
 
         match width {
             SizeConstraint::Fixed(value) => {
-                let value = value + padding;
+                let value = value + insets;
 
                 match self.parent_container.axis {
                     StackAxis::None => {
@@ -472,7 +482,7 @@ impl LayoutState {
                 value
             }
             SizeConstraint::Wrap => {
-                let wrap_width = wrap_width + padding;
+                let wrap_width = wrap_width + insets;
 
                 match self.parent_container.axis {
                     StackAxis::None => {
@@ -492,7 +502,7 @@ impl LayoutState {
                 wrap_width
             }
             SizeConstraint::Fill(_) => {
-                let wrap_width = wrap_width + padding;
+                let wrap_width = wrap_width + insets;
 
                 match self.parent_container.axis {
                     StackAxis::None => {
@@ -512,13 +522,13 @@ impl LayoutState {
         }
     }
 
-    fn add_height(&mut self, height: SizeConstraint, wrap_height: f32, padding: f32) -> f32 {
+    fn add_height(&mut self, height: SizeConstraint, wrap_height: f32, insets: f32) -> f32 {
         let wrap_size = self.wrap_sizes.get_mut(self.parent_container.idx).unwrap();
         let flex_sizes = self.flex_sizes.get_mut(self.parent_container.idx).unwrap();
 
         match height {
             SizeConstraint::Fixed(value) => {
-                let value = value + padding;
+                let value = value + insets;
 
                 match self.parent_container.axis {
                     StackAxis::None => {
@@ -538,7 +548,7 @@ impl LayoutState {
                 value
             }
             SizeConstraint::Wrap => {
-                let wrap_height = wrap_height + padding;
+                let wrap_height = wrap_height + insets;
 
                 match self.parent_container.axis {
                     StackAxis::None => {
@@ -558,7 +568,7 @@ impl LayoutState {
                 wrap_height
             }
             SizeConstraint::Fill(_) => {
-                let wrap_height = wrap_height + padding;
+                let wrap_height = wrap_height + insets;
 
                 match self.parent_container.axis {
                     StackAxis::None => {
@@ -613,7 +623,7 @@ pub fn layout(
     layout_state: &mut LayoutState,
     view: &View,
     commands: &[LayoutCommand],
-    widget_placements: &mut Vec<WidgetPlacement>,
+    layout_items: &mut Vec<LayoutItem>,
     layout_measures: &mut TypedWidgetStates<LayoutMeasure>,
     text: &mut TextsResources,
     fonts: &mut FontResources,
@@ -829,7 +839,7 @@ pub fn layout(
                     }
                 };
 
-                layout_state.add_size(*size, *constraints, wrap_size, (*padding + *margin));
+                layout_state.add_size(*size, *constraints, wrap_size, *padding + *margin);
             }
             LayoutCommand::Spacer { constraints, size } => {
                 layout_state.push_boundary();
@@ -854,7 +864,7 @@ pub fn layout(
     let mut current_idx = 1; // Skip root container
     let mut current_position = Vec2::ZERO;
 
-    widget_placements.clear();
+    layout_items.clear();
 
     layout_state.push_position(current_position);
     layout_state.pass2_parent_container = Pass2LayoutContainer {
@@ -864,6 +874,7 @@ pub fn layout(
         zindex: 0,
         widget_ref: smallvec![],
         margin: EdgeInsets::ZERO,
+        clipping: false,
     };
     layout_state.push_offset(Vec2::new(0., 0.));
 
@@ -1017,6 +1028,7 @@ pub fn layout(
                 backgrounds,
                 padding,
                 margin,
+                clip_shape,
                 ..
             } => {
                 layout_state.push_position(current_position);
@@ -1095,7 +1107,7 @@ pub fn layout(
                 let current_container_position = current_position + offset;
 
                 if RENDER_CONTAINER_DEBUG_BOUNDARIES {
-                    widget_placements.push(WidgetPlacement {
+                    layout_items.push(LayoutItem::Placement(WidgetPlacement {
                         widget_ref: WidgetRef {
                             widget_type: WidgetType::of::<DebugBoundary>(),
                             id: WidgetId::auto(),
@@ -1103,9 +1115,9 @@ pub fn layout(
                         zindex: i32::MAX,
                         boundary: Rect::ZERO,
                         rect: Rect::from_pos_size(current_container_position, widget_size),
-                    });
+                    }));
 
-                    widget_placements.push(WidgetPlacement {
+                    layout_items.push(LayoutItem::Placement(WidgetPlacement {
                         widget_ref: WidgetRef {
                             widget_type: WidgetType::of::<DebugBoundary>(),
                             id: WidgetId::auto(),
@@ -1113,26 +1125,34 @@ pub fn layout(
                         zindex: i32::MAX,
                         boundary: Rect::ZERO,
                         rect: Rect::from_pos_size(boundary.position() + offset, boundary.size()),
-                    });
+                    }));
                 }
 
                 current_position.x += padding.left;
                 current_position.y += padding.top;
 
                 let inside_size = widget_size - Vec2::new(margin.horizontal(), margin.vertical());
+                let decorator_rect = Rect::from_pos_size(current_position + offset, inside_size);
 
                 for widget_ref in backgrounds {
                     if rect_contains_boundary(
                         Rect::from_pos_size(position + offset, inside_size),
                         Rect::from_pos_size(Vec2::ZERO, root_size),
                     ) {
-                        widget_placements.push(WidgetPlacement {
+                        layout_items.push(LayoutItem::Placement(WidgetPlacement {
                             widget_ref: *widget_ref,
                             zindex: *zindex,
                             boundary: Rect::ZERO,
-                            rect: Rect::from_pos_size(current_position + offset, inside_size),
-                        });
+                            rect: decorator_rect,
+                        }));
                     }
+                }
+
+                if let Some(clip_shape) = clip_shape {
+                    layout_items.push(LayoutItem::PushClip {
+                        rect: decorator_rect * view.scale_factor,
+                        shape: *clip_shape,
+                    });
                 }
 
                 match kind {
@@ -1145,6 +1165,7 @@ pub fn layout(
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
+                            clipping: clip_shape.is_some(),
                             widget_ref: backgrounds.clone(),
                             padding: *padding,
                             margin: *margin,
@@ -1172,6 +1193,7 @@ pub fn layout(
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
+                            clipping: clip_shape.is_some(),
                             widget_ref: backgrounds.clone(),
                             padding: *padding,
                             margin: *margin,
@@ -1191,6 +1213,7 @@ pub fn layout(
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             padding: *padding,
                             margin: *margin,
+                            clipping: clip_shape.is_some(),
                             idx: current_idx,
                             zindex: *zindex,
                             widget_ref: backgrounds.clone(),
@@ -1207,6 +1230,7 @@ pub fn layout(
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             padding: *padding,
                             margin: *margin,
+                            clipping: clip_shape.is_some(),
                             idx: current_idx,
                             zindex: *zindex,
                             widget_ref: backgrounds.clone(),
@@ -1220,6 +1244,7 @@ pub fn layout(
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             padding: *padding,
                             margin: *margin,
+                            clipping: clip_shape.is_some(),
                             idx: current_idx,
                             zindex: *zindex,
                             widget_ref: backgrounds.clone(),
@@ -1248,6 +1273,10 @@ pub fn layout(
                 let container = layout_state.pass2_parent_container.clone();
                 layout_state.pass2_parent_container = layout_state.pop_pass2_container();
                 current_position = layout_state.pop_position();
+
+                if container.clipping {
+                    layout_items.push(LayoutItem::PopClip);
+                }
             }
             LayoutCommand::Child {
                 widget_ref,
@@ -1345,12 +1374,12 @@ pub fn layout(
 
                 if should_render {
                     for widget_ref in decorators {
-                        widget_placements.push(WidgetPlacement {
+                        layout_items.push(LayoutItem::Placement(WidgetPlacement {
                             widget_ref: *widget_ref,
                             zindex: *zindex,
                             boundary,
                             rect: decorators_rect,
-                        });
+                        }));
                     }
                 }
 
@@ -1360,12 +1389,12 @@ pub fn layout(
                 );
 
                 if should_render {
-                    widget_placements.push(WidgetPlacement {
+                    layout_items.push(LayoutItem::Placement(WidgetPlacement {
                         widget_ref: *widget_ref,
                         zindex: *zindex,
                         boundary,
                         rect,
-                    });
+                    }));
                 }
 
                 if let DeriveWrapSize::Text(text_id) = derive_wrap_size {
@@ -1376,7 +1405,7 @@ pub fn layout(
                 };
 
                 if RENDER_CHILD_DEBUG_BOUNDARIES {
-                    widget_placements.push(WidgetPlacement {
+                    layout_items.push(LayoutItem::Placement(WidgetPlacement {
                         widget_ref: WidgetRef {
                             widget_type: WidgetType::of::<DebugBoundary>(),
                             id: WidgetId::auto(),
@@ -1384,9 +1413,9 @@ pub fn layout(
                         zindex: i32::MAX,
                         boundary: Rect::ZERO,
                         rect: boundary,
-                    });
+                    }));
 
-                    widget_placements.push(WidgetPlacement {
+                    layout_items.push(LayoutItem::Placement(WidgetPlacement {
                         widget_ref: WidgetRef {
                             widget_type: WidgetType::of::<DebugBoundary>(),
                             id: WidgetId::auto(),
@@ -1394,9 +1423,9 @@ pub fn layout(
                         zindex: i32::MAX,
                         boundary: Rect::ZERO,
                         rect,
-                    });
+                    }));
 
-                    widget_placements.push(WidgetPlacement {
+                    layout_items.push(LayoutItem::Placement(WidgetPlacement {
                         widget_ref: WidgetRef {
                             widget_type: WidgetType::of::<DebugBoundary>(),
                             id: WidgetId::auto(),
@@ -1404,7 +1433,7 @@ pub fn layout(
                         zindex: i32::MAX,
                         boundary: Rect::ZERO,
                         rect: decorators_rect,
-                    });
+                    }));
                 }
 
                 current_idx += 1;

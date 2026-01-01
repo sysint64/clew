@@ -13,7 +13,7 @@ use crate::{
     LayoutDirection, View, WidgetId, WidgetRef,
     interaction::InteractionState,
     io::UserInput,
-    layout::{LayoutCommand, LayoutMeasure, LayoutState, WidgetPlacement},
+    layout::{LayoutCommand, LayoutItem, LayoutMeasure, LayoutState, WidgetPlacement},
     render::RenderState,
     widgets::{colored_box, decorated_box, gesture_detector, scroll_area, svg, text},
 };
@@ -36,6 +36,7 @@ pub struct UiState {
     pub next_event_queue: Vec<Arc<dyn Any + Send>>,
     pub widgets_states: WidgetsStates,
     pub(crate) widget_placements: Vec<WidgetPlacement>,
+    pub(crate) layout_items: Vec<LayoutItem>,
     pub interaction_state: InteractionState,
     pub last_interaction_state: InteractionState,
     pub user_input: UserInput,
@@ -165,6 +166,7 @@ impl UiState {
         self.layout_commands.clear();
         self.render_state.commands.clear();
         self.widget_placements.clear();
+        self.layout_items.clear();
 
         std::mem::swap(&mut self.current_event_queue, &mut self.next_event_queue);
         self.next_event_queue.clear();
@@ -190,6 +192,7 @@ impl UiState {
             widgets_states: WidgetsStates::default(),
             layout_state: LayoutState::default(),
             widget_placements: Vec::new(),
+            layout_items: Vec::new(),
             decorators: SmallVec::new(),
             interaction_state: InteractionState::default(),
             last_interaction_state: InteractionState::default(),

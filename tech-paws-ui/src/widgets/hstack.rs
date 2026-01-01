@@ -1,6 +1,6 @@
 use crate::{
-    AlignX, AlignY, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, Size,
-    SizeConstraint, impl_position_methods, impl_size_methods,
+    AlignX, AlignY, ClipShape, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment,
+    Size, SizeConstraint, impl_position_methods, impl_size_methods,
     layout::{ContainerKind, LayoutCommand},
 };
 
@@ -16,11 +16,18 @@ pub struct HStackBuilder {
     cross_axis_alignment: CrossAxisAlignment,
     padding: EdgeInsets,
     margin: EdgeInsets,
+    clip_shape: Option<ClipShape>,
 }
 
 impl HStackBuilder {
     impl_size_methods!();
     impl_position_methods!();
+
+    pub fn clip_shape(mut self, clip_shape: Option<ClipShape>) -> Self {
+        self.clip_shape = clip_shape;
+
+        self
+    }
 
     pub fn padding(mut self, padding: EdgeInsets) -> Self {
         self.padding = padding;
@@ -80,6 +87,7 @@ impl HStackBuilder {
             },
             size: self.size,
             constraints: self.constraints,
+            clip_shape: self.clip_shape,
         });
 
         callback(context);
@@ -100,5 +108,6 @@ pub fn hstack() -> HStackBuilder {
         cross_axis_alignment: CrossAxisAlignment::default(),
         padding: EdgeInsets::ZERO,
         margin: EdgeInsets::ZERO,
+        clip_shape: Some(ClipShape::Rect),
     }
 }

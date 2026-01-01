@@ -1,8 +1,10 @@
 use std::any::Any;
 
+use smallvec::SmallVec;
+
 use crate::{
-    Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
-    impl_size_methods,
+    ClipShape, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType,
+    impl_id, impl_size_methods,
     interaction::InteractionState,
     io::UserInput,
     layout::{ContainerKind, LayoutCommand, LayoutMeasure},
@@ -29,6 +31,8 @@ pub struct ScrollAreaBuilder {
     padding: EdgeInsets,
     margin: EdgeInsets,
     scroll_direction: ScrollDirection,
+    clip_shape: Option<ClipShape>,
+    backgrounds: SmallVec<[WidgetRef; 8]>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -88,6 +92,12 @@ impl ScrollAreaBuilder {
     impl_id!();
     impl_size_methods!();
 
+    pub fn clip_shape(mut self, clip_shape: Option<ClipShape>) -> Self {
+        self.clip_shape = clip_shape;
+
+        self
+    }
+
     pub fn padding(mut self, padding: EdgeInsets) -> Self {
         self.padding = padding;
 
@@ -100,6 +110,12 @@ impl ScrollAreaBuilder {
         self
     }
 
+    pub fn background(mut self, decorator: WidgetRef) -> Self {
+        self.backgrounds.push(decorator);
+
+        self
+    }
+
     pub fn scroll_direction(mut self, scroll_direction: ScrollDirection) -> Self {
         self.scroll_direction = scroll_direction;
 
@@ -107,7 +123,7 @@ impl ScrollAreaBuilder {
     }
 
     #[profiling::function]
-    pub fn build<F>(self, context: &mut BuildContext, callback: F) -> ScrollAreaResponse
+    pub fn build<F>(mut self, context: &mut BuildContext, callback: F) -> ScrollAreaResponse
     where
         F: FnOnce(&mut BuildContext),
     {
@@ -117,6 +133,7 @@ impl ScrollAreaBuilder {
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
         let mut widget_refs = std::mem::take(context.decorators);
+        widget_refs.append(&mut self.backgrounds);
         widget_refs.push(widget_ref);
 
         let (offset_x, offset_y, response) = {
@@ -172,6 +189,7 @@ impl ScrollAreaBuilder {
             kind: ContainerKind::Measure { id },
             size: self.size,
             constraints: self.constraints,
+            clip_shape: self.clip_shape,
         });
 
         context.push_layout_command(LayoutCommand::BeginOffset { offset_x, offset_y });
@@ -202,6 +220,8 @@ pub fn scroll_area() -> ScrollAreaBuilder {
         padding: EdgeInsets::ZERO,
         margin: EdgeInsets::ZERO,
         scroll_direction: ScrollDirection::Vertical,
+        clip_shape: Some(ClipShape::Rect),
+        backgrounds: SmallVec::new(),
     }
 }
 

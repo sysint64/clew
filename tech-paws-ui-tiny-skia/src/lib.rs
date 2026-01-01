@@ -152,7 +152,7 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
                             );
                         });
                     }
-                    RenderCommand::PushClipRect(_rect) => {
+                    RenderCommand::PushClip { .. } => {
                         // let clip_path = {
                         //     let mut pb = tiny_skia::PathBuilder::new();
                         //     if let Some(rect) = tiny_skia::Rect::from_xywh(*x, *y, *width, *height) {

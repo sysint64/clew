@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use glam::Vec2;
 
 use crate::{
-    Border, BorderRadius, BorderSide, ColorRgb, ColorRgba, DebugBoundary, Gradient,
+    Border, BorderRadius, BorderSide, ClipShape, ColorRgb, ColorRgba, DebugBoundary, Gradient,
     LayoutDirection, Rect, View, WidgetType,
     assets::Assets,
     interaction::{InteractionState, handle_interaction},
     io::UserInput,
-    layout::{WidgetPlacement, layout},
+    layout::{LayoutItem, WidgetPlacement, layout},
     state::UiState,
     text::{FontResources, StringId, StringInterner, TextId, TextsResources},
     widgets::{self, builder::BuildContext},
@@ -87,7 +87,10 @@ pub enum RenderCommand {
         asset_id: &'static str,
         tint_color: Option<ColorRgba>,
     },
-    PushClipRect(Rect),
+    PushClip {
+        rect: Rect,
+        shape: ClipShape,
+    },
     PopClip,
 }
 
@@ -98,7 +101,7 @@ impl RenderCommand {
             RenderCommand::Oval { zindex, .. } => Some(*zindex),
             RenderCommand::Text { zindex, .. } => Some(*zindex),
             RenderCommand::Svg { zindex, .. } => Some(*zindex),
-            RenderCommand::PushClipRect(rect) => None,
+            RenderCommand::PushClip { .. } => None,
             RenderCommand::PopClip => None,
         }
     }
@@ -199,7 +202,7 @@ pub fn render(
             &mut state.layout_state,
             &state.view,
             &state.layout_commands,
-            &mut state.widget_placements,
+            &mut state.layout_items,
             &mut state.widgets_states.layout_measures,
             text,
             fonts,
@@ -218,7 +221,7 @@ pub fn render(
             &mut state.layout_state,
             &state.view,
             &state.layout_commands,
-            &mut state.widget_placements,
+            &mut state.layout_items,
             &mut state.widgets_states.layout_measures,
             text,
             fonts,
@@ -249,7 +252,7 @@ pub fn render(
                 &state.view,
                 text,
                 fonts,
-                &state.widget_placements,
+                &state.layout_items,
             );
 
         need_to_redraw = need_to_redraw || state.interaction_state != state.last_interaction_state;
@@ -264,107 +267,113 @@ pub fn render(
 
         // let render_time = std::time::Instant::now();
 
-        for placement in &state.widget_placements {
-            let mut render_context = RenderContext {
-                interaction: &state.interaction_state,
-                input: &state.user_input,
-                view: &state.view,
-                text,
-                fonts,
-                string_interner,
-                strings,
-                layout_direction: state.layout_direction,
-                commands: &mut state.render_state.commands,
-            };
+        for layout_item in &state.layout_items {
+            match layout_item {
+                LayoutItem::Placement(placement) => {
+                    let mut render_context = RenderContext {
+                        interaction: &state.interaction_state,
+                        input: &state.user_input,
+                        view: &state.view,
+                        text,
+                        fonts,
+                        string_interner,
+                        strings,
+                        layout_direction: state.layout_direction,
+                        commands: &mut state.render_state.commands,
+                    };
 
-            // if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>()
-            // {
-            //     widgets::button::render(
-            //         &mut render_context,
-            //         placement,
-            //         state
-            //             .widgets_states
-            //             .get_mut::<widgets::button::State>(placement.widget_ref.id)
-            //             .unwrap(),
-            //     );
-            // }
+                    if placement.widget_ref.widget_type
+                        == WidgetType::of::<widgets::text::TextWidget>()
+                    {
+                        widgets::text::render(
+                            &mut render_context,
+                            placement,
+                            state
+                                .widgets_states
+                                .text
+                                .get(placement.widget_ref.id)
+                                .unwrap(),
+                        );
+                    }
 
-            if placement.widget_ref.widget_type == WidgetType::of::<widgets::text::TextWidget>() {
-                widgets::text::render(
-                    &mut render_context,
-                    placement,
-                    // state
-                    //     .widgets_states
-                    //     .get_mut::<widgets::text::State>(placement.widget_ref.id)
-                    //     .unwrap(),
-                    state
-                        .widgets_states
-                        .text
-                        .get(placement.widget_ref.id)
-                        .unwrap(),
-                );
-            }
+                    if placement.widget_ref.widget_type
+                        == WidgetType::of::<widgets::colored_box::ColoredBox>()
+                    {
+                        widgets::colored_box::render(
+                            &mut render_context,
+                            placement,
+                            state
+                                .widgets_states
+                                .colored_box
+                                .get(placement.widget_ref.id)
+                                .unwrap(),
+                            // state
+                            //     .widgets_states
+                            //     .get_mut::<widgets::colored_box::State>(placement.widget_ref.id)
+                            //     .unwrap(),
+                        );
+                    }
 
-            if placement.widget_ref.widget_type
-                == WidgetType::of::<widgets::colored_box::ColoredBox>()
-            {
-                widgets::colored_box::render(
-                    &mut render_context,
-                    placement,
-                    state
-                        .widgets_states
-                        .colored_box
-                        .get(placement.widget_ref.id)
-                        .unwrap(),
-                    // state
-                    //     .widgets_states
-                    //     .get_mut::<widgets::colored_box::State>(placement.widget_ref.id)
-                    //     .unwrap(),
-                );
-            }
+                    if placement.widget_ref.widget_type
+                        == WidgetType::of::<widgets::decorated_box::DecoratedBox>()
+                    {
+                        widgets::decorated_box::render(
+                            &mut render_context,
+                            placement,
+                            state
+                                .widgets_states
+                                .decorated_box
+                                .get(placement.widget_ref.id)
+                                .unwrap(),
+                            // state
+                            //     .widgets_states
+                            //     .get_mut::<widgets::decorated_box::State>(placement.widget_ref.id)
+                            //     .unwrap(),
+                        );
+                    }
 
-            if placement.widget_ref.widget_type
-                == WidgetType::of::<widgets::decorated_box::DecoratedBox>()
-            {
-                widgets::decorated_box::render(
-                    &mut render_context,
-                    placement,
-                    state
-                        .widgets_states
-                        .decorated_box
-                        .get(placement.widget_ref.id)
-                        .unwrap(),
-                    // state
-                    //     .widgets_states
-                    //     .get_mut::<widgets::decorated_box::State>(placement.widget_ref.id)
-                    //     .unwrap(),
-                );
-            }
+                    if placement.widget_ref.widget_type
+                        == WidgetType::of::<widgets::svg::SvgWidget>()
+                    {
+                        widgets::svg::render(
+                            &mut render_context,
+                            placement,
+                            state
+                                .widgets_states
+                                .svg
+                                .get(placement.widget_ref.id)
+                                .unwrap(),
+                            // state
+                            //     .widgets_states
+                            //     .get_mut::<widgets::svg::State>(placement.widget_ref.id)
+                            //     .unwrap(),
+                        );
+                    }
 
-            if placement.widget_ref.widget_type == WidgetType::of::<widgets::svg::SvgWidget>() {
-                widgets::svg::render(
-                    &mut render_context,
-                    placement,
-                    state
-                        .widgets_states
-                        .svg
-                        .get(placement.widget_ref.id)
-                        .unwrap(),
-                    // state
-                    //     .widgets_states
-                    //     .get_mut::<widgets::svg::State>(placement.widget_ref.id)
-                    //     .unwrap(),
-                );
-            }
-
-            if placement.widget_ref.widget_type == WidgetType::of::<DebugBoundary>() {
-                render_debug_boundary(&mut render_context, placement);
+                    if placement.widget_ref.widget_type == WidgetType::of::<DebugBoundary>() {
+                        render_debug_boundary(&mut render_context, placement);
+                    }
+                }
+                LayoutItem::PushClip { rect, shape } => {
+                    state.render_state.commands.push(RenderCommand::PushClip {
+                        rect: *rect,
+                        shape: *shape,
+                    })
+                }
+                LayoutItem::PopClip => {
+                    state.render_state.commands.push(RenderCommand::PopClip);
+                }
             }
         }
 
         tracy_client::plot!(
+            "Tech Paws UI - Layout Items",
+            state.layout_items.len() as f64
+        );
+
+        tracy_client::plot!(
             "Tech Paws UI - Render Commands",
-            state.widget_placements.len() as f64
+            state.render_state.commands.len() as f64
         );
         // println!(
         //     "RENDER COMMAND CREATED FOR {} PLACEMENTS: {:?}",

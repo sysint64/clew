@@ -1,7 +1,7 @@
 use crate::{
-    AlignX, AlignY, BorderRadius, ClipShape, Constraints, CrossAxisAlignment, DebugBoundary,
-    EdgeInsets, LayoutDirection, MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId,
-    WidgetRef, WidgetType,
+    AlignX, AlignY, BorderRadius, Clip, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets,
+    LayoutDirection, MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, WidgetRef,
+    WidgetType,
     assets::Assets,
     rect_contains_boundary,
     state::TypedWidgetStates,
@@ -24,7 +24,7 @@ pub struct WidgetPlacement {
 #[derive(Debug)]
 pub enum LayoutItem {
     Placement(WidgetPlacement),
-    PushClip { rect: Rect, shape: ClipShape },
+    PushClip { rect: Rect, clip: Clip },
     PopClip,
 }
 
@@ -38,7 +38,7 @@ pub enum LayoutCommand {
         zindex: i32,
         padding: EdgeInsets,
         margin: EdgeInsets,
-        clip_shape: Option<ClipShape>,
+        clip: Clip,
     },
     EndContainer,
     BeginOffset {
@@ -46,7 +46,7 @@ pub enum LayoutCommand {
         offset_y: f32,
     },
     EndOffset,
-    Child {
+    Leaf {
         widget_ref: WidgetRef,
         backgrounds: SmallVec<[WidgetRef; 8]>,
         constraints: Constraints,
@@ -55,6 +55,7 @@ pub enum LayoutCommand {
         size: Size,
         derive_wrap_size: DeriveWrapSize,
         zindex: i32,
+        clip: Clip,
     },
     Spacer {
         constraints: Constraints,
@@ -802,7 +803,7 @@ pub fn layout(
                 layout_state.actual_sizes[current_container_idx] =
                     apply_constraints(size, constraints);
             }
-            LayoutCommand::Child {
+            LayoutCommand::Leaf {
                 constraints,
                 size,
                 derive_wrap_size,
@@ -1028,7 +1029,7 @@ pub fn layout(
                 backgrounds,
                 padding,
                 margin,
-                clip_shape,
+                clip,
                 ..
             } => {
                 layout_state.push_position(current_position);
@@ -1036,6 +1037,7 @@ pub fn layout(
 
                 layout_state.actual_sizes[current_idx] = widget_size;
                 current_position = position + Vec2::new(margin.left, margin.top);
+                let clipping = *clip != Clip::None;
 
                 let align_x = match layout_state.pass2_parent_container.axis {
                     StackAxisPass2::None => AlignX::Start,
@@ -1148,10 +1150,10 @@ pub fn layout(
                     }
                 }
 
-                if let Some(clip_shape) = clip_shape {
+                if *clip != Clip::None {
                     layout_items.push(LayoutItem::PushClip {
-                        rect: decorator_rect * view.scale_factor,
-                        shape: *clip_shape,
+                        rect: decorator_rect,
+                        clip: *clip,
                     });
                 }
 
@@ -1165,7 +1167,7 @@ pub fn layout(
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
-                            clipping: clip_shape.is_some(),
+                            clipping,
                             widget_ref: backgrounds.clone(),
                             padding: *padding,
                             margin: *margin,
@@ -1193,7 +1195,7 @@ pub fn layout(
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             idx: current_idx,
                             zindex: *zindex,
-                            clipping: clip_shape.is_some(),
+                            clipping,
                             widget_ref: backgrounds.clone(),
                             padding: *padding,
                             margin: *margin,
@@ -1213,7 +1215,7 @@ pub fn layout(
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             padding: *padding,
                             margin: *margin,
-                            clipping: clip_shape.is_some(),
+                            clipping,
                             idx: current_idx,
                             zindex: *zindex,
                             widget_ref: backgrounds.clone(),
@@ -1230,7 +1232,7 @@ pub fn layout(
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             padding: *padding,
                             margin: *margin,
-                            clipping: clip_shape.is_some(),
+                            clipping,
                             idx: current_idx,
                             zindex: *zindex,
                             widget_ref: backgrounds.clone(),
@@ -1244,7 +1246,7 @@ pub fn layout(
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             padding: *padding,
                             margin: *margin,
-                            clipping: clip_shape.is_some(),
+                            clipping,
                             idx: current_idx,
                             zindex: *zindex,
                             widget_ref: backgrounds.clone(),
@@ -1278,13 +1280,14 @@ pub fn layout(
                     layout_items.push(LayoutItem::PopClip);
                 }
             }
-            LayoutCommand::Child {
+            LayoutCommand::Leaf {
                 widget_ref,
                 backgrounds: decorators,
                 zindex,
                 padding,
                 margin,
                 derive_wrap_size,
+                clip,
                 ..
             } => {
                 let align_x = match layout_state.pass2_parent_container.axis {
@@ -1389,12 +1392,23 @@ pub fn layout(
                 );
 
                 if should_render {
+                    if *clip != Clip::None {
+                        layout_items.push(LayoutItem::PushClip {
+                            rect: decorators_rect,
+                            clip: *clip,
+                        });
+                    }
+
                     layout_items.push(LayoutItem::Placement(WidgetPlacement {
                         widget_ref: *widget_ref,
                         zindex: *zindex,
                         boundary,
                         rect,
                     }));
+
+                    if *clip != Clip::None {
+                        layout_items.push(LayoutItem::PopClip);
+                    }
                 }
 
                 if let DeriveWrapSize::Text(text_id) = derive_wrap_size {

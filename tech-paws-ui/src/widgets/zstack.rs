@@ -5,7 +5,7 @@ use glam::Vec2;
 use smallvec::SmallVec;
 
 use crate::{
-    AlignX, AlignY, Border, BorderRadius, BorderSide, ClipShape, ColorRgba, Constraints,
+    AlignX, AlignY, Border, BorderRadius, BorderSide, Clip, ColorRgba, Constraints,
     EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
     impl_position_methods, impl_size_methods, impl_width_methods,
     layout::{ContainerKind, LayoutCommand, WidgetPlacement},
@@ -28,14 +28,14 @@ pub struct ZStackBuilder {
 
     align_x: AlignX,
     align_y: AlignY,
-    clip_shape: Option<ClipShape>,
+    clip: Clip,
 }
 
 impl ZStackBuilder {
     impl_size_methods!();
 
-    pub fn clip_shape(mut self, clip_shape: Option<ClipShape>) -> Self {
-        self.clip_shape = clip_shape;
+    pub fn clip(mut self, clip: Clip) -> Self {
+        self.clip = clip;
 
         self
     }
@@ -93,7 +93,7 @@ impl ZStackBuilder {
             },
             size: self.size,
             constraints: self.constraints,
-            clip_shape: self.clip_shape,
+            clip: self.clip,
         });
         callback(context);
         context.push_layout_command(LayoutCommand::EndContainer);
@@ -113,6 +113,6 @@ pub fn zstack() -> ZStackBuilder {
         constraints: Constraints::default(),
         size: Size::default(),
         backgrounds: SmallVec::new(),
-        clip_shape: Some(ClipShape::Rect),
+        clip: Clip::Rect,
     }
 }

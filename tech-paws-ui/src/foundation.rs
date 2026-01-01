@@ -10,10 +10,31 @@ pub enum Axis {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Clip {
+    None,
+    Rect,
+    RoundedRect { border_radius: BorderRadius },
+    Oval,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ClipShape {
     Rect,
     RoundedRect { border_radius: BorderRadius },
     Oval,
+}
+
+impl Clip {
+    pub fn to_shape(self) -> Option<ClipShape> {
+        match self {
+            Clip::None => None,
+            Clip::Rect => Some(ClipShape::Rect),
+            Clip::RoundedRect { border_radius } => Some(ClipShape::RoundedRect {
+                border_radius: border_radius,
+            }),
+            Clip::Oval => Some(ClipShape::Oval),
+        }
+    }
 }
 
 #[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
@@ -1333,6 +1354,6 @@ impl From<ColorRgba> for cosmic_text::Color {
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum BoxShape {
-    rect,
-    oval,
+    Rect,
+    Oval,
 }

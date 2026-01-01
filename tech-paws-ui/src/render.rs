@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use glam::Vec2;
 
 use crate::{
-    Border, BorderRadius, BorderSide, ClipShape, ColorRgb, ColorRgba, DebugBoundary, Gradient,
-    LayoutDirection, Rect, View, WidgetType,
+    Border, BorderRadius, BorderSide, Clip, ClipShape, ColorRgb, ColorRgba, DebugBoundary,
+    Gradient, LayoutDirection, Rect, View, WidgetType,
     assets::Assets,
     interaction::{InteractionState, handle_interaction},
     io::UserInput,
@@ -167,6 +167,18 @@ impl PixelExtension<Border> for Border {
     }
 }
 
+impl PixelExtension<ClipShape> for ClipShape {
+    fn px(self, ctx: &RenderContext) -> ClipShape {
+        match self {
+            ClipShape::Rect => self,
+            ClipShape::RoundedRect { border_radius } => ClipShape::RoundedRect {
+                border_radius: border_radius.px(ctx),
+            },
+            ClipShape::Oval => self,
+        }
+    }
+}
+
 #[profiling::function]
 pub fn cache_string<F>(ctx: &mut BuildContext, symbol: StringId, create_text_id: F) -> TextId
 where
@@ -268,20 +280,20 @@ pub fn render(
         // let render_time = std::time::Instant::now();
 
         for layout_item in &state.layout_items {
+            let mut render_context = RenderContext {
+                interaction: &state.interaction_state,
+                input: &state.user_input,
+                view: &state.view,
+                text,
+                fonts,
+                string_interner,
+                strings,
+                layout_direction: state.layout_direction,
+                commands: &mut state.render_state.commands,
+            };
+
             match layout_item {
                 LayoutItem::Placement(placement) => {
-                    let mut render_context = RenderContext {
-                        interaction: &state.interaction_state,
-                        input: &state.user_input,
-                        view: &state.view,
-                        text,
-                        fonts,
-                        string_interner,
-                        strings,
-                        layout_direction: state.layout_direction,
-                        commands: &mut state.render_state.commands,
-                    };
-
                     if placement.widget_ref.widget_type
                         == WidgetType::of::<widgets::text::TextWidget>()
                     {
@@ -354,11 +366,18 @@ pub fn render(
                         render_debug_boundary(&mut render_context, placement);
                     }
                 }
-                LayoutItem::PushClip { rect, shape } => {
-                    state.render_state.commands.push(RenderCommand::PushClip {
-                        rect: *rect,
-                        shape: *shape,
-                    })
+                LayoutItem::PushClip { rect, clip } => {
+                    let shape = clip
+                        .to_shape()
+                        .expect("Cannot push clip without a shape")
+                        .px(&render_context);
+
+                    let rect = rect.px(&render_context);
+
+                    state
+                        .render_state
+                        .commands
+                        .push(RenderCommand::PushClip { rect, shape })
                 }
                 LayoutItem::PopClip => {
                     state.render_state.commands.push(RenderCommand::PopClip);

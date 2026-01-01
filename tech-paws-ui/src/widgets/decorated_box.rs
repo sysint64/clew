@@ -5,9 +5,9 @@ use glam::Vec2;
 use smallvec::{SmallVec, smallvec};
 
 use crate::{
-    AlignX, AlignY, Border, BorderRadius, BorderSide, BoxShape, ColorRgba, Constraints, EdgeInsets,
-    Gradient, LinearGradient, RadialGradient, Size, SizeConstraint, WidgetId, WidgetRef,
-    WidgetType, impl_id, impl_size_methods, impl_width_methods,
+    AlignX, AlignY, Border, BorderRadius, BorderSide, BoxShape, Clip, ColorRgba, Constraints,
+    EdgeInsets, Gradient, LinearGradient, RadialGradient, Size, SizeConstraint, WidgetId,
+    WidgetRef, WidgetType, impl_id, impl_size_methods, impl_width_methods,
     layout::{ContainerKind, DeriveWrapSize, LayoutCommand, WidgetPlacement},
     render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
     state::WidgetState,
@@ -28,6 +28,7 @@ pub struct DecoratedBoxBuilder {
     margin: EdgeInsets,
     offset_x: f32,
     offset_y: f32,
+    clip: Clip,
 
     color: Option<ColorRgba>,
     gradients: SmallVec<[Gradient; 4]>,
@@ -173,6 +174,12 @@ impl DecoratedBoxBuilder {
         self
     }
 
+    pub fn clip(mut self, clip: Clip) -> Self {
+        self.clip = clip;
+
+        self
+    }
+
     pub fn border_radius(mut self, border_radius: BorderRadius) -> Self {
         self.border_radius = Some(border_radius);
 
@@ -222,7 +229,7 @@ impl DecoratedBoxBuilder {
             });
         }
 
-        context.push_layout_command(LayoutCommand::Child {
+        context.push_layout_command(LayoutCommand::Leaf {
             widget_ref,
             backgrounds,
             padding: self.padding,
@@ -231,6 +238,7 @@ impl DecoratedBoxBuilder {
             size: self.size,
             zindex: self.zindex.unwrap_or(context.current_zindex),
             derive_wrap_size: DeriveWrapSize::Constraints,
+            clip: self.clip,
         });
 
         if self.offset_x != 0. || self.offset_y != 0. {
@@ -259,13 +267,14 @@ pub fn decorated_box() -> DecoratedBoxBuilder {
         gradients: smallvec![],
         border_radius: None,
         border: None,
-        shape: BoxShape::rect,
+        shape: BoxShape::Rect,
         offset_x: 0.,
         offset_y: 0.,
         size: Size::default(),
         constraints: Constraints::default(),
         padding: EdgeInsets::ZERO,
         margin: EdgeInsets::ZERO,
+        clip: Clip::None,
     }
 }
 
@@ -277,7 +286,7 @@ pub fn decoration() -> DecorationBuilder {
         gradients: smallvec![],
         border_radius: None,
         border: None,
-        shape: BoxShape::rect,
+        shape: BoxShape::Rect,
     }
 }
 
@@ -287,7 +296,7 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
     let position = placement.rect.position().px(ctx);
 
     match state.shape {
-        BoxShape::rect => {
+        BoxShape::Rect => {
             if let Some(color) = state.color {
                 ctx.push_command(RenderCommand::Rect {
                     zindex: placement.zindex,
@@ -308,7 +317,7 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
                 });
             }
         }
-        BoxShape::oval => {
+        BoxShape::Oval => {
             let border = state.border.map(|it| it.px(ctx)).map(|it| {
                 it.top
                     .or(it.bottom)

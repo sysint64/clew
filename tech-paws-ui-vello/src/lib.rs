@@ -2,11 +2,7 @@ use cosmic_text::{Buffer, FontSystem};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use std::{collections::HashMap, sync::Arc};
 use tech_paws_ui::{
-    Border, BorderRadius, BorderSide, ClipShape, ColorRgb, ColorRgba, Gradient, Rect, TileMode,
-    View,
-    assets::Assets,
-    render::{Fill, RenderCommand, RenderState, Renderer},
-    text::{FontResources, TextsResources},
+    Border, BorderRadius, BorderSide, Clip, ClipShape, ColorRgb, ColorRgba, Gradient, Rect, TileMode, View, assets::Assets, render::{Fill, RenderCommand, RenderState, Renderer}, text::{FontResources, TextsResources}
 };
 use vello::{
     AaConfig, Glyph, RenderParams, RendererOptions, Scene,

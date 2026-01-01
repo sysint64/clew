@@ -4,13 +4,7 @@ use std::hash::Hash;
 use glam::Vec2;
 
 use crate::{
-    AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets, Size,
-    SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id, impl_size_methods,
-    impl_width_methods,
-    layout::{ContainerKind, DeriveWrapSize, LayoutCommand, WidgetPlacement},
-    render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
-    state::WidgetState,
-    text::StringId,
+    AlignX, AlignY, Border, BorderRadius, BorderSide, Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id, impl_size_methods, impl_width_methods, layout::{ContainerKind, DeriveWrapSize, LayoutCommand, WidgetPlacement}, render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string}, state::WidgetState, text::StringId
 };
 
 use super::builder::BuildContext;
@@ -30,6 +24,7 @@ pub struct ColoredBoxChildBuilder {
     color: ColorRgba,
     zindex: Option<i32>,
     padding: EdgeInsets,
+    clip: Clip,
 }
 
 #[derive(Clone, PartialEq)]
@@ -58,19 +53,20 @@ impl ColoredBoxDecoratorBuilder {
     impl_id!();
 
     fn to_child(self) -> ColoredBoxChildBuilder {
-        ColoredBoxChildBuilder {
-            id: self.id,
-            color: self.color,
-            zindex: None,
-            size: Size::default(),
-            padding: EdgeInsets::ZERO,
-            constraints: Constraints {
-                min_width: 0.,
-                min_height: 0.,
-                max_width: f32::INFINITY,
-                max_height: f32::INFINITY,
-            },
-        }
+        todo!();
+        // ColoredBoxChildBuilder {
+        //     id: self.id,
+        //     color: self.color,
+        //     zindex: None,
+        //     size: Size::default(),
+        //     padding: EdgeInsets::ZERO,
+        //     constraints: Constraints {
+        //         min_width: 0.,
+        //         min_height: 0.,
+        //         max_width: f32::INFINITY,
+        //         max_height: f32::INFINITY,
+        //     },
+        // }
     }
 
     pub fn size<T: Into<Size>>(self, size: T) -> ColoredBoxChildBuilder {
@@ -156,7 +152,7 @@ impl ColoredBoxChildBuilder {
         let widget_ref = WidgetRef::new(WidgetType::of::<ColoredBox>(), id);
         let decorators = std::mem::take(context.decorators);
 
-        context.push_layout_command(LayoutCommand::Child {
+        context.push_layout_command(LayoutCommand::Leaf {
             widget_ref,
             backgrounds: decorators,
             padding: self.padding,
@@ -165,6 +161,7 @@ impl ColoredBoxChildBuilder {
             size: self.size,
             zindex: self.zindex.unwrap_or(context.current_zindex),
             derive_wrap_size: DeriveWrapSize::Constraints,
+            clip: self.clip,
         });
 
         context

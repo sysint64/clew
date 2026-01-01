@@ -4,8 +4,8 @@ use glam::Vec2;
 use smallvec::{SmallVec, smallvec};
 
 use crate::{
-    AlignX, AlignY, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, TextAlign, WidgetId,
-    WidgetRef, WidgetType, impl_id, impl_size_methods, impl_width_methods,
+    AlignX, AlignY, Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, TextAlign,
+    WidgetId, WidgetRef, WidgetType, impl_id, impl_size_methods, impl_width_methods,
     layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
     render::{PixelExtension, RenderCommand, RenderContext, cache_string},
     state::WidgetState,
@@ -30,6 +30,7 @@ pub struct TextBuilder<'a> {
     text_align: TextAlign,
     padding: EdgeInsets,
     margin: EdgeInsets,
+    clip: Clip,
 }
 
 #[derive(Clone, PartialEq)]
@@ -161,7 +162,7 @@ impl<'a> TextBuilder<'a> {
         let mut backgrounds = std::mem::take(context.decorators);
         backgrounds.append(&mut self.backgrounds);
 
-        context.push_layout_command(LayoutCommand::Child {
+        context.push_layout_command(LayoutCommand::Leaf {
             widget_ref,
             backgrounds,
             padding: self.padding,
@@ -170,6 +171,7 @@ impl<'a> TextBuilder<'a> {
             size: self.size,
             zindex: self.zindex.unwrap_or(context.current_zindex),
             derive_wrap_size: DeriveWrapSize::Text(text_id),
+            clip: self.clip,
         });
 
         context.widgets_states.text.accessed_this_frame.insert(id);
@@ -212,6 +214,7 @@ pub fn text(text: &str) -> TextBuilder<'_> {
         text_align: TextAlign::Left,
         padding: EdgeInsets::ZERO,
         margin: EdgeInsets::ZERO,
+        clip: Clip::None,
     }
 }
 

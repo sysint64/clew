@@ -31,8 +31,8 @@ use tech_paws_ui::{
     },
 };
 use tech_paws_ui::{
-    Border, BorderRadius, BorderSide, BoxShape, ClipShape, ColorRgba, CrossAxisAlignment,
-    EdgeInsets, LinearGradient, MainAxisAlignment, RadialGradient, TextAlign,
+    Border, BorderRadius, BorderSide, BoxShape, Clip, ColorRgba, CrossAxisAlignment, EdgeInsets,
+    LinearGradient, MainAxisAlignment, RadialGradient, TextAlign,
 };
 use tech_paws_ui_derive::{Identifiable, WidgetState};
 use tech_paws_ui_desktop::{
@@ -185,19 +185,31 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
         zstack()
             .fill_max_size()
             // .clip_shape(Some(ClipShape::Oval))
-            .clip_shape(Some(ClipShape::RoundedRect {
-                border_radius: BorderRadius::all(16.),
-            }))
+            // .clip(Clip::RoundedRect {
+            //     border_radius: BorderRadius::all(16.),
+            // })
             .margin(EdgeInsets::all(16.))
             .build(ctx, |ctx| {
+                // decorated_box()
+                //     .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
+                //     .fill_max_size()
+                //     .clip(Clip::RoundedRect {
+                //         border_radius: BorderRadius::all(16.),
+                //     })
+                //     .build(ctx);
+
                 let response = scroll_area()
                     .scroll_direction(ScrollDirection::Both)
                     .fill_max_size()
                     .background(
                         decoration()
                             .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
+                            .border_radius(BorderRadius::all(16.))
                             .build(ctx),
                     )
+                    .clip(Clip::RoundedRect {
+                        border_radius: BorderRadius::all(16.),
+                    })
                     .build(ctx, |ctx| {
                         let response = ctx.of::<ScrollAreaResponse>().unwrap();
 
@@ -327,9 +339,9 @@ impl Component for Counter {
                                         decoration()
                                             .color(ColorRgba::from_hex(0xFFCC0000))
                                             .shape(if response.is_hot() {
-                                                BoxShape::oval
+                                                BoxShape::Oval
                                             } else {
-                                                BoxShape::rect
+                                                BoxShape::Rect
                                             })
                                             .border_radius(BorderRadius::all(8.))
                                             .border(Border::all(BorderSide::new(

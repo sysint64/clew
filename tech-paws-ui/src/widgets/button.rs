@@ -2,8 +2,8 @@ use glam::Vec2;
 
 use super::builder::BuildContext;
 use crate::{
-    AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets, Gradient,
-    LinearGradient, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
+    AlignX, AlignY, Border, BorderRadius, BorderSide, Clip, ColorRgba, Constraints, EdgeInsets,
+    Gradient, LinearGradient, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
     impl_position_methods, impl_width_methods,
     interaction::InteractionState,
     io::UserInput,
@@ -24,6 +24,7 @@ pub struct ButtonBuilder<'a> {
     align_y: Option<AlignY>,
     zindex: Option<i32>,
     padding: Option<EdgeInsets>,
+    clip: Clip,
 }
 
 pub struct ButtonResponse {
@@ -86,7 +87,7 @@ impl<'a> ButtonBuilder<'a> {
                 })
         });
 
-        context.push_layout_command(LayoutCommand::Child {
+        context.push_layout_command(LayoutCommand::Leaf {
             widget_ref: widget_ref,
             backgrounds: smallvec![],
             constraints: self.constraints,
@@ -95,6 +96,7 @@ impl<'a> ButtonBuilder<'a> {
             margin: EdgeInsets::ZERO,
             derive_wrap_size: DeriveWrapSize::Text(text_id),
             zindex: self.zindex.unwrap_or(context.current_zindex),
+            clip: todo!(),
         });
 
         ButtonResponse { clicked: false }
@@ -118,6 +120,7 @@ pub fn button(text: &str) -> ButtonBuilder<'_> {
             max_width: f32::INFINITY,
             max_height: f32::INFINITY,
         },
+        clip: todo!(),
     }
 }
 

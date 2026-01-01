@@ -3,8 +3,8 @@ use std::any::Any;
 use glam::Vec2;
 
 use crate::{
-    AlignX, AlignY, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef,
-    WidgetType, impl_size_methods, impl_width_methods,
+    AlignX, AlignY, Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId,
+    WidgetRef, WidgetType, impl_size_methods, impl_width_methods,
     layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
     render::{PixelExtension, RenderCommand, RenderContext, cache_string},
     state::WidgetState,
@@ -23,6 +23,7 @@ pub struct SvgBuilder {
     color: Option<ColorRgba>,
     padding: EdgeInsets,
     margin: EdgeInsets,
+    clip: Clip,
 }
 
 #[derive(Clone, PartialEq)]
@@ -75,7 +76,7 @@ impl SvgBuilder {
         let widget_ref = WidgetRef::new(WidgetType::of::<SvgWidget>(), id);
         let decorators = std::mem::take(context.decorators);
 
-        context.push_layout_command(LayoutCommand::Child {
+        context.push_layout_command(LayoutCommand::Leaf {
             widget_ref,
             backgrounds: decorators,
             padding: self.padding,
@@ -84,6 +85,7 @@ impl SvgBuilder {
             size: self.size,
             zindex: self.zindex.unwrap_or(context.current_zindex),
             derive_wrap_size: DeriveWrapSize::Svg(self.asset_id),
+            clip: self.clip,
         });
 
         let state = context.widgets_states.svg.set(
@@ -112,6 +114,7 @@ pub fn svg(asset_id: &'static str) -> SvgBuilder {
         },
         padding: EdgeInsets::ZERO,
         margin: EdgeInsets::ZERO,
+        clip: Clip::None,
     }
 }
 

@@ -3,8 +3,8 @@ use std::any::Any;
 use smallvec::SmallVec;
 
 use crate::{
-    ClipShape, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType,
-    impl_id, impl_size_methods,
+    Clip, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
+    impl_size_methods,
     interaction::InteractionState,
     io::UserInput,
     layout::{ContainerKind, LayoutCommand, LayoutMeasure},
@@ -31,7 +31,7 @@ pub struct ScrollAreaBuilder {
     padding: EdgeInsets,
     margin: EdgeInsets,
     scroll_direction: ScrollDirection,
-    clip_shape: Option<ClipShape>,
+    clip: Clip,
     backgrounds: SmallVec<[WidgetRef; 8]>,
 }
 
@@ -92,8 +92,8 @@ impl ScrollAreaBuilder {
     impl_id!();
     impl_size_methods!();
 
-    pub fn clip_shape(mut self, clip_shape: Option<ClipShape>) -> Self {
-        self.clip_shape = clip_shape;
+    pub fn clip(mut self, clip: Clip) -> Self {
+        self.clip = clip;
 
         self
     }
@@ -189,7 +189,7 @@ impl ScrollAreaBuilder {
             kind: ContainerKind::Measure { id },
             size: self.size,
             constraints: self.constraints,
-            clip_shape: self.clip_shape,
+            clip: self.clip,
         });
 
         context.push_layout_command(LayoutCommand::BeginOffset { offset_x, offset_y });
@@ -220,7 +220,7 @@ pub fn scroll_area() -> ScrollAreaBuilder {
         padding: EdgeInsets::ZERO,
         margin: EdgeInsets::ZERO,
         scroll_direction: ScrollDirection::Vertical,
-        clip_shape: Some(ClipShape::Rect),
+        clip: Clip::Rect,
         backgrounds: SmallVec::new(),
     }
 }

@@ -1,8 +1,8 @@
 use smallvec::{SmallVec, smallvec};
 
 use crate::{
-    Clip, Constraints, EdgeInsets, ScrollDirection, Size, SizeConstraint, WidgetId, WidgetRef,
-    impl_id, impl_size_methods,
+    Axis, Clip, Constraints, EdgeInsets, ScrollDirection, Size, SizeConstraint, WidgetId,
+    WidgetRef, impl_id, impl_size_methods,
     interaction::InteractionState,
     io::UserInput,
     layout::{ContainerKind, DeriveWrapSize, LayoutCommand, LayoutMeasure},
@@ -23,7 +23,7 @@ pub struct VirtualListBuilder {
     margin: EdgeInsets,
     clip: Clip,
     backgrounds: SmallVec<[WidgetRef; 8]>,
-    scroll_direction: ScrollDirection,
+    axis: Axis,
 }
 
 impl VirtualListBuilder {
@@ -66,8 +66,8 @@ impl VirtualListBuilder {
         self
     }
 
-    pub fn scroll_direction(mut self, scroll_direction: ScrollDirection) -> Self {
-        self.scroll_direction = scroll_direction;
+    pub fn scroll_direction(mut self, axis: Axis) -> Self {
+        self.axis = axis;
 
         self
     }
@@ -96,7 +96,7 @@ impl VirtualListBuilder {
                         offset_y: 0.,
                         overflow_x: false,
                         overflow_y: false,
-                        scroll_direction: self.scroll_direction,
+                        scroll_direction: self.axis.to_scroll_direction(),
                         fraction_x: 0.,
                         fraction_y: 0.,
                         progress_x: 0.,
@@ -108,19 +108,25 @@ impl VirtualListBuilder {
                     });
 
             let layout_measures = context.widgets_states.layout_measures.get_mut(id);
-            let wrap_height = self.item_size as f64 * (self.items_count as f64);
+            let wrap_size = self.item_size as f64 * (self.items_count as f64);
 
             if let Some(layout_measures) = layout_measures {
                 scroll_area::handle_interaction(
                     context.input,
                     state,
                     layout_measures,
-                    0.,
-                    wrap_height,
+                    match self.axis {
+                        Axis::Horizontal => wrap_size,
+                        Axis::Vertical => 0.,
+                    },
+                    match self.axis {
+                        Axis::Horizontal => 0.,
+                        Axis::Vertical => wrap_size,
+                    },
                 );
             }
 
-            state.scroll_direction = self.scroll_direction;
+            state.scroll_direction = self.axis.to_scroll_direction();
 
             (
                 state.offset_x,
@@ -154,18 +160,68 @@ impl VirtualListBuilder {
             clip: self.clip,
         });
 
-        let viewport_height = if response.height == 0. {
-            context.view.size.height as f32
-        } else {
-            response.height as f32
-        };
+        match self.axis {
+            Axis::Horizontal => {
+                let viewport_width = if response.width == 0. {
+                    context.view.size.width as f32
+                } else {
+                    response.width as f32
+                };
 
-        let scroll_offset = -offset_y;
+                let scroll_offset = -offset_x;
 
-        let first_visible = (scroll_offset / self.item_size as f64).floor() as u64;
-        let visible_count = (viewport_height / self.item_size).ceil() as u64 + 1;
-        let last_visible = (first_visible + visible_count).min(self.items_count);
-        let item_size = self.item_size as f64;
+                let first_visible = (scroll_offset / self.item_size as f64).floor() as u64;
+                let visible_count = (viewport_width / self.item_size).ceil() as u64 + 1;
+                let last_visible = (first_visible + visible_count).min(self.items_count);
+                let item_size = self.item_size as f64;
+
+                for i in first_visible..last_visible {
+                    // Position relative to viewport top
+                    let relative_x = ((i - first_visible) as f64) * item_size;
+
+                    // Adjust for partial scroll (how much of first item is scrolled off)
+                    let first_item_offset = scroll_offset % item_size;
+                    let final_x = relative_x - first_item_offset;
+
+                    context.push_layout_command(LayoutCommand::BeginOffset {
+                        offset_x: final_x as f32,
+                        offset_y: 0.,
+                    });
+                    scope(i).build(context, |ctx| item_build(ctx, i));
+                    context.push_layout_command(LayoutCommand::EndOffset);
+                }
+            }
+            Axis::Vertical => {
+                let viewport_height = if response.height == 0. {
+                    context.view.size.height as f32
+                } else {
+                    response.height as f32
+                };
+
+                let scroll_offset = -offset_y;
+
+                let first_visible = (scroll_offset / self.item_size as f64).floor() as u64;
+                let visible_count = (viewport_height / self.item_size).ceil() as u64 + 1;
+                let last_visible = (first_visible + visible_count).min(self.items_count);
+                let item_size = self.item_size as f64;
+
+                for i in first_visible..last_visible {
+                    // Position relative to viewport top
+                    let relative_y = ((i - first_visible) as f64) * item_size;
+
+                    // Adjust for partial scroll (how much of first item is scrolled off)
+                    let first_item_offset = scroll_offset % item_size;
+                    let final_y = relative_y - first_item_offset;
+
+                    context.push_layout_command(LayoutCommand::BeginOffset {
+                        offset_x: 0.,
+                        offset_y: final_y as f32,
+                    });
+                    scope(i).build(context, |ctx| item_build(ctx, i));
+                    context.push_layout_command(LayoutCommand::EndOffset);
+                }
+            }
+        }
 
         // context.push_layout_command(LayoutCommand::Spacer {
         //     constraints: Constraints::default(),
@@ -183,22 +239,6 @@ impl VirtualListBuilder {
         //     scope(i).build(context, |ctx| item_build(ctx, i));
         //     context.push_layout_command(LayoutCommand::EndOffset);
         // }
-
-        for i in first_visible..last_visible {
-            // Position relative to viewport top
-            let relative_y = ((i - first_visible) as f64) * item_size;
-
-            // Adjust for partial scroll (how much of first item is scrolled off)
-            let first_item_offset = scroll_offset % item_size; // small number, 0 to item_size
-            let final_y = relative_y - first_item_offset;
-
-            context.push_layout_command(LayoutCommand::BeginOffset {
-                offset_x: offset_x as f32,
-                offset_y: final_y as f32,
-            });
-            scope(i).build(context, |ctx| item_build(ctx, i));
-            context.push_layout_command(LayoutCommand::EndOffset);
-        }
 
         context.push_layout_command(LayoutCommand::EndContainer);
 
@@ -228,7 +268,7 @@ pub fn virtual_list() -> VirtualListBuilder {
         zindex: None,
         padding: EdgeInsets::ZERO,
         margin: EdgeInsets::ZERO,
-        scroll_direction: ScrollDirection::Vertical,
+        axis: Axis::Vertical,
         clip: Clip::Rect,
         backgrounds: SmallVec::new(),
         item_size: 32.,

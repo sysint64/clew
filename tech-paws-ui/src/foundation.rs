@@ -9,6 +9,15 @@ pub enum Axis {
     Vertical,
 }
 
+impl Axis {
+    pub fn to_scroll_direction(self) -> ScrollDirection {
+        match self {
+            Axis::Horizontal => ScrollDirection::Horizontal,
+            Axis::Vertical => ScrollDirection::Vertical,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ScrollDirection {
     Horizontal,

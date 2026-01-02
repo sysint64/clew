@@ -159,7 +159,7 @@ impl Widget for HorizontalScrollBar {
                         scroll_area_width -= 8.;
                     }
 
-                    let bar_width = scroll_area_width * response.fraction_x;
+                    let bar_width = f64::max(16., scroll_area_width * response.fraction_x);
 
                     if gesture.drag_state == DragState::None || gesture.drag_state == DragState::End
                     {
@@ -228,7 +228,7 @@ impl Widget for VerticalScrollBar {
                         scroll_area_height -= 8.;
                     }
 
-                    let bar_height = f64::max(32., scroll_area_height * response.fraction_y);
+                    let bar_height = f64::max(16., scroll_area_height * response.fraction_y);
 
                     if gesture.drag_state == DragState::None || gesture.drag_state == DragState::End
                     {

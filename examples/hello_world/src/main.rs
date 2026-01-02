@@ -13,11 +13,12 @@ use tech_paws_ui::widgets::gesture_detector::{
 };
 use tech_paws_ui::widgets::hstack::hstack;
 use tech_paws_ui::widgets::scroll_area::{
-    ScrollAreaResponse, ScrollDirection, scroll_area, set_scroll_offset_y, set_scroll_progress_x,
+    ScrollAreaResponse, scroll_area, set_scroll_offset_y, set_scroll_progress_x,
     set_scroll_progress_y,
 };
 use tech_paws_ui::widgets::svg::svg;
 use tech_paws_ui::widgets::text::text;
+use tech_paws_ui::widgets::virtual_list::virtual_list;
 use tech_paws_ui::widgets::widget::{Widget, widget};
 use tech_paws_ui::widgets::zstack::zstack;
 use tech_paws_ui::{
@@ -32,7 +33,7 @@ use tech_paws_ui::{
 };
 use tech_paws_ui::{
     Border, BorderRadius, BorderSide, BoxShape, Clip, ColorRgba, CrossAxisAlignment, EdgeInsets,
-    LinearGradient, MainAxisAlignment, RadialGradient, TextAlign,
+    LinearGradient, MainAxisAlignment, RadialGradient, ScrollDirection, TextAlign,
 };
 use tech_paws_ui_derive::{Identifiable, WidgetState};
 use tech_paws_ui_desktop::{
@@ -182,60 +183,97 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
-        zstack()
-            .fill_max_size()
-            // .clip_shape(Some(ClipShape::Oval))
-            // .clip(Clip::RoundedRect {
-            //     border_radius: BorderRadius::all(16.),
-            // })
-            .margin(EdgeInsets::all(16.))
-            .build(ctx, |ctx| {
-                // decorated_box()
-                //     .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
-                //     .fill_max_size()
-                //     .clip(Clip::RoundedRect {
-                //         border_radius: BorderRadius::all(16.),
-                //     })
-                //     .build(ctx);
-
-                let response = scroll_area()
-                    .scroll_direction(ScrollDirection::Both)
-                    .fill_max_size()
-                    .background(
-                        decoration()
-                            .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
-                            .border_radius(BorderRadius::all(16.))
-                            .build(ctx),
-                    )
-                    .build(ctx, |ctx| {
-                        let response = ctx.of::<ScrollAreaResponse>().unwrap();
-
-                        hstack()
-                            // .padding(if response.overflow_y {
-                            //     EdgeInsets::new().right(16.)
-                            // } else {
-                            //     EdgeInsets::ZERO
-                            // })
-                            // .fill_max_width()
-                            .build(ctx, |ctx| {
-                                component::<Counter>(app).build(ctx);
-                                component(app).state(&mut self.counter).build(ctx);
-                            });
-                    });
-
-                if response.overflow_y {
-                    ctx.provide(response.clone(), |ctx| {
-                        widget::<VerticalScrollBar>().build(ctx);
-                    });
-                }
-
-                if response.overflow_x {
-                    ctx.provide(response.clone(), |ctx| {
-                        widget::<HorizontalScrollBar>().build(ctx);
-                    });
-                }
-            });
+        virtual_list_demo(ctx);
+        // scrollable_demo(self, app, ctx);
     }
+}
+
+fn virtual_list_demo(ctx: &mut BuildContext) {
+    zstack()
+        .fill_max_size()
+        .margin(EdgeInsets::all(16.))
+        .build(ctx, |ctx| {
+            let response = virtual_list()
+                .scroll_direction(ScrollDirection::Both)
+                .fill_max_size()
+                .background(
+                    decoration()
+                        .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
+                        .border_radius(BorderRadius::all(16.))
+                        .build(ctx),
+                )
+                .items_count(10_000_000_000)
+                .item_size(32.)
+                .build(ctx, |ctx, index| {
+                    text(&bumpalo::format!(in &ctx.phase_allocator, "Item {}", index))
+                        .text_vertical_align(AlignY::Center)
+                        .padding(EdgeInsets::symmetric(16., 0.))
+                        .height(32.)
+                        .build(ctx);
+                });
+
+            if response.overflow_y {
+                ctx.provide(response.clone(), |ctx| {
+                    widget::<VerticalScrollBar>().build(ctx);
+                });
+            }
+        });
+}
+
+fn scrollable_demo(window: &mut MainWindow, app: &mut DemoApplication, ctx: &mut BuildContext) {
+    zstack()
+        .fill_max_size()
+        // .clip_shape(Some(ClipShape::Oval))
+        // .clip(Clip::RoundedRect {
+        //     border_radius: BorderRadius::all(16.),
+        // })
+        .margin(EdgeInsets::all(16.))
+        .build(ctx, |ctx| {
+            // decorated_box()
+            //     .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
+            //     .fill_max_size()
+            //     .clip(Clip::RoundedRect {
+            //         border_radius: BorderRadius::all(16.),
+            //     })
+            //     .build(ctx);
+
+            let response = scroll_area()
+                .scroll_direction(ScrollDirection::Both)
+                .fill_max_size()
+                .background(
+                    decoration()
+                        .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
+                        .border_radius(BorderRadius::all(16.))
+                        .build(ctx),
+                )
+                .build(ctx, |ctx| {
+                    let response = ctx.of::<ScrollAreaResponse>().unwrap();
+
+                    hstack()
+                        // .padding(if response.overflow_y {
+                        //     EdgeInsets::new().right(16.)
+                        // } else {
+                        //     EdgeInsets::ZERO
+                        // })
+                        // .fill_max_width()
+                        .build(ctx, |ctx| {
+                            component::<Counter>(app).build(ctx);
+                            component(app).state(&mut window.counter).build(ctx);
+                        });
+                });
+
+            if response.overflow_y {
+                ctx.provide(response.clone(), |ctx| {
+                    widget::<VerticalScrollBar>().build(ctx);
+                });
+            }
+
+            if response.overflow_x {
+                ctx.provide(response.clone(), |ctx| {
+                    widget::<HorizontalScrollBar>().build(ctx);
+                });
+            }
+        });
 }
 
 #[derive(WidgetState)]
@@ -375,17 +413,17 @@ impl Component for Counter {
                                             .build(ctx, |ctx| {
                                                 text("Counter:")
                                                     .text_align_x(AlignX::Center)
-                                                    .text_align_y(AlignY::Center)
+                                                    .text_vertical_align(AlignY::Center)
                                                     .build(ctx);
 
                                                 text(&format!("{}", app.counter))
                                                     .text_align_x(AlignX::Center)
-                                                    .text_align_y(AlignY::Center)
+                                                    .text_vertical_align(AlignY::Center)
                                                     .build(ctx);
                                             });
                                         text("TEST BUTTON")
                                             .text_align_x(AlignX::Center)
-                                            .text_align_y(AlignY::Center)
+                                            .text_vertical_align(AlignY::Center)
                                             .build(ctx);
                                     });
                             })

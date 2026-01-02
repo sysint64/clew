@@ -3,8 +3,8 @@ use std::any::Any;
 use smallvec::SmallVec;
 
 use crate::{
-    Clip, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
-    impl_size_methods,
+    Clip, Constraints, EdgeInsets, ScrollDirection, Size, SizeConstraint, WidgetId, WidgetRef,
+    WidgetType, impl_id, impl_size_methods,
     interaction::InteractionState,
     io::UserInput,
     layout::{ContainerKind, LayoutCommand, LayoutMeasure},
@@ -15,13 +15,6 @@ use std::hash::Hash;
 use super::builder::BuildContext;
 
 pub struct ScrollAreaWidget;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ScrollDirection {
-    Horizontal,
-    Vertical,
-    Both,
-}
 
 pub struct ScrollAreaBuilder {
     id: WidgetId,
@@ -37,36 +30,36 @@ pub struct ScrollAreaBuilder {
 
 #[derive(Clone, PartialEq)]
 pub struct State {
-    last_offset_x: f32,
-    last_offset_y: f32,
-    offset_x: f32,
-    offset_y: f32,
-    fraction_x: f32,
-    fraction_y: f32,
-    progress_x: f32,
-    progress_y: f32,
-    width: f32,
-    height: f32,
-    content_width: f32,
-    content_height: f32,
-    overflow_x: bool,
-    overflow_y: bool,
-    scroll_direction: ScrollDirection,
+    pub(crate) last_offset_x: f64,
+    pub(crate) last_offset_y: f64,
+    pub(crate) offset_x: f64,
+    pub(crate) offset_y: f64,
+    pub(crate) fraction_x: f64,
+    pub(crate) fraction_y: f64,
+    pub(crate) progress_x: f64,
+    pub(crate) progress_y: f64,
+    pub(crate) width: f64,
+    pub(crate) height: f64,
+    pub(crate) content_width: f64,
+    pub(crate) content_height: f64,
+    pub(crate) overflow_x: bool,
+    pub(crate) overflow_y: bool,
+    pub(crate) scroll_direction: ScrollDirection,
 }
 
 #[derive(Clone, PartialEq)]
 pub struct ScrollAreaResponse {
     pub id: WidgetId,
-    pub offset_x: f32,
-    pub offset_y: f32,
-    pub fraction_x: f32,
-    pub fraction_y: f32,
-    pub progress_x: f32,
-    pub progress_y: f32,
-    pub width: f32,
-    pub height: f32,
-    pub content_width: f32,
-    pub content_height: f32,
+    pub offset_x: f64,
+    pub offset_y: f64,
+    pub fraction_x: f64,
+    pub fraction_y: f64,
+    pub progress_x: f64,
+    pub progress_y: f64,
+    pub width: f64,
+    pub height: f64,
+    pub content_width: f64,
+    pub content_height: f64,
     pub overflow_x: bool,
     pub overflow_y: bool,
 }
@@ -128,7 +121,6 @@ impl ScrollAreaBuilder {
         F: FnOnce(&mut BuildContext),
     {
         let id = self.id.with_seed(context.id_seed);
-        let widget_ref = WidgetRef::new(WidgetType::of::<ScrollAreaWidget>(), id);
 
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
@@ -162,11 +154,11 @@ impl ScrollAreaBuilder {
 
             if let Some(layout_measures) = layout_measures {
                 handle_interaction(
-                    id,
                     context.input,
-                    context.interaction,
                     state,
                     layout_measures,
+                    layout_measures.wrap_width as f64,
+                    layout_measures.wrap_height as f64,
                 );
             }
 
@@ -204,7 +196,10 @@ impl ScrollAreaBuilder {
             clip: self.clip,
         });
 
-        context.push_layout_command(LayoutCommand::BeginOffset { offset_x, offset_y });
+        context.push_layout_command(LayoutCommand::BeginOffset {
+            offset_x: offset_x as f32,
+            offset_y: offset_y as f32,
+        });
         context.provide(response.clone(), callback);
         context.push_layout_command(LayoutCommand::EndOffset);
 
@@ -242,7 +237,7 @@ pub fn scroll_area() -> ScrollAreaBuilder {
     }
 }
 
-pub fn set_scroll_offset_x(context: &mut BuildContext, id: WidgetId, value: f32) {
+pub fn set_scroll_offset_x(context: &mut BuildContext, id: WidgetId, value: f64) {
     let state = context.widgets_states.scroll_area.get_mut(id);
 
     if let Some(state) = state {
@@ -250,7 +245,7 @@ pub fn set_scroll_offset_x(context: &mut BuildContext, id: WidgetId, value: f32)
     }
 }
 
-pub fn set_scroll_offset_y(context: &mut BuildContext, id: WidgetId, value: f32) {
+pub fn set_scroll_offset_y(context: &mut BuildContext, id: WidgetId, value: f64) {
     let state = context.widgets_states.scroll_area.get_mut(id);
 
     if let Some(state) = state {
@@ -258,7 +253,7 @@ pub fn set_scroll_offset_y(context: &mut BuildContext, id: WidgetId, value: f32)
     }
 }
 
-pub fn set_scroll_progress_x(context: &mut BuildContext, id: WidgetId, value: f32) {
+pub fn set_scroll_progress_x(context: &mut BuildContext, id: WidgetId, value: f64) {
     let state = context.widgets_states.scroll_area.get_mut(id);
 
     if let Some(state) = state {
@@ -266,7 +261,7 @@ pub fn set_scroll_progress_x(context: &mut BuildContext, id: WidgetId, value: f3
     }
 }
 
-pub fn set_scroll_progress_y(context: &mut BuildContext, id: WidgetId, value: f32) {
+pub fn set_scroll_progress_y(context: &mut BuildContext, id: WidgetId, value: f64) {
     let state = context.widgets_states.scroll_area.get_mut(id);
 
     if let Some(state) = state {
@@ -275,30 +270,30 @@ pub fn set_scroll_progress_y(context: &mut BuildContext, id: WidgetId, value: f3
 }
 
 pub fn handle_interaction(
-    id: WidgetId,
     input: &UserInput,
-    interaction: &mut InteractionState,
     widget_state: &mut State,
     layout_measure: &LayoutMeasure,
+    wrap_width: f64,
+    wrap_height: f64,
 ) {
     if widget_state.scroll_direction == ScrollDirection::Vertical
         || widget_state.scroll_direction == ScrollDirection::Both
     {
         if input.mouse_wheel_delta_y != 0. {
-            widget_state.offset_y += input.mouse_wheel_delta_y as f32;
+            widget_state.offset_y += input.mouse_wheel_delta_y as f64;
         }
 
         widget_state.offset_y = widget_state.offset_y.clamp(
-            f32::min(0., -(layout_measure.wrap_height - layout_measure.height)),
+            f64::min(0., -(wrap_height as f64 - layout_measure.height as f64)),
             0.,
         );
 
-        widget_state.overflow_y = layout_measure.height - layout_measure.wrap_height <= 0.;
-        widget_state.fraction_y = layout_measure.height / layout_measure.wrap_height;
-        widget_state.height = layout_measure.height;
-        widget_state.content_height = layout_measure.wrap_height;
+        widget_state.overflow_y = layout_measure.height as f64 - wrap_height <= 0.;
+        widget_state.fraction_y = layout_measure.height as f64 / wrap_height;
+        widget_state.height = layout_measure.height as f64;
+        widget_state.content_height = wrap_height as f64;
         widget_state.progress_y =
-            -widget_state.offset_y / (layout_measure.wrap_height - layout_measure.height);
+            -widget_state.offset_y / (wrap_height - layout_measure.height as f64);
         widget_state.progress_y = widget_state.progress_y.clamp(0., 1.);
     }
 
@@ -306,20 +301,20 @@ pub fn handle_interaction(
         || widget_state.scroll_direction == ScrollDirection::Both
     {
         if input.mouse_wheel_delta_x != 0. {
-            widget_state.offset_x += input.mouse_wheel_delta_x as f32;
+            widget_state.offset_x += input.mouse_wheel_delta_x as f64;
         }
 
         widget_state.offset_x = widget_state.offset_x.clamp(
-            f32::min(0., -(layout_measure.wrap_width - layout_measure.width)),
+            f64::min(0., -(wrap_width - layout_measure.width as f64)),
             0.,
         );
 
-        widget_state.overflow_x = layout_measure.width - layout_measure.wrap_width <= 0.;
-        widget_state.fraction_x = layout_measure.width / layout_measure.wrap_width;
-        widget_state.width = layout_measure.width;
-        widget_state.content_width = layout_measure.wrap_width;
+        widget_state.overflow_x = layout_measure.width as f64 - wrap_width <= 0.;
+        widget_state.fraction_x = (layout_measure.width as f64 / wrap_width) as f64;
+        widget_state.width = layout_measure.width as f64;
+        widget_state.content_width = wrap_width as f64;
         widget_state.progress_x =
-            -widget_state.offset_x / (layout_measure.wrap_width - layout_measure.width);
+            -widget_state.offset_x / (wrap_width - layout_measure.width as f64);
         widget_state.progress_x = widget_state.progress_x.clamp(0., 1.);
     }
 }

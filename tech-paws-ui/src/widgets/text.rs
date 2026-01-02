@@ -100,8 +100,8 @@ impl<'a> TextBuilder<'a> {
         self
     }
 
-    pub fn text_align_y(mut self, text_align_y: AlignY) -> Self {
-        self.vertical_align = text_align_y;
+    pub fn text_vertical_align(mut self, align_y: AlignY) -> Self {
+        self.vertical_align = align_y;
 
         self
     }

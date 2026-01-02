@@ -9,6 +9,13 @@ pub enum Axis {
     Vertical,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ScrollDirection {
+    Horizontal,
+    Vertical,
+    Both,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Clip {
     None,

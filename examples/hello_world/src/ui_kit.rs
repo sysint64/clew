@@ -93,7 +93,7 @@ impl<'a> ButtonBuilder<'a> {
                                 .build(ctx),
                         )
                         .text_align_x(AlignX::Center)
-                        .text_align_y(AlignY::Center)
+                        .text_vertical_align(AlignY::Center)
                         .width(self.width)
                         .constraints(self.constraints)
                         .padding(EdgeInsets::symmetric(12., 8.))
@@ -128,8 +128,8 @@ pub fn button(text: &str) -> ButtonBuilder<'_> {
 
 #[derive(WidgetState, Default)]
 pub struct HorizontalScrollBar {
-    offset: f32,
-    last_offset: f32,
+    offset: f64,
+    last_offset: f64,
 }
 
 impl Widget for HorizontalScrollBar {
@@ -168,7 +168,8 @@ impl Widget for HorizontalScrollBar {
                         if gesture.drag_state == DragState::Start {
                             self.last_offset = self.offset;
                         } else {
-                            self.offset = self.last_offset + gesture.drag_x - gesture.drag_start_x;
+                            self.offset = self.last_offset + gesture.drag_x as f64
+                                - gesture.drag_start_x as f64;
                             self.offset = self.offset.clamp(0., scroll_area_width - bar_width);
 
                             let progress_x = self.offset / (scroll_area_width - bar_width);
@@ -182,7 +183,7 @@ impl Widget for HorizontalScrollBar {
                         .border_radius(BorderRadius::all(if gesture.is_active() { 0. } else { 2. }))
                         .width(bar_width)
                         .height(if gesture.is_active() { 8. } else { 4. })
-                        .offset_x(self.offset)
+                        .offset_x(self.offset as f32)
                         .padding(if gesture.is_active() {
                             EdgeInsets::symmetric(8., 6.)
                         } else {
@@ -196,8 +197,8 @@ impl Widget for HorizontalScrollBar {
 
 #[derive(WidgetState, Default)]
 pub struct VerticalScrollBar {
-    offset: f32,
-    last_offset: f32,
+    offset: f64,
+    last_offset: f64,
 }
 
 impl Widget for VerticalScrollBar {
@@ -227,7 +228,7 @@ impl Widget for VerticalScrollBar {
                         scroll_area_height -= 8.;
                     }
 
-                    let bar_height = scroll_area_height * response.fraction_y;
+                    let bar_height = f64::max(32., scroll_area_height * response.fraction_y);
 
                     if gesture.drag_state == DragState::None || gesture.drag_state == DragState::End
                     {
@@ -236,7 +237,8 @@ impl Widget for VerticalScrollBar {
                         if gesture.drag_state == DragState::Start {
                             self.last_offset = self.offset;
                         } else {
-                            self.offset = self.last_offset + gesture.drag_y - gesture.drag_start_y;
+                            self.offset = self.last_offset + gesture.drag_y as f64
+                                - gesture.drag_start_y as f64;
                             self.offset = self.offset.clamp(0., scroll_area_height - bar_height);
 
                             let progress_y = self.offset / (scroll_area_height - bar_height);
@@ -250,7 +252,7 @@ impl Widget for VerticalScrollBar {
                         .border_radius(BorderRadius::all(if gesture.is_active() { 0. } else { 2. }))
                         .width(if gesture.is_active() { 8. } else { 4. })
                         .height(bar_height)
-                        .offset_y(self.offset)
+                        .offset_y(self.offset as f32)
                         .padding(if gesture.is_active() {
                             EdgeInsets::symmetric(6., 8.)
                         } else {

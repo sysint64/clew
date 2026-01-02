@@ -139,6 +139,8 @@ impl GestureDetectorBuilder {
         state.dragable = self.dragable;
         state.focusable = self.focusable;
 
+        handle_interaction(id, context.input, context.view, context.interaction, state);
+
         let response = GestureDetectorResponse {
             clicked: state.clicked,
             is_active: state.is_active,
@@ -154,7 +156,7 @@ impl GestureDetectorBuilder {
         };
 
         context.decorators.push(widget_ref);
-        context.with_user_data(response.clone(), callback);
+        context.provide(response.clone(), callback);
 
         context
             .widgets_states

@@ -184,7 +184,7 @@ impl Widget for HorizontalScrollBar {
                         .height(if gesture.is_active() { 8. } else { 4. })
                         .offset_x(self.offset)
                         .padding(if gesture.is_active() {
-                            EdgeInsets::symmetric(6., 8.)
+                            EdgeInsets::symmetric(8., 6.)
                         } else {
                             EdgeInsets::all(8.)
                         })
@@ -257,19 +257,6 @@ impl Widget for VerticalScrollBar {
                             EdgeInsets::all(8.)
                         })
                         .build(ctx);
-
-                    // decorated_box()
-                    //     .color(color)
-                    //     .border_radius(BorderRadius::all(if gesture.is_active() { 0. } else { 2. }))
-                    //     .width(if gesture.is_active() { 8. } else { 4. })
-                    //     .height(bar_height)
-                    //     .offset_y(self.offset)
-                    //     .padding(if gesture.is_active() {
-                    //         EdgeInsets::symmetric(6., 8.)
-                    //     } else {
-                    //         EdgeInsets::all(8.)
-                    //     })
-                    //     .build(ctx);
                 });
             });
     }

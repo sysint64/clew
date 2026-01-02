@@ -124,67 +124,68 @@ pub fn handle_interaction(
             //         || widgets_states.update_last::<widgets::button::State>(placement.widget_ref.id);
             // }
 
-            if placement.widget_ref.widget_type
-                == WidgetType::of::<widgets::gesture_detector::GestureDetector>()
-            {
-                widgets::gesture_detector::handle_interaction(
-                    placement.widget_ref.id,
-                    user_input,
-                    view,
-                    interaction_state,
-                    // widgets_states
-                    //     .get_mut::<widgets::gesture_detector::State>(placement.widget_ref.id)
-                    //     .unwrap(),
-                    widgets_states
-                        .gesture_detector
-                        .get_mut(placement.widget_ref.id)
-                        .unwrap(),
-                );
+            // if placement.widget_ref.widget_type
+            //     == WidgetType::of::<widgets::gesture_detector::GestureDetector>()
+            // {
+            //     widgets::gesture_detector::handle_interaction(
+            //         placement.widget_ref.id,
+            //         user_input,
+            //         view,
+            //         interaction_state,
+            //         // widgets_states
+            //         //     .get_mut::<widgets::gesture_detector::State>(placement.widget_ref.id)
+            //         //     .unwrap(),
+            //         widgets_states
+            //             .gesture_detector
+            //             .get_mut(placement.widget_ref.id)
+            //             .unwrap(),
+            //     );
 
-                need_to_redraw = need_to_redraw
-                    || widgets_states
-                        .update_last::<widgets::gesture_detector::State>(placement.widget_ref.id);
-            }
+            //     need_to_redraw = need_to_redraw
+            //         || widgets_states
+            //             .update_last::<widgets::gesture_detector::State>(placement.widget_ref.id);
+            // }
 
             if placement.widget_ref.widget_type
                 == WidgetType::of::<widgets::scroll_area::ScrollAreaWidget>()
             {
-                widgets::scroll_area::handle_interaction(
-                    placement.widget_ref.id,
-                    user_input,
-                    interaction_state,
-                    widgets_states
-                        .scroll_area
-                        .get_mut(placement.widget_ref.id)
-                        .unwrap(),
-                    widgets_states
-                        .layout_measures
-                        .get_mut(placement.widget_ref.id)
-                        .unwrap(),
-                );
+                // widgets::scroll_area::handle_interaction(
+                //     placement.widget_ref.id,
+                //     user_input,
+                //     interaction_state,
+                //     widgets_states
+                //         .scroll_area
+                //         .get_mut(placement.widget_ref.id)
+                //         .unwrap(),
+                //     widgets_states
+                //         .layout_measures
+                //         .get_mut(placement.widget_ref.id)
+                //         .unwrap(),
+                // );
 
-                need_to_redraw = need_to_redraw
-                    || widgets_states
-                        .update_last::<widgets::gesture_detector::State>(placement.widget_ref.id);
+                // need_to_redraw = need_to_redraw
+                //     || widgets_states
+                //         .update_last::<widgets::gesture_detector::State>(placement.widget_ref.id);
             }
 
-            if placement.widget_ref.widget_type
-                == WidgetType::of::<widgets::decorated_box::DecoratedBox>()
-            {
-                need_to_redraw = need_to_redraw
-                    || widgets_states
-                        .update_last::<widgets::decorated_box::State>(placement.widget_ref.id);
-            }
+            // if placement.widget_ref.widget_type
+            //     == WidgetType::of::<widgets::decorated_box::DecoratedBox>()
+            // {
+            //     need_to_redraw = need_to_redraw
+            //         || widgets_states
+            //             .update_last::<widgets::decorated_box::State>(placement.widget_ref.id);
+            // }
 
-            if placement.widget_ref.widget_type
-                == WidgetType::of::<widgets::colored_box::ColoredBox>()
-            {
-                need_to_redraw = need_to_redraw
-                    || widgets_states
-                        .update_last::<widgets::colored_box::State>(placement.widget_ref.id);
-            }
+            // if placement.widget_ref.widget_type
+            //     == WidgetType::of::<widgets::colored_box::ColoredBox>()
+            // {
+            //     need_to_redraw = need_to_redraw
+            //         || widgets_states
+            //             .update_last::<widgets::colored_box::State>(placement.widget_ref.id);
+            // }
         }
     }
 
-    need_to_redraw
+    // need_to_redraw
+    true
 }

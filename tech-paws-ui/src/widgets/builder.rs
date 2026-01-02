@@ -10,6 +10,8 @@ use smallvec::SmallVec;
 
 use crate::{
     AlignX, AlignY, View, ViewId, WidgetRef,
+    interaction::InteractionState,
+    io::UserInput,
     layout::LayoutCommand,
     state::WidgetsStates,
     text::{FontResources, StringId, StringInterner, TextId, TextsResources},
@@ -56,10 +58,12 @@ pub struct BuildContext<'a, 'b> {
     pub scoped_user_data: Option<&'a mut MutUserDataStack<'a>>,
     pub decorators: &'a mut SmallVec<[WidgetRef; 8]>,
     pub phase_allocator: &'a bumpalo::Bump,
+    pub input: &'a UserInput,
+    pub interaction: &'a mut InteractionState,
 }
 
 impl BuildContext<'_, '_> {
-    pub fn with_user_data<F, T: Any + Send>(&mut self, data: T, callback: F)
+    pub fn provide<F, T: Any + Send>(&mut self, data: T, callback: F)
     where
         F: FnOnce(&mut Self),
     {

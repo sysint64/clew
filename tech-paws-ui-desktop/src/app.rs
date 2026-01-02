@@ -42,6 +42,7 @@ pub struct Application<'a, T: ApplicationDelegate<Event>, Event = ()> {
     broadcast_async_rx: tokio::sync::mpsc::UnboundedReceiver<Box<dyn Any + Send>>,
     event_loop_proxy: Arc<WinitEventLoopProxy>,
     force_redraw: bool,
+    needs_redraw: bool,
 }
 
 pub struct WinitEventLoopProxy {
@@ -106,6 +107,8 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         strings: &mut window_state.strings,
         phase_allocator: &mut window_state.ui_state.phase_allocator,
         decorators: &mut window_state.ui_state.decorators,
+        input: &window_state.ui_state.user_input,
+        interaction: &mut window_state.ui_state.interaction_state,
     };
 
     window_state.window.build(app, &mut build_context);
@@ -125,6 +128,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
     winit::application::ApplicationHandler<ApplicationEvent> for Application<'_, T, Event>
 {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
         self.window_manager
             .with_event_loop(event_loop, |window_manager| {
                 self.app.on_start(window_manager);
@@ -136,6 +140,17 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
             ApplicationEvent::Wake { view_id } => {
                 self.window_manager.request_view_redraw(view_id);
             }
+        }
+    }
+
+    fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+
+        // Request redraw for all windows that need it
+        for window in self.window_manager.windows.values() {
+            // if self.needs_redraw {
+            window.winit_window.request_redraw();
+            // }
         }
     }
 
@@ -188,7 +203,6 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
 
         match event {
             winit::event::WindowEvent::CloseRequested => {
-                println!("The close button was pressed; stopping");
                 event_loop.exit();
             }
             winit::event::WindowEvent::Resized(size) => {
@@ -252,8 +266,8 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
                 button,
                 ..
             } => {
-                println!("PRESS");
-                window.winit_window.request_redraw();
+                // window.winit_window.request_redraw();
+                self.needs_redraw = true;
 
                 window.ui_state.user_input.mouse_pressed =
                     btn_state == winit::event::ElementState::Pressed;
@@ -285,7 +299,8 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
 
             // Mouse wheel scrolling
             winit::event::WindowEvent::MouseWheel { delta, .. } => {
-                window.winit_window.request_redraw();
+                self.needs_redraw = true;
+                // window.winit_window.request_redraw();
 
                 match delta {
                     winit::event::MouseScrollDelta::LineDelta(x, y) => {
@@ -302,7 +317,8 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
 
             // Mouse movement
             winit::event::WindowEvent::CursorMoved { position, .. } => {
-                window.winit_window.request_redraw();
+                // window.winit_window.request_redraw();
+                self.needs_redraw = true;
 
                 window.ui_state.user_input.mouse_x = position.x as f32;
                 window.ui_state.user_input.mouse_y = position.y as f32;
@@ -361,6 +377,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> Application<'_, T, Event> {
             broadcast_async_rx,
             broadcast_async_tx,
             force_redraw: false,
+            needs_redraw: false,
             event_loop_proxy: Arc::new(WinitEventLoopProxy { proxy: event_proxy }),
             assets,
         };

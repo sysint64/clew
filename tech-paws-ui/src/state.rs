@@ -366,7 +366,7 @@ impl WidgetsStates {
         self.custom.sweep(interaction);
         self.text.sweep(interaction);
         self.scroll_area.sweep(interaction);
-        self.layout_measures.clear();
+        self.layout_measures.sweep(interaction);
 
         // self.data
         //     .retain(|id, _| self.accessed_this_frame.contains(id));

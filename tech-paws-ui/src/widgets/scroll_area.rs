@@ -134,7 +134,7 @@ impl ScrollAreaBuilder {
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
         let mut widget_refs = std::mem::take(context.decorators);
         widget_refs.append(&mut self.backgrounds);
-        widget_refs.push(widget_ref);
+        // widget_refs.push(widget_ref);
 
         let (offset_x, offset_y, response) = {
             let state = context
@@ -157,6 +157,18 @@ impl ScrollAreaBuilder {
                     content_width: 0.,
                     content_height: 0.,
                 });
+
+            let layout_measures = context.widgets_states.layout_measures.get_mut(id);
+
+            if let Some(layout_measures) = layout_measures {
+                handle_interaction(
+                    id,
+                    context.input,
+                    context.interaction,
+                    state,
+                    layout_measures,
+                );
+            }
 
             state.scroll_direction = self.scroll_direction;
 
@@ -193,7 +205,7 @@ impl ScrollAreaBuilder {
         });
 
         context.push_layout_command(LayoutCommand::BeginOffset { offset_x, offset_y });
-        context.with_user_data(response.clone(), callback);
+        context.provide(response.clone(), callback);
         context.push_layout_command(LayoutCommand::EndOffset);
 
         context.push_layout_command(LayoutCommand::EndContainer);
@@ -203,6 +215,11 @@ impl ScrollAreaBuilder {
         context
             .widgets_states
             .scroll_area
+            .accessed_this_frame
+            .insert(id);
+        context
+            .widgets_states
+            .layout_measures
             .accessed_this_frame
             .insert(id);
 

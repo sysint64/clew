@@ -207,9 +207,6 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
                             .border_radius(BorderRadius::all(16.))
                             .build(ctx),
                     )
-                    .clip(Clip::RoundedRect {
-                        border_radius: BorderRadius::all(16.),
-                    })
                     .build(ctx, |ctx| {
                         let response = ctx.of::<ScrollAreaResponse>().unwrap();
 
@@ -227,13 +224,13 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
                     });
 
                 if response.overflow_y {
-                    ctx.with_user_data(response.clone(), |ctx| {
+                    ctx.provide(response.clone(), |ctx| {
                         widget::<VerticalScrollBar>().build(ctx);
                     });
                 }
 
                 if response.overflow_x {
-                    ctx.with_user_data(response.clone(), |ctx| {
+                    ctx.provide(response.clone(), |ctx| {
                         widget::<HorizontalScrollBar>().build(ctx);
                     });
                 }

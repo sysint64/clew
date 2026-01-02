@@ -2,7 +2,11 @@ use cosmic_text::{Buffer, FontSystem};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use std::{collections::HashMap, sync::Arc};
 use tech_paws_ui::{
-    Border, BorderRadius, BorderSide, Clip, ClipShape, ColorRgb, ColorRgba, Gradient, Rect, TileMode, View, assets::Assets, render::{Fill, RenderCommand, RenderState, Renderer}, text::{FontResources, TextsResources}
+    Border, BorderRadius, BorderSide, Clip, ClipShape, ColorRgb, ColorRgba, Gradient, Rect,
+    TileMode, View,
+    assets::Assets,
+    render::{Fill, RenderCommand, RenderState, Renderer},
+    text::{FontResources, TextsResources},
 };
 use vello::{
     AaConfig, Glyph, RenderParams, RendererOptions, Scene,
@@ -72,8 +76,7 @@ impl VelloRenderer {
 
         // Create the surface
         let surface = render_cx
-            .create_surface(window.clone(), width, height, wgpu::PresentMode::Immediate)
-            // .create_surface(window.clone(), width, height, wgpu::PresentMode::AutoVsync)
+            .create_surface(window.clone(), width, height, wgpu::PresentMode::Fifo)
             .await
             .expect("Failed to create surface");
 
@@ -93,9 +96,9 @@ impl VelloRenderer {
         let renderer = vello::Renderer::new(device, RendererOptions::default())
             .expect("Failed to create Vello renderer");
 
-        // let mut config = surface.config.clone();
-        // config.desired_maximum_frame_latency = 4;
-        // surface.surface.configure(device, &config);
+        let mut config = surface.config.clone();
+        config.desired_maximum_frame_latency = 3;
+        surface.surface.configure(device, &config);
 
         Self {
             render_cx,
@@ -191,7 +194,7 @@ impl VelloRenderer {
             surface_texture.present();
         }
 
-        // device.poll(wgpu::PollType::Poll).unwrap();
+        device.poll(wgpu::PollType::Poll).unwrap();
 
         // {
         //     profiling::scope!("device_poll");

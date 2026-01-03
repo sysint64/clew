@@ -1,10 +1,12 @@
 use std::any::Any;
 use std::hash::Hash;
 
-use glam::Vec2;
-
 use crate::{
-    AlignX, AlignY, Border, BorderRadius, BorderSide, Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id, impl_size_methods, impl_width_methods, layout::{ContainerKind, DeriveWrapSize, LayoutCommand, WidgetPlacement}, render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string}, state::WidgetState, text::StringId
+    Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef,
+    WidgetType, impl_id, impl_size_methods,
+    layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
+    render::{Fill, PixelExtension, RenderCommand, RenderContext},
+    state::WidgetState,
 };
 
 use super::builder::BuildContext;
@@ -52,67 +54,6 @@ impl WidgetState for State {
 impl ColoredBoxDecoratorBuilder {
     impl_id!();
 
-    fn to_child(self) -> ColoredBoxChildBuilder {
-        todo!();
-        // ColoredBoxChildBuilder {
-        //     id: self.id,
-        //     color: self.color,
-        //     zindex: None,
-        //     size: Size::default(),
-        //     padding: EdgeInsets::ZERO,
-        //     constraints: Constraints {
-        //         min_width: 0.,
-        //         min_height: 0.,
-        //         max_width: f32::INFINITY,
-        //         max_height: f32::INFINITY,
-        //     },
-        // }
-    }
-
-    pub fn size<T: Into<Size>>(self, size: T) -> ColoredBoxChildBuilder {
-        self.to_child().size(size)
-    }
-
-    pub fn width<T: Into<SizeConstraint>>(mut self, size: T) -> ColoredBoxChildBuilder {
-        self.to_child().width(size)
-    }
-
-    pub fn height<T: Into<SizeConstraint>>(mut self, size: T) -> ColoredBoxChildBuilder {
-        self.to_child().height(size)
-    }
-
-    pub fn fill_max_width(mut self) -> ColoredBoxChildBuilder {
-        self.to_child().fill_max_width()
-    }
-
-    pub fn fill_max_height(mut self) -> ColoredBoxChildBuilder {
-        self.to_child().fill_max_height()
-    }
-
-    pub fn fill_max_size(mut self) -> ColoredBoxChildBuilder {
-        self.to_child().fill_max_size()
-    }
-
-    pub fn constraints(mut self, constraints: Constraints) -> ColoredBoxChildBuilder {
-        self.to_child().constraints(constraints)
-    }
-
-    pub fn max_width(mut self, value: f32) -> ColoredBoxChildBuilder {
-        self.to_child().max_width(value)
-    }
-
-    pub fn max_height(mut self, value: f32) -> ColoredBoxChildBuilder {
-        self.to_child().max_height(value)
-    }
-
-    pub fn min_width(mut self, value: f32) -> ColoredBoxChildBuilder {
-        self.to_child().min_width(value)
-    }
-
-    pub fn min_height(mut self, value: f32) -> ColoredBoxChildBuilder {
-        self.to_child().min_height(value)
-    }
-
     pub fn build<F>(&self, context: &mut BuildContext, callback: F)
     where
         F: FnOnce(&mut BuildContext),
@@ -123,7 +64,6 @@ impl ColoredBoxDecoratorBuilder {
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
         context.current_zindex += 1;
 
-        let size = Size::new(SizeConstraint::Wrap, SizeConstraint::Wrap);
         let widget_ref = WidgetRef::new(WidgetType::of::<ColoredBox>(), id);
 
         context.decorators.push(widget_ref);
@@ -181,10 +121,6 @@ pub fn colored_box(color: ColorRgba) -> ColoredBoxDecoratorBuilder {
 }
 
 pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &State) {
-    let id = placement.widget_ref.id;
-    let size = placement.rect.size().px(ctx);
-    let position = placement.rect.position().px(ctx);
-
     ctx.push_command(RenderCommand::Rect {
         zindex: placement.zindex,
         boundary: placement.rect.px(ctx),

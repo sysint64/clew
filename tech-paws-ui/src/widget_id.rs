@@ -1,10 +1,10 @@
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::hash::{Hash, Hasher};
 
 use rustc_hash::FxHasher;
 
 #[derive(Clone, Copy, Debug, Eq)]
 pub struct WidgetId {
-    base: u64,      // hash of file/line/column
+    base: u64, // hash of file/line/column
     seed: Option<u64>,
 }
 

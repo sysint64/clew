@@ -1,17 +1,9 @@
-use std::any::Any;
-use std::hash::Hash;
-
-use glam::Vec2;
 use smallvec::SmallVec;
 
 use crate::{
-    AlignX, AlignY, Border, BorderRadius, BorderSide, Clip, ColorRgba, Constraints,
-    EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
-    impl_position_methods, impl_size_methods, impl_width_methods,
-    layout::{ContainerKind, LayoutCommand, WidgetPlacement},
-    render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
-    state::WidgetState,
-    text::StringId,
+    AlignX, AlignY, Clip, Constraints, EdgeInsets, Size, SizeConstraint, WidgetRef,
+    impl_size_methods,
+    layout::{ContainerKind, LayoutCommand},
 };
 
 use super::builder::BuildContext;

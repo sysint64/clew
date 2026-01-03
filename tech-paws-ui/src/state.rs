@@ -1,12 +1,6 @@
-use std::{
-    any::Any,
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::{any::Any, sync::Arc};
 
-use bitvec::vec::BitVec;
 use rustc_hash::{FxHashMap, FxHashSet};
-use slab::Slab;
 use smallvec::SmallVec;
 
 use crate::{
@@ -130,7 +124,7 @@ impl<T> TypedWidgetStates<T> {
         }
     }
 
-    pub fn sweep(&mut self, interaction: &mut InteractionState) {
+    pub fn sweep(&mut self) {
         let mut i = 0;
 
         while i < self.states.len() {
@@ -321,7 +315,7 @@ impl WidgetsStates {
     // }
 
     #[profiling::function]
-    pub fn update_last<T>(&mut self, id: WidgetId) -> bool
+    pub fn update_last<T>(&mut self, _id: WidgetId) -> bool
     where
         T: WidgetState + Clone + PartialEq,
     {
@@ -358,15 +352,15 @@ impl WidgetsStates {
     // }
 
     #[profiling::function]
-    pub fn sweep(&mut self, interaction: &mut InteractionState) {
+    pub fn sweep(&mut self) {
         self.decorated_box.clear();
         self.colored_box.clear();
         self.svg.clear();
-        self.gesture_detector.sweep(interaction);
-        self.custom.sweep(interaction);
-        self.text.sweep(interaction);
-        self.scroll_area.sweep(interaction);
-        self.layout_measures.sweep(interaction);
+        self.gesture_detector.sweep();
+        self.custom.sweep();
+        self.text.sweep();
+        self.scroll_area.sweep();
+        self.layout_measures.sweep();
 
         // self.data
         //     .retain(|id, _| self.accessed_this_frame.contains(id));

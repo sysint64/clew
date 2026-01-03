@@ -1,6 +1,6 @@
 use std::hash::Hash;
 use tech_paws_ui::{
-    AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets, Gradient,
+    AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets,
     LinearGradient, SizeConstraint, WidgetId, impl_id, impl_position_methods, impl_width_methods,
     state::WidgetState,
     widgets::{
@@ -154,18 +154,16 @@ impl Widget for HorizontalScrollBar {
                     if gesture.drag_state == DragState::None || gesture.drag_state == DragState::End
                     {
                         self.offset = (scroll_area_width - bar_width) * response.progress_x;
+                    } else if gesture.drag_state == DragState::Start {
+                        self.last_offset = self.offset;
                     } else {
-                        if gesture.drag_state == DragState::Start {
-                            self.last_offset = self.offset;
-                        } else {
-                            self.offset = self.last_offset + gesture.drag_x as f64
-                                - gesture.drag_start_x as f64;
-                            self.offset = self.offset.clamp(0., scroll_area_width - bar_width);
+                        self.offset =
+                            self.last_offset + gesture.drag_x as f64 - gesture.drag_start_x as f64;
+                        self.offset = self.offset.clamp(0., scroll_area_width - bar_width);
 
-                            let progress_x = self.offset / (scroll_area_width - bar_width);
+                        let progress_x = self.offset / (scroll_area_width - bar_width);
 
-                            set_scroll_progress_x(ctx, response.id, progress_x);
-                        }
+                        set_scroll_progress_x(ctx, response.id, progress_x);
                     }
 
                     decorated_box()
@@ -223,18 +221,16 @@ impl Widget for VerticalScrollBar {
                     if gesture.drag_state == DragState::None || gesture.drag_state == DragState::End
                     {
                         self.offset = (scroll_area_height - bar_height) * response.progress_y;
+                    } else if gesture.drag_state == DragState::Start {
+                        self.last_offset = self.offset;
                     } else {
-                        if gesture.drag_state == DragState::Start {
-                            self.last_offset = self.offset;
-                        } else {
-                            self.offset = self.last_offset + gesture.drag_y as f64
-                                - gesture.drag_start_y as f64;
-                            self.offset = self.offset.clamp(0., scroll_area_height - bar_height);
+                        self.offset =
+                            self.last_offset + gesture.drag_y as f64 - gesture.drag_start_y as f64;
+                        self.offset = self.offset.clamp(0., scroll_area_height - bar_height);
 
-                            let progress_y = self.offset / (scroll_area_height - bar_height);
+                        let progress_y = self.offset / (scroll_area_height - bar_height);
 
-                            set_scroll_progress_y(ctx, response.id, progress_y);
-                        }
+                        set_scroll_progress_y(ctx, response.id, progress_y);
                     }
 
                     decorated_box()

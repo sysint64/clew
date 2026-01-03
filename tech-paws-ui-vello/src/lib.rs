@@ -2,8 +2,7 @@ use cosmic_text::{Buffer, FontSystem};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use std::{collections::HashMap, sync::Arc};
 use tech_paws_ui::{
-    Border, BorderRadius, BorderSide, Clip, ClipShape, ColorRgb, ColorRgba, Gradient, Rect,
-    TileMode, View,
+    Border, BorderRadius, BorderSide, ClipShape, ColorRgb, ColorRgba, Gradient, Rect, View,
     assets::Assets,
     render::{Fill, RenderCommand, RenderState, Renderer},
     text::{FontResources, TextsResources},
@@ -36,16 +35,17 @@ impl FontCache {
         font_id: cosmic_text::fontdb::ID,
         font_system: &mut FontSystem,
     ) -> Option<&FontData> {
-        if !self.cache.contains_key(&font_id) {
-            if let Some(font) = font_system.get_font(font_id) {
-                let font_data = FontData::new(Blob::new(Arc::new(font.data().to_vec())), 0);
-                self.cache.insert(font_id, font_data);
-            }
+        if let std::collections::hash_map::Entry::Vacant(e) = self.cache.entry(font_id)
+            && let Some(font) = font_system.get_font(font_id)
+        {
+            let font_data = FontData::new(Blob::new(Arc::new(font.data().to_vec())), 0);
+            e.insert(font_data);
         }
+
         self.cache.get(&font_id)
     }
 
-    fn clear(&mut self) {
+    fn _clear(&mut self) {
         self.cache.clear();
     }
 }
@@ -183,7 +183,7 @@ impl VelloRenderer {
                 label: Some("Surface Blit"),
             });
             surface.blitter.copy(
-                &device,
+                device,
                 &mut encoder,
                 &surface.target_view,
                 &surface_texture
@@ -232,11 +232,11 @@ impl VelloRenderer {
         };
 
         // Draw fill
-        if let Some(fill) = fill {
-            if let Some(brush) = create_brush_from_fill(fill, boundary) {
-                self.scene
-                    .fill(VelloFill::NonZero, Affine::IDENTITY, &brush, None, &shape);
-            }
+        if let Some(fill) = fill
+            && let Some(brush) = create_brush_from_fill(fill, boundary)
+        {
+            self.scene
+                .fill(VelloFill::NonZero, Affine::IDENTITY, &brush, None, &shape);
         }
 
         // Draw border
@@ -274,21 +274,21 @@ impl VelloRenderer {
         );
 
         // Draw fill
-        if let Some(fill) = fill {
-            if let Some(brush) = create_brush_from_fill(fill, boundary) {
-                self.scene
-                    .fill(VelloFill::NonZero, Affine::IDENTITY, &brush, None, &ellipse);
-            }
+        if let Some(fill) = fill
+            && let Some(brush) = create_brush_from_fill(fill, boundary)
+        {
+            self.scene
+                .fill(VelloFill::NonZero, Affine::IDENTITY, &brush, None, &ellipse);
         }
 
         // Draw border
-        if let Some(border_side) = border {
-            if border_side.width > 0.0 {
-                let stroke = Stroke::new(border_side.width as f64);
-                let brush = Brush::Solid(convert_rgba_color(&border_side.color));
-                self.scene
-                    .stroke(&stroke, Affine::IDENTITY, &brush, None, &ellipse);
-            }
+        if let Some(border_side) = border
+            && border_side.width > 0.0
+        {
+            let stroke = Stroke::new(border_side.width as f64);
+            let brush = Brush::Solid(convert_rgba_color(&border_side.color));
+            self.scene
+                .stroke(&stroke, Affine::IDENTITY, &brush, None, &ellipse);
         }
     }
 
@@ -344,8 +344,8 @@ impl VelloRenderer {
 
     /// Draw an SVG asset
     pub fn draw_svg(&mut self, tree: &usvg::Tree, boundary: Rect, tint_color: Option<ColorRgba>) {
-        let sx = boundary.width / tree.size().width() as f32;
-        let sy = boundary.height / tree.size().height() as f32;
+        let sx = boundary.width / tree.size().width();
+        let sy = boundary.height / tree.size().height();
 
         // let transform = Affine::translate((boundary.x as f64, boundary.y as f64))
         // .then_scale_non_uniform(sx as f64, sy as f64);

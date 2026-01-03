@@ -45,9 +45,7 @@ impl Clip {
         match self {
             Clip::None => None,
             Clip::Rect => Some(ClipShape::Rect),
-            Clip::RoundedRect { border_radius } => Some(ClipShape::RoundedRect {
-                border_radius: border_radius,
-            }),
+            Clip::RoundedRect { border_radius } => Some(ClipShape::RoundedRect { border_radius }),
             Clip::Oval => Some(ClipShape::Oval),
         }
     }

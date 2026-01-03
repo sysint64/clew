@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::text::FontResources;
 
+#[derive(Default)]
 pub struct Assets<'a> {
     fonts: HashMap<&'static str, &'a [u8]>,
     svg: HashMap<&'static str, usvg::Tree>,

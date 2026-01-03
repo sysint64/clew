@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 tech-paws-ui = { path = "../../tech-paws-ui" }
+clew-widgets = { path = "../../clew-widgets" }
 tech-paws-ui-desktop = { path = "../../tech-paws-ui-desktop" }
 tech-paws-ui-tiny-skia = { path = "../../tech-paws-ui-tiny-skia" }
 tech-paws-ui-derive = { path = "../../tech-paws-ui-derive" }

@@ -1,12 +1,11 @@
 use std::any::{Any, TypeId};
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use tech_paws_ui::PhysicalSize;
 use tech_paws_ui::assets::Assets;
 use tech_paws_ui::io::Cursor;
 use tech_paws_ui::render::Renderer;
-use tech_paws_ui::text::{FontResources, StringId, StringInterner, TextId};
+use tech_paws_ui::text::{FontResources, StringInterner};
 use tech_paws_ui::widgets::builder::{ApplicationEvent, ApplicationEventLoopProxy, BuildContext};
 
 use crate::window_manager::WindowManager;
@@ -71,10 +70,10 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
 
     for event_box in window_state.ui_state.current_event_queue.iter() {
         // Skip event processing for () type
-        if TypeId::of::<Event>() != TypeId::of::<()>() {
-            if let Some(event) = event_box.downcast_ref::<Event>() {
-                window_state.window.on_event(app, event);
-            }
+        if TypeId::of::<Event>() != TypeId::of::<()>()
+            && let Some(event) = event_box.downcast_ref::<Event>()
+        {
+            window_state.window.on_event(app, event);
         }
     }
 
@@ -238,7 +237,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
                 let need_to_redraw = render(
                     &mut self.app,
                     &mut self.fonts,
-                    &mut self.assets,
+                    &self.assets,
                     &mut self.string_interner,
                     &mut self.broadcast_event_queue,
                     &mut self.broadcast_async_tx,
@@ -254,7 +253,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
                         window.fill_color,
                         &mut self.fonts,
                         &mut window.texts,
-                        &mut self.assets,
+                        &self.assets,
                     );
 
                     window.winit_window.request_redraw();

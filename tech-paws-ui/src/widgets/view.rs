@@ -1,8 +1,5 @@
 use crate::{WidgetId, impl_id, state::WidgetState};
-use std::{
-    any::{Any, TypeId},
-    hash::Hash,
-};
+use std::{any::TypeId, hash::Hash};
 
 use super::{builder::BuildContext, scope::scope};
 
@@ -30,10 +27,10 @@ pub trait Component: 'static {
 impl<'a, V: Component> ComponentBuilder<'a, V> {
     impl_id!();
 
-    pub fn state(self, state: &'a mut V) -> ComponentWithStateBuilder<V> {
+    pub fn state(self, state: &'a mut V) -> ComponentWithStateBuilder<'a, V> {
         ComponentWithStateBuilder {
             app: self.app,
-            state: state,
+            state,
         }
     }
 }

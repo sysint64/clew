@@ -1,8 +1,5 @@
 use crate::{
-    Constraints, Size, SizeConstraint, View, WidgetId, WidgetRef, WidgetType, impl_id,
-    interaction::InteractionState,
-    io::UserInput,
-    layout::{ContainerKind, LayoutCommand},
+    View, WidgetId, WidgetRef, WidgetType, impl_id, interaction::InteractionState, io::UserInput,
     state::WidgetState,
 };
 use std::{any::Any, hash::Hash};
@@ -210,20 +207,16 @@ pub fn handle_interaction(
                     interaction.set_inactive(&id);
                 }
 
-                if widget_state.dragable {
-                    if widget_state.drag_state == DragState::Update {
-                        widget_state.drag_state = DragState::End;
-                    }
+                if widget_state.dragable && widget_state.drag_state == DragState::Update {
+                    widget_state.drag_state = DragState::End;
                 }
             }
         } else if input.mouse_left_pressed
             && interaction.is_hot(&id)
             && interaction.active.is_none()
         {
-            if widget_state.dragable {
-                if widget_state.drag_state == DragState::None {
-                    widget_state.drag_state = DragState::Start;
-                }
+            if widget_state.dragable && widget_state.drag_state == DragState::None {
+                widget_state.drag_state = DragState::Start;
             }
 
             if widget_state.focusable {

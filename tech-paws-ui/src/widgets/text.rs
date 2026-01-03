@@ -5,11 +5,11 @@ use smallvec::{SmallVec, smallvec};
 
 use crate::{
     AlignX, AlignY, Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, TextAlign,
-    WidgetId, WidgetRef, WidgetType, impl_id, impl_size_methods, impl_width_methods,
+    WidgetId, WidgetRef, WidgetType, impl_id, impl_size_methods,
     layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
-    render::{PixelExtension, RenderCommand, RenderContext, cache_string},
+    render::{PixelExtension, RenderCommand, RenderContext},
     state::WidgetState,
-    text::{StringId, TextId},
+    text::TextId,
 };
 
 use super::builder::BuildContext;
@@ -179,7 +179,7 @@ impl<'a> TextBuilder<'a> {
         context.widgets_states.text.accessed_this_frame.insert(id);
 
         let state = context.widgets_states.text.get_or_insert(id, || State {
-            text_id: text_id,
+            text_id,
             text_data: text_data.clone().unwrap(),
             color: self.color,
             text_align: self.text_align,
@@ -221,7 +221,6 @@ pub fn text(text: &str) -> TextBuilder<'_> {
 }
 
 pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &State) {
-    let id = placement.widget_ref.id;
     let size = placement.rect.size().px(ctx);
     let position = placement.rect.position().px(ctx);
 

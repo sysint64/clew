@@ -4,8 +4,7 @@ use smallvec::SmallVec;
 
 use crate::{
     Clip, Constraints, EdgeInsets, ScrollDirection, Size, SizeConstraint, WidgetId, WidgetRef,
-    WidgetType, impl_id, impl_size_methods,
-    interaction::InteractionState,
+    impl_id, impl_size_methods,
     io::UserInput,
     layout::{ContainerKind, LayoutCommand, LayoutMeasure},
     state::WidgetState,
@@ -284,14 +283,14 @@ pub fn handle_interaction(
         }
 
         widget_state.offset_y = widget_state.offset_y.clamp(
-            f64::min(0., -(wrap_height as f64 - layout_measure.height as f64)),
+            f64::min(0., -(wrap_height - layout_measure.height as f64)),
             0.,
         );
 
         widget_state.overflow_y = layout_measure.height as f64 - wrap_height <= 0.;
         widget_state.fraction_y = layout_measure.height as f64 / wrap_height;
         widget_state.height = layout_measure.height as f64;
-        widget_state.content_height = wrap_height as f64;
+        widget_state.content_height = wrap_height;
         widget_state.progress_y =
             -widget_state.offset_y / (wrap_height - layout_measure.height as f64);
         widget_state.progress_y = widget_state.progress_y.clamp(0., 1.);
@@ -310,9 +309,9 @@ pub fn handle_interaction(
         );
 
         widget_state.overflow_x = layout_measure.width as f64 - wrap_width <= 0.;
-        widget_state.fraction_x = (layout_measure.width as f64 / wrap_width) as f64;
+        widget_state.fraction_x = layout_measure.width as f64 / wrap_width;
         widget_state.width = layout_measure.width as f64;
-        widget_state.content_width = wrap_width as f64;
+        widget_state.content_width = wrap_width;
         widget_state.progress_x =
             -widget_state.offset_x / (wrap_width - layout_measure.width as f64);
         widget_state.progress_x = widget_state.progress_x.clamp(0., 1.);

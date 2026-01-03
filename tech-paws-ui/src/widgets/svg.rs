@@ -1,12 +1,10 @@
 use std::any::Any;
 
-use glam::Vec2;
-
 use crate::{
-    AlignX, AlignY, Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId,
-    WidgetRef, WidgetType, impl_size_methods, impl_width_methods,
+    Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef,
+    WidgetType, impl_size_methods,
     layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
-    render::{PixelExtension, RenderCommand, RenderContext, cache_string},
+    render::{PixelExtension, RenderCommand, RenderContext},
     state::WidgetState,
 };
 
@@ -88,7 +86,7 @@ impl SvgBuilder {
             clip: self.clip,
         });
 
-        let state = context.widgets_states.svg.set(
+        context.widgets_states.svg.set(
             id,
             State {
                 asset_id: self.asset_id,
@@ -119,10 +117,6 @@ pub fn svg(asset_id: &'static str) -> SvgBuilder {
 }
 
 pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &State) {
-    let id = placement.widget_ref.id;
-    let size = placement.rect.size().px(ctx);
-    let position = placement.rect.position().px(ctx);
-
     ctx.push_command(RenderCommand::Svg {
         zindex: placement.zindex,
         boundary: placement.rect.px(ctx),

@@ -3,11 +3,10 @@ use std::collections::HashSet;
 use glam::Vec2;
 
 use crate::{
-    LayoutWidget, View, WidgetId, WidgetType,
+    View, WidgetId, WidgetType,
     io::UserInput,
-    layout::{LayoutItem, WidgetPlacement},
+    layout::LayoutItem,
     point_with_rect_hit_test,
-    state::WidgetsStates,
     text::{FontResources, TextsResources},
     widgets::{self, gesture_detector::GestureDetector},
 };
@@ -58,7 +57,7 @@ impl InteractionState {
 pub fn handle_interaction(
     user_input: &mut UserInput,
     interaction_state: &mut InteractionState,
-    widgets_states: &mut WidgetsStates,
+    // widgets_states: &mut WidgetsStates,
     view: &View,
     _text: &mut TextsResources,
     _fonts: &mut FontResources,
@@ -81,32 +80,28 @@ pub fn handle_interaction(
     interaction_state.hover.clear();
 
     for layout_item in layout_items.iter() {
-        if let LayoutItem::Placement(placement) = layout_item {
-            if placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>() {
-                if point_with_rect_hit_test(mouse_point, placement.rect) {
-                    interaction_state.hover.insert(placement.widget_ref.id);
-                }
-            }
+        if let LayoutItem::Placement(placement) = layout_item
+            && placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>()
+            && point_with_rect_hit_test(mouse_point, placement.rect)
+        {
+            interaction_state.hover.insert(placement.widget_ref.id);
         }
     }
 
     for layout_item in layout_items.iter().rev() {
-        if let LayoutItem::Placement(placement) = layout_item {
-            if placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>() {
-                if !interaction_state.block_hover
-                    || interaction_state.active.is_none()
-                    || interaction_state.active == Some(placement.widget_ref.id)
-                {
-                    if point_with_rect_hit_test(mouse_point, placement.rect) {
-                        interaction_state.hot = Some(placement.widget_ref.id);
-                        break;
-                    }
-                }
-            }
+        if let LayoutItem::Placement(placement) = layout_item
+            && placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>()
+            && (!interaction_state.block_hover
+                || interaction_state.active.is_none()
+                || interaction_state.active == Some(placement.widget_ref.id))
+            && point_with_rect_hit_test(mouse_point, placement.rect)
+        {
+            interaction_state.hot = Some(placement.widget_ref.id);
+            break;
         }
     }
 
-    let mut need_to_redraw = false;
+    // let mut need_to_redraw = false;
 
     for layout_item in layout_items.iter() {
         if let LayoutItem::Placement(placement) = layout_item {

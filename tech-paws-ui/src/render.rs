@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use glam::Vec2;
 
 use crate::{
-    Border, BorderRadius, BorderSide, Clip, ClipShape, ColorRgb, ColorRgba, DebugBoundary,
-    Gradient, LayoutDirection, Rect, View, WidgetType,
+    Border, BorderRadius, BorderSide, ClipShape, ColorRgb, ColorRgba, DebugBoundary, Gradient,
+    LayoutDirection, Rect, View, WidgetType,
     assets::Assets,
     interaction::{InteractionState, handle_interaction},
     io::UserInput,
@@ -26,9 +26,9 @@ impl RenderState {
 }
 
 pub trait Renderer {
-    fn upload_svg(&mut self, name: &'static str, tree: &usvg::Tree) {}
+    fn upload_svg(&mut self, _name: &'static str, _tree: &usvg::Tree) {}
 
-    fn on_scale_factor_update(&mut self, scale_factor: f32) {}
+    fn on_scale_factor_update(&mut self, _scale_factor: f32) {}
 
     fn process_commands(
         &mut self,
@@ -95,7 +95,7 @@ pub enum RenderCommand {
 }
 
 impl RenderCommand {
-    fn zindex(&self) -> Option<i32> {
+    fn _zindex(&self) -> Option<i32> {
         match self {
             RenderCommand::Rect { zindex, .. } => Some(*zindex),
             RenderCommand::Oval { zindex, .. } => Some(*zindex),
@@ -217,7 +217,6 @@ pub fn render(
             &mut state.layout_items,
             &mut state.widgets_states.layout_measures,
             text,
-            fonts,
             assets,
         );
 
@@ -236,22 +235,14 @@ pub fn render(
             &mut state.layout_items,
             &mut state.widgets_states.layout_measures,
             text,
-            fonts,
             assets,
         );
     }
-    // println!(
-    //     "LAYOUT TIME FOR {} COMMANDS: {:?}",
-    //     state.layout_commands.len(),
-    //     layout_time.elapsed()
-    // );
 
     tracy_client::plot!(
         "Tech Paws UI - Layout commands",
         state.layout_commands.len() as f64
     );
-
-    // let interaction_time = std::time::Instant::now();
 
     {
         profiling::scope!("Tech Paws UI - Interaction");
@@ -260,7 +251,7 @@ pub fn render(
             || handle_interaction(
                 &mut state.user_input,
                 &mut state.interaction_state,
-                &mut state.widgets_states,
+                // &mut state.widgets_states,
                 &state.view,
                 text,
                 fonts,
@@ -271,13 +262,8 @@ pub fn render(
         state.last_interaction_state = state.interaction_state.clone();
     }
 
-    // println!("INTERACTION TIME: {:?}", interaction_time.elapsed());
-
     if force_redraw || need_to_redraw {
         profiling::scope!("Tech Paws UI - Collect Render Commands");
-        // println!("REDRAW");
-
-        // let render_time = std::time::Instant::now();
 
         for layout_item in &state.layout_items {
             let mut render_context = RenderContext {
@@ -394,26 +380,18 @@ pub fn render(
             "Tech Paws UI - Render Commands",
             state.render_state.commands.len() as f64
         );
-        // println!(
-        //     "RENDER COMMAND CREATED FOR {} PLACEMENTS: {:?}",
-        //     state.widget_placements.len(),
-        //     render_time.elapsed()
-        // );
     }
 
-    // let clean_up_time = std::time::Instant::now();
-
-    state.widgets_states.sweep(&mut state.interaction_state);
+    state.widgets_states.sweep();
     state.user_input.clear_frame_events();
 
-    // println!("CLEAN UP TIME: {:?}", clean_up_time.elapsed());
-
-    // let commands_sort_time = std::time::Instant::now();
-    // state
-    // .render_state
-    // .commands
-    // .sort_by_key(|cmd| cmd.zindex().unwrap_or(i32::MAX));
-    // println!("COMMANDS SORT TIME: {:?}", commands_sort_time.elapsed());
+    {
+        profiling::scope!("Tech Paws UI - Sort commands by zindex");
+        // state
+        //     .render_state
+        //     .commands
+        //     .sort_by_key(|cmd| cmd.zindex().unwrap_or(i32::MAX));
+    }
 
     {
         profiling::scope!("Tech Paws UI - Reset phase allocator");
@@ -424,9 +402,6 @@ pub fn render(
 }
 
 fn render_debug_boundary(ctx: &mut RenderContext, placement: &WidgetPlacement) {
-    let size = placement.rect.size().px(ctx);
-    let position = placement.rect.position().px(ctx);
-
     ctx.push_command(RenderCommand::Rect {
         zindex: placement.zindex,
         boundary: placement.rect.shrink(2.).px(ctx),
@@ -438,5 +413,3 @@ fn render_debug_boundary(ctx: &mut RenderContext, placement: &WidgetPlacement) {
         ))),
     });
 }
-
-fn render_performance() {}

@@ -34,6 +34,7 @@ pub fn derive_identifiable(input: TokenStream) -> TokenStream {
     let id_field_type = &id_field.ty;
 
     let expanded = quote! {
+        #[allow(clippy::misnamed_getters)]
         impl Identifiable for #name {
             type Id = #id_field_type;
 

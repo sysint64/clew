@@ -2,26 +2,24 @@ use glam::Vec2;
 
 use super::builder::BuildContext;
 use crate::{
-    AlignX, AlignY, Border, BorderRadius, BorderSide, Clip, ColorRgba, Constraints, EdgeInsets,
+    AlignX, Border, BorderRadius, BorderSide, Clip, ColorRgba, Constraints, EdgeInsets,
     Gradient, LinearGradient, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
     impl_position_methods, impl_width_methods,
     interaction::InteractionState,
     io::UserInput,
-    layout::{ContainerKind, DeriveWrapSize, LayoutCommand, WidgetPlacement},
+    layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
     render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
     state::WidgetState,
-    text::{StringId, TextId},
+    text::TextId,
 };
 use smallvec::smallvec;
-use std::{any::Any, hash::Hash, rc::Rc};
+use std::{any::Any, hash::Hash};
 
 pub struct ButtonBuilder<'a> {
     id: WidgetId,
     text: &'a str,
     width: SizeConstraint,
     constraints: Constraints,
-    align_x: Option<AlignX>,
-    align_y: Option<AlignY>,
     zindex: Option<i32>,
     padding: Option<EdgeInsets>,
     clip: Clip,
@@ -94,7 +92,7 @@ impl<'a> ButtonBuilder<'a> {
         });
 
         context.push_layout_command(LayoutCommand::Leaf {
-            widget_ref: widget_ref,
+            widget_ref,
             backgrounds: smallvec![],
             constraints: self.constraints,
             size,
@@ -116,8 +114,6 @@ pub fn button(text: &str) -> ButtonBuilder<'_> {
         text,
         width: SizeConstraint::Wrap,
         // width: SizeConstraint::Fixed(100.),
-        align_x: None,
-        align_y: None,
         padding: None,
         zindex: None,
         constraints: Constraints {

@@ -1,19 +1,16 @@
 use std::any::Any;
 use std::hash::Hash;
 
-use glam::Vec2;
 use smallvec::{SmallVec, smallvec};
 
 use crate::{
-    AlignX, AlignY, Border, BorderRadius, BorderSide, BoxShape, Clip, ColorRgba, Constraints,
-    EdgeInsets, Gradient, LinearGradient, RadialGradient, Size, SizeConstraint, WidgetId,
-    WidgetRef, WidgetType, impl_id, impl_size_methods, impl_width_methods,
-    layout::{ContainerKind, DeriveWrapSize, LayoutCommand, WidgetPlacement},
-    render::{Fill, PixelExtension, RenderCommand, RenderContext, cache_string},
+    Border, BorderRadius, BorderSide, BoxShape, Clip, ColorRgba, Constraints, EdgeInsets, Gradient,
+    LinearGradient, RadialGradient, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
+    impl_size_methods,
+    layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
+    render::{Fill, PixelExtension, RenderCommand, RenderContext},
     state::WidgetState,
-    text::StringId,
 };
-// use bumpalo::{Bump, collections::Vec};
 
 use super::builder::BuildContext;
 
@@ -291,10 +288,6 @@ pub fn decoration() -> DecorationBuilder {
 }
 
 pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &State) {
-    let id = placement.widget_ref.id;
-    let size = placement.rect.size().px(ctx);
-    let position = placement.rect.position().px(ctx);
-
     match state.shape {
         BoxShape::Rect => {
             if let Some(color) = state.color {
@@ -331,7 +324,7 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
                     zindex: placement.zindex,
                     boundary: placement.rect.px(ctx),
                     fill: Some(Fill::Color(color)),
-                    border: border,
+                    border,
                 });
             }
 
@@ -340,7 +333,7 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
                     zindex: placement.zindex,
                     boundary: placement.rect.px(ctx),
                     fill: Some(Fill::Gradient(gradient.clone())),
-                    border: border,
+                    border,
                 });
             }
         }

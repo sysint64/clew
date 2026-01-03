@@ -1,8 +1,8 @@
 use smallvec::SmallVec;
 
 use crate::{
-    AlignX, AlignY, Clip, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment,
-    Size, SizeConstraint, WidgetRef, impl_position_methods, impl_size_methods,
+    Clip, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, Size, SizeConstraint,
+    WidgetRef, impl_position_methods, impl_size_methods,
     layout::{ContainerKind, LayoutCommand},
 };
 
@@ -86,7 +86,7 @@ impl VStackBuilder {
         backgrounds.append(&mut self.backgrounds);
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            backgrounds: backgrounds,
+            backgrounds,
             zindex: 0,
             padding: self.padding,
             margin: self.margin,

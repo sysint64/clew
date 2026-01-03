@@ -1,7 +1,7 @@
 use std::{
     any::Any,
-    collections::{HashMap, VecDeque},
-    hash::{DefaultHasher, Hash, Hasher},
+    collections::HashMap,
+    hash::{Hash, Hasher},
     sync::Arc,
 };
 
@@ -9,7 +9,7 @@ use rustc_hash::FxHasher;
 use smallvec::SmallVec;
 
 use crate::{
-    AlignX, AlignY, View, ViewId, WidgetRef,
+    View, ViewId, WidgetRef,
     interaction::InteractionState,
     io::UserInput,
     layout::LayoutCommand,

@@ -1,25 +1,18 @@
 use std::{sync::Arc, time::Duration};
 
+use clew_widgets::{HorizontalScrollBar, VerticalScrollBar, button};
 use pollster::FutureExt;
 use tech_paws_ui::assets::Assets;
 use tech_paws_ui::identifiable::Identifiable;
 // use tech_paws_ui::widgets::button::button;
 use tech_paws_ui::state::WidgetState;
-use tech_paws_ui::widgets::colored_box::colored_box;
-use tech_paws_ui::widgets::decorated_box::{decorated_box, decoration};
-use tech_paws_ui::widgets::gap::gap;
-use tech_paws_ui::widgets::gesture_detector::{
-    DragState, GestureDetectorResponse, gesture_detector,
-};
+use tech_paws_ui::widgets::decorated_box::decoration;
+use tech_paws_ui::widgets::gesture_detector::{GestureDetectorResponse, gesture_detector};
 use tech_paws_ui::widgets::hstack::hstack;
-use tech_paws_ui::widgets::scroll_area::{
-    ScrollAreaResponse, scroll_area, set_scroll_offset_y, set_scroll_progress_x,
-    set_scroll_progress_y,
-};
+use tech_paws_ui::widgets::scroll_area::{ScrollAreaResponse, scroll_area};
 use tech_paws_ui::widgets::svg::svg;
 use tech_paws_ui::widgets::text::text;
-use tech_paws_ui::widgets::virtual_list::virtual_list;
-use tech_paws_ui::widgets::widget::{Widget, widget};
+use tech_paws_ui::widgets::widget::widget;
 use tech_paws_ui::widgets::zstack::zstack;
 use tech_paws_ui::{
     AlignX, AlignY, ColorRgb,
@@ -32,8 +25,8 @@ use tech_paws_ui::{
     },
 };
 use tech_paws_ui::{
-    Axis, Border, BorderRadius, BorderSide, BoxShape, Clip, ColorRgba, CrossAxisAlignment,
-    EdgeInsets, LinearGradient, MainAxisAlignment, RadialGradient, ScrollDirection, TextAlign,
+    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, CrossAxisAlignment, EdgeInsets,
+    LinearGradient, MainAxisAlignment, RadialGradient, ScrollDirection, TextAlign,
 };
 use tech_paws_ui_derive::{Identifiable, WidgetState};
 use tech_paws_ui_desktop::{
@@ -41,11 +34,7 @@ use tech_paws_ui_desktop::{
     window::Window,
     window_manager::{WindowDescriptor, WindowManager},
 };
-use tech_paws_ui_tiny_skia::TinySkiaRenderer;
 use tech_paws_ui_vello::VelloRenderer;
-use ui_kit::{HorizontalScrollBar, VerticalScrollBar, button};
-
-mod ui_kit;
 
 pub struct DemoApplication {
     counter: u32,
@@ -143,7 +132,7 @@ pub struct MainWindow {
 }
 
 impl MainWindow {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             counter: Counter {
                 books: vec![
@@ -183,13 +172,11 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
-        // long_list(ctx);
-        virtual_list_demo(ctx);
-        // scrollable_demo(self, app, ctx);
+        scrollable_demo(self, app, ctx);
     }
 }
 
-fn long_list(ctx: &mut BuildContext) {
+fn _long_list(ctx: &mut BuildContext) {
     zstack()
         .fill_max_size()
         .margin(EdgeInsets::all(16.))
@@ -214,44 +201,6 @@ fn long_list(ctx: &mut BuildContext) {
                                 .build(ctx);
                         });
                     });
-                });
-
-            if response.overflow_y {
-                ctx.provide(response.clone(), |ctx| {
-                    widget::<VerticalScrollBar>().build(ctx);
-                });
-            }
-
-            if response.overflow_x {
-                ctx.provide(response.clone(), |ctx| {
-                    widget::<HorizontalScrollBar>().build(ctx);
-                });
-            }
-        });
-}
-
-fn virtual_list_demo(ctx: &mut BuildContext) {
-    zstack()
-        .fill_max_size()
-        .margin(EdgeInsets::all(16.))
-        .build(ctx, |ctx| {
-            let response = virtual_list()
-                .fill_max_size()
-                .background(
-                    decoration()
-                        .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
-                        .border_radius(BorderRadius::all(16.))
-                        .build(ctx),
-                )
-                .items_count(10_000_000_000)
-                .item_size(32.)
-                .build(ctx, |ctx, index| {
-                    text(&bumpalo::format!(in &ctx.phase_allocator, "Item {}", index))
-                        .text_vertical_align(AlignY::Center)
-                        .padding(EdgeInsets::symmetric(16., 0.))
-                        .height(32.)
-                        .fill_max_width()
-                        .build(ctx);
                 });
 
             if response.overflow_y {
@@ -295,7 +244,7 @@ fn scrollable_demo(window: &mut MainWindow, app: &mut DemoApplication, ctx: &mut
                         .build(ctx),
                 )
                 .build(ctx, |ctx| {
-                    let response = ctx.of::<ScrollAreaResponse>().unwrap();
+                    let _response = ctx.of::<ScrollAreaResponse>().unwrap();
 
                     hstack()
                         // .padding(if response.overflow_y {
@@ -354,6 +303,7 @@ impl Default for Counter {
 }
 
 #[derive(Identifiable)]
+#[allow(dead_code)]
 struct Book {
     id: u64,
     #[id]

@@ -8,7 +8,7 @@ use tech_paws_ui::{
     render::{Fill, RenderCommand, RenderState, Renderer},
     text::{FontResources, TextsResources},
 };
-use tiny_skia::{Paint, Pixmap, PixmapMut};
+use tiny_skia::{Paint, PixmapMut};
 
 pub struct TinySkiaRenderer<D, W> {
     surface: softbuffer::Surface<D, W>,
@@ -159,16 +159,16 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
                         // TODO
                     }
                     RenderCommand::Svg {
-                        zindex,
                         boundary,
                         asset_id,
                         tint_color,
+                        ..
                     } => {
                         let tree = assets
                             .get_svg_tree(asset_id)
-                            .expect(&format!("SVG with ID = {asset_id} has not found"));
+                            .unwrap_or_else(|| panic!("SVG with ID = {asset_id} has not found"));
 
-                        let mut svg_pixmap = tiny_skia::Pixmap::new(
+                        let svg_pixmap = tiny_skia::Pixmap::new(
                             boundary.width.ceil() as u32,
                             boundary.height.ceil() as u32,
                         );
@@ -178,7 +178,7 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
                             let sy = boundary.height / tree.size().height();
 
                             resvg::render(
-                                &tree,
+                                tree,
                                 tiny_skia::Transform::from_scale(sx, sy),
                                 &mut svg_pixmap.as_mut(),
                             );
@@ -208,7 +208,6 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
         {
             profiling::scope!("Tech Paws UI - Tiny Skia - Softbuffer Preset");
 
-            let compose_time = std::time::Instant::now();
             surface_buffer.present().unwrap();
         }
 
@@ -555,8 +554,10 @@ fn tint_pixmap(pixmap: &mut tiny_skia::Pixmap, color: tiny_skia::Color) {
     tint_pixmap.fill(color);
 
     // Create a paint with multiply blend mode
-    let mut paint = tiny_skia::PixmapPaint::default();
-    paint.blend_mode = tiny_skia::BlendMode::SourceIn;
+    let paint = tiny_skia::PixmapPaint {
+        blend_mode: tiny_skia::BlendMode::SourceIn,
+        ..Default::default()
+    };
 
     // Draw the tint over the original with multiply blending
     pixmap.draw_pixmap(

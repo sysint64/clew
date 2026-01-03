@@ -9,6 +9,11 @@ pub struct WidgetBuilder<T: WidgetState + Widget> {
     phantom_data: PhantomData<T>,
 }
 
+pub struct WidgetWithStateBuilder<'a, T: WidgetState + Widget> {
+    id: WidgetId,
+    state: &'a mut T,
+}
+
 pub trait Widget: 'static {
     type Event;
 
@@ -21,6 +26,10 @@ pub trait Widget: 'static {
 
 impl<T: WidgetState + Widget + Default> WidgetBuilder<T> {
     impl_id!();
+
+    pub fn state<'a>(self, state: &'a mut T) -> WidgetWithStateBuilder<'a, T> {
+        WidgetWithStateBuilder { id: self.id, state }
+    }
 
     pub fn build(&mut self, context: &mut BuildContext) {
         let id = self.id.with_seed(context.id_seed);
@@ -42,6 +51,29 @@ impl<T: WidgetState + Widget + Default> WidgetBuilder<T> {
         });
 
         context.widgets_states.restore(idx, state);
+    }
+}
+
+impl<'a, T: WidgetState + Widget + Default> WidgetWithStateBuilder<'a, T> {
+    impl_id!();
+
+    pub fn build(&mut self, context: &mut BuildContext) {
+        let id = self.id.with_seed(context.id_seed);
+
+        // Skip event processing for () type
+        if TypeId::of::<T::Event>() != TypeId::of::<()>() {
+            for event_box in context.event_queue.iter() {
+                if let Some(event) = event_box.downcast_ref::<T::Event>() {
+                    self.state.on_event(event);
+                }
+            }
+        }
+
+        context.widgets_states.custom.accessed_this_frame.insert(id);
+
+        scope(id).build(context, |context| {
+            self.state.build(context);
+        });
     }
 }
 

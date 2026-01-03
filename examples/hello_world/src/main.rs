@@ -101,16 +101,16 @@ impl ApplicationDelegate<CounterEvent> for DemoApplication {
             },
         );
 
-        // window_manager.spawn_window(
-        //     MainWindow::new(),
-        //     WindowDescriptor {
-        //         title: "TODO List".to_string(),
-        //         width: 400,
-        //         height: 300,
-        //         resizable: true,
-        //         fill_color: ColorRgb::from_hex(0x121212),
-        //     },
-        // );
+        window_manager.spawn_window(
+            MainWindow::new(),
+            WindowDescriptor {
+                title: "TODO List".to_string(),
+                width: 400,
+                height: 300,
+                resizable: true,
+                fill_color: ColorRgb::from_hex(0x121212),
+            },
+        );
     }
 
     fn create_renderer(window: Arc<winit::window::Window>) -> Box<dyn Renderer> {

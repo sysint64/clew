@@ -1,5 +1,6 @@
 use pollster::FutureExt;
-use tech_paws_ui as ui;
+use tech_paws_ui::{self as ui, state::WidgetState};
+use tech_paws_ui_derive::WidgetState;
 use tech_paws_ui_desktop::{
     app::{Application, ApplicationDelegate},
     window::Window,
@@ -15,7 +16,9 @@ impl ApplicationDelegate<()> for CounterApplication {
         Self: std::marker::Sized,
     {
         window_manager.spawn_window(
-            MainWindow { counter: 0 },
+            MainWindow {
+                counter: CounterWidget { counter: 0 },
+            },
             WindowDescriptor {
                 title: "Counter".to_string(),
                 width: 800,
@@ -39,11 +42,67 @@ impl ApplicationDelegate<()> for CounterApplication {
 }
 
 pub struct MainWindow {
-    counter: i32,
+    counter: CounterWidget,
 }
 
 impl Window<CounterApplication, ()> for MainWindow {
     fn build(&mut self, _: &mut CounterApplication, ctx: &mut ui::BuildContext) {
+        ui::vstack().build(ctx, |ctx| {
+            ui::widget::<CounterWidget>().build(ctx);
+            ui::widget().state(&mut self.counter).build(ctx);
+        });
+
+        // ui::zstack()
+        //     .fill_max_size()
+        //     .align_x(ui::AlignX::Center)
+        //     .align_y(ui::AlignY::Center)
+        //     .build(ctx, |ctx| {
+        //         ui::vstack()
+        //             .spacing(12.)
+        //             .cross_axis_alignment(ui::CrossAxisAlignment::Center)
+        //             .build(ctx, |ctx| {
+        //                 ui::text(
+        //                     &bumpalo::format!(in &ctx.phase_allocator, "Counter: {}", self.counter),
+        //                 )
+        //                 .build(ctx);
+
+        //                 ui::hstack().build(ctx, |ctx| {
+        //                     if clew_widgets::button("+").build(ctx).clicked() {
+        //                         self.counter += 1;
+        //                     }
+
+        //                     if clew_widgets::button("-").build(ctx).clicked() {
+        //                         self.counter -= 1;
+        //                     }
+        //                 });
+        //             });
+        //     });
+    }
+}
+
+#[derive(Default, WidgetState)]
+pub struct CounterWidget {
+    counter: i32,
+}
+
+pub enum CounterEvent {
+    Increment,
+    Decrement,
+}
+
+impl ui::Widget for CounterWidget {
+    type Event = CounterEvent;
+
+    fn on_event(&mut self, event: &Self::Event) -> bool {
+        match event {
+            CounterEvent::Increment => self.counter += 1,
+            CounterEvent::Decrement => self.counter -= 1,
+        }
+
+        true
+    }
+
+    fn build(&mut self, ctx: &mut ui::BuildContext) {
         ui::zstack()
             .fill_max_size()
             .align_x(ui::AlignX::Center)
@@ -60,11 +119,11 @@ impl Window<CounterApplication, ()> for MainWindow {
 
                         ui::hstack().build(ctx, |ctx| {
                             if clew_widgets::button("+").build(ctx).clicked() {
-                                self.counter += 1;
+                                ctx.emit(CounterEvent::Increment);
                             }
 
                             if clew_widgets::button("-").build(ctx).clicked() {
-                                self.counter -= 1;
+                                ctx.emit(CounterEvent::Decrement);
                             }
                         });
                     });

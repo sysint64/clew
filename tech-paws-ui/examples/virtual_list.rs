@@ -1,13 +1,5 @@
-use clew_widgets::{HorizontalScrollBar, VerticalScrollBar};
 use pollster::FutureExt;
-use tech_paws_ui::{
-    AlignY, Axis, BorderRadius, ColorRgb, ColorRgba, EdgeInsets,
-    render::Renderer,
-    widgets::{
-        builder::BuildContext, decorated_box::decoration, text::text, virtual_list::virtual_list,
-        vstack::vstack, widget::widget, zstack::zstack,
-    },
-};
+use tech_paws_ui as ui;
 use tech_paws_ui_desktop::{
     app::{Application, ApplicationDelegate},
     window::Window,
@@ -29,12 +21,12 @@ impl ApplicationDelegate<()> for DemoApplication {
                 width: 800,
                 height: 600,
                 resizable: true,
-                fill_color: ColorRgb::from_hex(0x121212),
+                fill_color: ui::ColorRgb::from_hex(0x121212),
             },
         );
     }
 
-    fn create_renderer(window: std::sync::Arc<winit::window::Window>) -> Box<dyn Renderer> {
+    fn create_renderer(window: std::sync::Arc<winit::window::Window>) -> Box<dyn ui::Renderer> {
         Box::new(
             VelloRenderer::new(
                 window.clone(),
@@ -49,67 +41,71 @@ impl ApplicationDelegate<()> for DemoApplication {
 pub struct MainWindow;
 
 impl Window<DemoApplication, ()> for MainWindow {
-    fn build(&mut self, _: &mut DemoApplication, ctx: &mut BuildContext) {
-        vstack()
+    fn build(&mut self, _: &mut DemoApplication, ctx: &mut ui::BuildContext) {
+        ui::vstack()
             .fill_max_size()
-            .padding(EdgeInsets::symmetric(0., 8.))
+            .padding(ui::EdgeInsets::symmetric(0., 8.))
             .build(ctx, |ctx| {
-                zstack()
+                ui::zstack()
                     .fill_max_size()
-                    .margin(EdgeInsets::symmetric(16., 8.))
+                    .margin(ui::EdgeInsets::symmetric(16., 8.))
                     .build(ctx, |ctx| {
-                        let response = virtual_list()
+                        let response = ui::virtual_list()
                             .fill_max_size()
                             .background(
-                                decoration()
-                                    .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
-                                    .border_radius(BorderRadius::all(16.))
+                                ui::decoration()
+                                    .color(ui::ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
+                                    .border_radius(ui::BorderRadius::all(16.))
                                     .build(ctx),
                             )
                             .items_count(10_000_000_000)
                             .item_size(32.)
                             .build(ctx, |ctx, index| {
-                                text(&bumpalo::format!(in &ctx.phase_allocator, "Item {}", index))
-                                    .padding(EdgeInsets::symmetric(16., 0.))
-                                    .height(32.)
-                                    .fill_max_width()
-                                    .build(ctx);
+                                ui::text(
+                                    &bumpalo::format!(in &ctx.phase_allocator, "Item {}", index),
+                                )
+                                .padding(ui::EdgeInsets::symmetric(16., 0.))
+                                .height(32.)
+                                .fill_max_width()
+                                .build(ctx);
                             });
 
                         if response.overflow_y {
                             ctx.provide(response.clone(), |ctx| {
-                                widget::<VerticalScrollBar>().build(ctx);
+                                ui::widget::<clew_widgets::VerticalScrollBar>().build(ctx);
                             });
                         }
                     });
 
-                zstack()
+                ui::zstack()
                     .fill_max_size()
-                    .margin(EdgeInsets::symmetric(16., 8.))
+                    .margin(ui::EdgeInsets::symmetric(16., 8.))
                     .build(ctx, |ctx| {
-                        let response = virtual_list()
+                        let response = ui::virtual_list()
                             .fill_max_size()
-                            .scroll_direction(Axis::Horizontal)
+                            .scroll_direction(ui::Axis::Horizontal)
                             .background(
-                                decoration()
-                                    .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
-                                    .border_radius(BorderRadius::all(16.))
+                                ui::decoration()
+                                    .color(ui::ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
+                                    .border_radius(ui::BorderRadius::all(16.))
                                     .build(ctx),
                             )
                             .items_count(10_000_000_000)
                             .item_size(150.)
                             .build(ctx, |ctx, index| {
-                                text(&bumpalo::format!(in &ctx.phase_allocator, "Item {}", index))
-                                    .text_vertical_align(AlignY::Center)
-                                    .padding(EdgeInsets::symmetric(16., 0.))
-                                    .width(150.)
-                                    .fill_max_height()
-                                    .build(ctx);
+                                ui::text(
+                                    &bumpalo::format!(in &ctx.phase_allocator, "Item {}", index),
+                                )
+                                .text_vertical_align(ui::AlignY::Center)
+                                .padding(ui::EdgeInsets::symmetric(16., 0.))
+                                .width(150.)
+                                .fill_max_height()
+                                .build(ctx);
                             });
 
                         if response.overflow_x {
                             ctx.provide(response.clone(), |ctx| {
-                                widget::<HorizontalScrollBar>().build(ctx);
+                                ui::widget::<clew_widgets::HorizontalScrollBar>().build(ctx);
                             });
                         }
                     });

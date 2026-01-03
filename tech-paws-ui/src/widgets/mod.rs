@@ -1,6 +1,7 @@
 pub mod builder;
 pub mod button;
 pub mod colored_box;
+pub mod component;
 pub mod decorated_box;
 pub mod for_each;
 pub mod gap;
@@ -10,8 +11,27 @@ pub mod scope;
 pub mod scroll_area;
 pub mod svg;
 pub mod text;
-pub mod view;
 pub mod virtual_list;
 pub mod vstack;
 pub mod widget;
 pub mod zstack;
+
+pub use builder::BuildContext;
+pub use colored_box::colored_box;
+pub use component::{Component, component};
+pub use decorated_box::{decorated_box, decoration};
+pub use for_each::for_each;
+pub use gap::gap;
+pub use gesture_detector::{DragState, GestureDetectorResponse, gesture_detector};
+pub use hstack::hstack;
+pub use scope::scope;
+pub use scroll_area::{
+    ScrollAreaResponse, scroll_area, set_scroll_offset_x, set_scroll_offset_y,
+    set_scroll_progress_x, set_scroll_progress_y,
+};
+pub use svg::svg;
+pub use text::text;
+pub use virtual_list::virtual_list;
+pub use vstack::vstack;
+pub use widget::{Widget, widget};
+pub use zstack::zstack;

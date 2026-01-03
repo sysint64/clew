@@ -1,10 +1,5 @@
-use clew_widgets::button;
 use pollster::FutureExt;
-use tech_paws_ui::{
-    AlignX, AlignY, ColorRgb, CrossAxisAlignment,
-    render::Renderer,
-    widgets::{builder::BuildContext, hstack::hstack, text::text, vstack::vstack, zstack::zstack},
-};
+use tech_paws_ui as ui;
 use tech_paws_ui_desktop::{
     app::{Application, ApplicationDelegate},
     window::Window,
@@ -26,12 +21,12 @@ impl ApplicationDelegate<()> for CounterApplication {
                 width: 800,
                 height: 600,
                 resizable: true,
-                fill_color: ColorRgb::from_hex(0x121212),
+                fill_color: ui::ColorRgb::from_hex(0x121212),
             },
         );
     }
 
-    fn create_renderer(window: std::sync::Arc<winit::window::Window>) -> Box<dyn Renderer> {
+    fn create_renderer(window: std::sync::Arc<winit::window::Window>) -> Box<dyn ui::Renderer> {
         Box::new(
             VelloRenderer::new(
                 window.clone(),
@@ -48,27 +43,27 @@ pub struct MainWindow {
 }
 
 impl Window<CounterApplication, ()> for MainWindow {
-    fn build(&mut self, _: &mut CounterApplication, ctx: &mut BuildContext) {
-        zstack()
+    fn build(&mut self, _: &mut CounterApplication, ctx: &mut ui::BuildContext) {
+        ui::zstack()
             .fill_max_size()
-            .align_x(AlignX::Center)
-            .align_y(AlignY::Center)
+            .align_x(ui::AlignX::Center)
+            .align_y(ui::AlignY::Center)
             .build(ctx, |ctx| {
-                vstack()
+                ui::vstack()
                     .spacing(12.)
-                    .cross_axis_alignment(CrossAxisAlignment::Center)
+                    .cross_axis_alignment(ui::CrossAxisAlignment::Center)
                     .build(ctx, |ctx| {
-                        text(
+                        ui::text(
                             &bumpalo::format!(in &ctx.phase_allocator, "Counter: {}", self.counter),
                         )
                         .build(ctx);
 
-                        hstack().build(ctx, |ctx| {
-                            if button("+").build(ctx).clicked() {
+                        ui::hstack().build(ctx, |ctx| {
+                            if clew_widgets::button("+").build(ctx).clicked() {
                                 self.counter += 1;
                             }
 
-                            if button("-").build(ctx).clicked() {
+                            if clew_widgets::button("-").build(ctx).clicked() {
                                 self.counter -= 1;
                             }
                         });

@@ -3,16 +3,7 @@ use tech_paws_ui::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets,
     LinearGradient, SizeConstraint, WidgetId, impl_id, impl_position_methods, impl_width_methods,
     state::WidgetState,
-    widgets::{
-        builder::BuildContext,
-        decorated_box::{decorated_box, decoration},
-        gesture_detector::{DragState, GestureDetectorResponse, gesture_detector},
-        scope::scope,
-        scroll_area::{ScrollAreaResponse, set_scroll_progress_x, set_scroll_progress_y},
-        text::text,
-        widget::Widget,
-        zstack::zstack,
-    },
+    widgets::*,
 };
 use tech_paws_ui_derive::WidgetState;
 

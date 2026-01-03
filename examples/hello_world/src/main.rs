@@ -4,23 +4,23 @@ use clew_widgets::{HorizontalScrollBar, VerticalScrollBar, button};
 use pollster::FutureExt;
 use tech_paws_ui::assets::Assets;
 use tech_paws_ui::identifiable::Identifiable;
-// use tech_paws_ui::widgets::button::button;
 use tech_paws_ui::state::WidgetState;
-use tech_paws_ui::widgets::decorated_box::decoration;
-use tech_paws_ui::widgets::gesture_detector::{GestureDetectorResponse, gesture_detector};
-use tech_paws_ui::widgets::hstack::hstack;
-use tech_paws_ui::widgets::scroll_area::{ScrollAreaResponse, scroll_area};
-use tech_paws_ui::widgets::svg::svg;
-use tech_paws_ui::widgets::text::text;
-use tech_paws_ui::widgets::widget::widget;
-use tech_paws_ui::widgets::zstack::zstack;
+// use tech_paws_ui::widgets::decorated_box::decoration;
+// use tech_paws_ui::widgets::gesture_detector::{GestureDetectorResponse, gesture_detector};
+// use tech_paws_ui::widgets::hstack::hstack;
+// use tech_paws_ui::widgets::scroll_area::{ScrollAreaResponse, scroll_area};
+// use tech_paws_ui::widgets::svg::svg;
+// use tech_paws_ui::widgets::text::text;
+// use tech_paws_ui::widgets::widget::widget;
+// use tech_paws_ui::widgets::zstack::zstack;
+use tech_paws_ui::widgets::*;
 use tech_paws_ui::{
     AlignX, AlignY, ColorRgb,
     render::Renderer,
     widgets::{
         builder::BuildContext,
         for_each::for_each,
-        view::{Component, component},
+        component::{Component, component},
         vstack::vstack,
     },
 };

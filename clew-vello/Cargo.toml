@@ -7,7 +7,7 @@ description = "GPU-accelerated renderer backend for the clew UI framework using 
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/sysint64/clew"
 readme = "README.md"
-keywords = ["gui", "ui", "imgui", "immediate", "renderer", "gpu"]
+keywords = ["gui", "ui", "imgui", "immediate", "gpu renderer"]
 categories = ["gui"]
 
 [dependencies]

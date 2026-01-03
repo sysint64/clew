@@ -32,7 +32,8 @@ use tech_paws_ui::{
     },
 };
 use tech_paws_ui::{
-    Axis, Border, BorderRadius, BorderSide, BoxShape, Clip, ColorRgba, CrossAxisAlignment, EdgeInsets, LinearGradient, MainAxisAlignment, RadialGradient, ScrollDirection, TextAlign
+    Axis, Border, BorderRadius, BorderSide, BoxShape, Clip, ColorRgba, CrossAxisAlignment,
+    EdgeInsets, LinearGradient, MainAxisAlignment, RadialGradient, ScrollDirection, TextAlign,
 };
 use tech_paws_ui_derive::{Identifiable, WidgetState};
 use tech_paws_ui_desktop::{
@@ -182,9 +183,51 @@ impl Window<DemoApplication, CounterEvent> for MainWindow {
     }
 
     fn build(&mut self, app: &mut DemoApplication, ctx: &mut BuildContext) {
+        // long_list(ctx);
         virtual_list_demo(ctx);
         // scrollable_demo(self, app, ctx);
     }
+}
+
+fn long_list(ctx: &mut BuildContext) {
+    zstack()
+        .fill_max_size()
+        .margin(EdgeInsets::all(16.))
+        .build(ctx, |ctx| {
+            let response = scroll_area()
+                .fill_max_size()
+                .background(
+                    decoration()
+                        .color(ColorRgba::from_hex(0xFFFF0000).with_opacity(0.2))
+                        .border_radius(BorderRadius::all(16.))
+                        .build(ctx),
+                )
+                .scroll_direction(ScrollDirection::Vertical)
+                .build(ctx, |ctx| {
+                    vstack().build(ctx, |ctx| {
+                        for_each(0..10_000).build(ctx, |ctx, index| {
+                            text(&bumpalo::format!(in &ctx.phase_allocator, "Item {}", index))
+                                .text_vertical_align(AlignY::Center)
+                                .padding(EdgeInsets::symmetric(16., 0.))
+                                .height(32.)
+                                .fill_max_width()
+                                .build(ctx);
+                        });
+                    });
+                });
+
+            if response.overflow_y {
+                ctx.provide(response.clone(), |ctx| {
+                    widget::<VerticalScrollBar>().build(ctx);
+                });
+            }
+
+            if response.overflow_x {
+                ctx.provide(response.clone(), |ctx| {
+                    widget::<HorizontalScrollBar>().build(ctx);
+                });
+            }
+        });
 }
 
 fn virtual_list_demo(ctx: &mut BuildContext) {
@@ -201,14 +244,13 @@ fn virtual_list_demo(ctx: &mut BuildContext) {
                         .build(ctx),
                 )
                 .items_count(10_000_000_000)
-                .scroll_direction(Axis::Horizontal)
-                .item_size(100.)
+                .item_size(32.)
                 .build(ctx, |ctx, index| {
                     text(&bumpalo::format!(in &ctx.phase_allocator, "Item {}", index))
                         .text_vertical_align(AlignY::Center)
                         .padding(EdgeInsets::symmetric(16., 0.))
-                        .width(100.)
-                        .fill_max_height()
+                        .height(32.)
+                        .fill_max_width()
                         .build(ctx);
                 });
 

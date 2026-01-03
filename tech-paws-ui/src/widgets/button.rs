@@ -67,6 +67,12 @@ impl<'a> ButtonBuilder<'a> {
     impl_width_methods!();
     impl_position_methods!();
 
+    pub fn clip(mut self, clip: Clip) -> Self {
+        self.clip = clip;
+
+        self
+    }
+
     pub fn padding(mut self, padding: EdgeInsets) -> Self {
         self.padding = Some(padding);
 
@@ -96,7 +102,7 @@ impl<'a> ButtonBuilder<'a> {
             margin: EdgeInsets::ZERO,
             derive_wrap_size: DeriveWrapSize::Text(text_id),
             zindex: self.zindex.unwrap_or(context.current_zindex),
-            clip: todo!(),
+            clip: self.clip,
         });
 
         ButtonResponse { clicked: false }
@@ -120,7 +126,7 @@ pub fn button(text: &str) -> ButtonBuilder<'_> {
             max_width: f32::INFINITY,
             max_height: f32::INFINITY,
         },
-        clip: todo!(),
+        clip: Clip::None,
     }
 }
 

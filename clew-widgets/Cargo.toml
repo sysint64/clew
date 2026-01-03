@@ -1,0 +1,10 @@
+[package]
+name = "clew-widgets"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = { workspace = true }
+tech-paws-ui = { path = "../tech-paws-ui" }
+tech-paws-ui-derive = { path = "../tech-paws-ui-derive" }
+profiling = { workspace = true }

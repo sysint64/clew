@@ -6,6 +6,7 @@ members = [
     "tech-paws-ui-derive",
     "tech-paws-ui-tiny-skia",
     "tech-paws-ui-vello",
+    "clew-widgets",
     "examples/hello_world",
 ]
 

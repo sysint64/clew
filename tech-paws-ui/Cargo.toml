@@ -24,3 +24,16 @@ bitvec = "1.0.1"
 [features]
 default = ["tokio"]
 async = ["tokio"]
+
+[dev-dependencies]
+tokio = { version = "1.47.1", features = ["full"] }
+clew-widgets = { path = "../clew-widgets" }
+tech-paws-ui-desktop = { path = "../tech-paws-ui-desktop" }
+tech-paws-ui-derive = { path = "../tech-paws-ui-derive" }
+tech-paws-ui-vello = { path = "../tech-paws-ui-vello" }
+profiling = { workspace = true }
+tracy-client = { workspace = true }
+log = { workspace = true }
+env_logger = "0.10"
+winit = { workspace = true }
+pollster = "0.4.0"

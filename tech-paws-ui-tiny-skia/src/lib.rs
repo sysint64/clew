@@ -1,4 +1,4 @@
-use std::{collections::HashMap, num::NonZeroU32, slice};
+use std::{num::NonZeroU32, slice};
 
 use cosmic_text::SwashCache;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
@@ -153,31 +153,10 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
                         });
                     }
                     RenderCommand::PushClip { .. } => {
-                        // let clip_path = {
-                        //     let mut pb = tiny_skia::PathBuilder::new();
-                        //     if let Some(rect) = tiny_skia::Rect::from_xywh(*x, *y, *width, *height) {
-                        //         pb.push_rect(rect);
-                        //     }
-                        //     pb.finish().unwrap()
-                        // };
-
-                        // let mut new_mask = tiny_skia::Mask::new(*width as u32, *height as u32).unwrap();
-                        // new_mask.fill_path(
-                        //     &clip_path,
-                        //     tiny_skia::FillRule::Winding,
-                        //     true,
-                        //     tiny_skia::Transform::identity(),
-                        // );
-
-                        // // Intersect with parent clip if exists
-                        // // if let Some(parent_clip) = current_clip {
-                        // // new_mask.intersect_mask(parent_clip);
-                        // // }
-
-                        // clip_stack.push(new_mask);
+                        // TODO
                     }
                     RenderCommand::PopClip => {
-                        // clip_stack.pop();
+                        // TODO
                     }
                     RenderCommand::Svg {
                         zindex,

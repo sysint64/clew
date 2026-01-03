@@ -1,11 +1,9 @@
-use smallvec::{SmallVec, smallvec};
+use smallvec::SmallVec;
 
 use crate::{
-    Axis, Clip, Constraints, EdgeInsets, ScrollDirection, Size, SizeConstraint, WidgetId,
-    WidgetRef, impl_id, impl_size_methods,
-    interaction::InteractionState,
-    io::UserInput,
-    layout::{ContainerKind, DeriveWrapSize, LayoutCommand, LayoutMeasure},
+    Axis, Clip, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, impl_id,
+    impl_size_methods,
+    layout::{ContainerKind, LayoutCommand},
     widgets::{scope::scope, scroll_area},
 };
 use std::hash::Hash;
@@ -222,23 +220,6 @@ impl VirtualListBuilder {
                 }
             }
         }
-
-        // context.push_layout_command(LayoutCommand::Spacer {
-        //     constraints: Constraints::default(),
-        //     size: Size {
-        //         width: SizeConstraint::Fixed(1.),
-        //         height: SizeConstraint::Fixed(self.item_size * (self.items_count as f32)),
-        //     },
-        // });
-
-        // for i in 0..self.items_count {
-        //     context.push_layout_command(LayoutCommand::BeginOffset {
-        //         offset_x: offset_x as f32,
-        //         offset_y: i as f32 * self.item_size + offset_y as f32,
-        //     });
-        //     scope(i).build(context, |ctx| item_build(ctx, i));
-        //     context.push_layout_command(LayoutCommand::EndOffset);
-        // }
 
         context.push_layout_command(LayoutCommand::EndContainer);
 

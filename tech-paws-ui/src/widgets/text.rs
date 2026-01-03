@@ -112,13 +112,15 @@ impl<'a> TextBuilder<'a> {
 
         let widget_ref = WidgetRef::new(WidgetType::of::<TextWidget>(), id);
         let state = context.widgets_states.text.get(id);
-        let last_text_align = state.map(|it| it.text_align).unwrap_or(TextAlign::Left);
+        let mut last_text_align = state.map(|it| it.text_align).unwrap_or(TextAlign::Left);
 
         let (text_data, text_id) = if let Some(state) = state {
             if state.text_data != self.text {
                 context.text.update_text(state.text_id, |text| {
                     text.set_text(context.fonts, self.text);
                 });
+
+                last_text_align = TextAlign::Left;
 
                 // Reset wrap size calculation during layout.
                 if !self.size.width.constrained() {
@@ -204,8 +206,8 @@ pub fn text(text: &str) -> TextBuilder<'_> {
         size: Size::default(),
         zindex: None,
         constraints: Constraints {
-            min_width: 100.,
-            min_height: 20.,
+            min_width: 12.,
+            min_height: 12.,
             max_width: f32::INFINITY,
             max_height: f32::INFINITY,
         },

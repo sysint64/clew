@@ -1,0 +1,113 @@
+use crate::{
+    Clip, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, Size, SizeConstraint,
+    impl_position_methods, impl_size_methods,
+    layout::{ContainerKind, LayoutCommand},
+};
+
+use super::builder::BuildContext;
+
+pub struct HStackBuilder {
+    size: Size,
+    rtl_aware: bool,
+    spacing: f32,
+    constraints: Constraints,
+    zindex: Option<i32>,
+    main_axis_alignment: MainAxisAlignment,
+    cross_axis_alignment: CrossAxisAlignment,
+    padding: EdgeInsets,
+    margin: EdgeInsets,
+    clip: Clip,
+}
+
+impl HStackBuilder {
+    impl_size_methods!();
+    impl_position_methods!();
+
+    pub fn clip(mut self, clip: Clip) -> Self {
+        self.clip = clip;
+
+        self
+    }
+
+    pub fn padding(mut self, padding: EdgeInsets) -> Self {
+        self.padding = padding;
+
+        self
+    }
+
+    pub fn margin(mut self, margin: EdgeInsets) -> Self {
+        self.margin = margin;
+
+        self
+    }
+
+    pub fn rtl_aware(mut self, rtl_aware: bool) -> Self {
+        self.rtl_aware = rtl_aware;
+
+        self
+    }
+
+    pub fn spacing(mut self, spacing: f32) -> Self {
+        self.spacing = spacing;
+
+        self
+    }
+
+    pub fn main_axis_alignment(mut self, value: MainAxisAlignment) -> Self {
+        self.main_axis_alignment = value;
+
+        self
+    }
+
+    pub fn cross_axis_alignment(mut self, value: CrossAxisAlignment) -> Self {
+        self.cross_axis_alignment = value;
+
+        self
+    }
+
+    #[profiling::function]
+    pub fn build<F>(self, context: &mut BuildContext, callback: F)
+    where
+        F: FnOnce(&mut BuildContext),
+    {
+        let last_zindex = context.current_zindex;
+        context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
+        let widget_refs = std::mem::take(context.decorators);
+
+        context.push_layout_command(LayoutCommand::BeginContainer {
+            backgrounds: widget_refs,
+            zindex: 0,
+            padding: self.padding,
+            margin: self.margin,
+            kind: ContainerKind::HStack {
+                spacing: self.spacing,
+                rtl_aware: self.rtl_aware,
+                main_axis_alignment: self.main_axis_alignment,
+                cross_axis_alignment: self.cross_axis_alignment,
+            },
+            size: self.size,
+            constraints: self.constraints,
+            clip: self.clip,
+        });
+
+        callback(context);
+        context.push_layout_command(LayoutCommand::EndContainer);
+
+        context.current_zindex = last_zindex;
+    }
+}
+
+pub fn hstack() -> HStackBuilder {
+    HStackBuilder {
+        size: Size::default(),
+        constraints: Constraints::default(),
+        rtl_aware: false,
+        spacing: 5.,
+        zindex: None,
+        main_axis_alignment: MainAxisAlignment::default(),
+        cross_axis_alignment: CrossAxisAlignment::default(),
+        padding: EdgeInsets::ZERO,
+        margin: EdgeInsets::ZERO,
+        clip: Clip::None,
+    }
+}

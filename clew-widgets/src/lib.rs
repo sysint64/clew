@@ -1,11 +1,10 @@
-use std::hash::Hash;
-use tech_paws_ui::{
+use clew::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets,
     LinearGradient, SizeConstraint, WidgetId, impl_id, impl_position_methods, impl_width_methods,
-    state::WidgetState,
-    widgets::*,
+    state::WidgetState, widgets::*,
 };
-use tech_paws_ui_derive::WidgetState;
+use clew_derive::WidgetState;
+use std::hash::Hash;
 
 pub struct ButtonBuilder<'a> {
     id: WidgetId,

@@ -20,7 +20,7 @@ The framework intentionally doesn't include common widgets like buttons or scrol
 
 ## Why yet another desktop framework
 
-The main reason — it's just fun to work on such a project, second — the framework's primary goal is to bring modern mobile frameworks developer experience to Rust and focus primarily on Desktop platforms and try to implement desktop-specific features well ignoring all other platforms, e.g. this framework is not trying to support Android or iOS, even though it's technically possible. In addition to this, I decided to experiment with immediate API and it turned out as a nice way to shape the API for Rust. It has some retained mode features, but it's mostly immediate mode UI. The majority of UI frameworks in the Rust ecosystem are retained mode. There is an amazing immediate UI framework — egui — but they have a bit different goal: it's more lightweight but less customizable and has a different API philosophy.
+First of all — it's fun to work on such a project, second — the framework's primary goal is to bring modern mobile frameworks developer experience to Rust and focus primarily on Desktop platforms and try to implement desktop-specific features well ignoring all other platforms, e.g. this framework is not trying to support Android or iOS, even though it's technically possible. In addition to this, I decided to experiment with immediate API and it turned out as a nice way to shape the API for Rust. It has some retained mode features, but it's mostly immediate mode UI. The majority of UI frameworks in the Rust ecosystem are retained mode. There is an amazing immediate UI framework — egui — but they have a bit different goal: it's more lightweight but less customizable and has a different API philosophy.
 
 ## Tech-Stack
 

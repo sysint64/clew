@@ -1,0 +1,46 @@
+[package]
+name = "clew"
+version = "0.0.1"
+edition = "2024"
+authors = ["Andrei Kabylin <sys.int64@gmail.com>"]
+description = "A composable UI framework for Rust with an immediate API. Inspired by Flutter, SwiftUI, and Jetpack Compose."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/sysint64/clew"
+readme = "README.md"
+keywords = ["gui", "ui", "imgui", "immediate", "desktop"]
+categories = ["gui"]
+
+[dependencies]
+log = { workspace = true }
+glam = { workspace = true }
+cosmic-text = { workspace = true }
+slotmap = { workspace = true }
+string-interner = { workspace = true }
+usvg = { workspace = true }
+bitflags = "2.10"
+tokio = { version = "1", features = ["rt", "sync", "time"], optional = true }
+puffin = "0.19.1"
+bumpalo = { workspace = true }
+smallvec = { workspace = true }
+profiling = { workspace = true, features = ["profile-with-tracy"] }
+tracy-client = { workspace = true }
+rustc-hash = "2.1"
+slab = "0.4.11"
+bitvec = "1.0.1"
+
+[features]
+default = ["tokio"]
+async = ["tokio"]
+
+[dev-dependencies]
+tokio = { version = "1.47.1", features = ["full"] }
+clew-widgets = { path = "../clew-widgets" }
+clew-desktop = { path = "../clew-desktop" }
+clew-derive = { path = "../clew-derive" }
+clew-vello = { path = "../clew-vello" }
+profiling = { workspace = true }
+tracy-client = { workspace = true }
+log = { workspace = true }
+env_logger = "0.10"
+winit = { workspace = true }
+pollster = "0.4.0"

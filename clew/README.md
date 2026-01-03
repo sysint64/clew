@@ -1,6 +1,6 @@
 # clew
 
-<img src="./images/logo.svg" alt="Logo" width="150">
+<img src="https://raw.githubusercontent.com/sysint64/clew/refs/heads/main/images/logo.svg" alt="Logo" width="150">
 
 A composable UI framework for Rust with an immediate API. Inspired by Flutter, SwiftUI, and Jetpack Compose.
 
@@ -8,7 +8,7 @@ A composable UI framework for Rust with an immediate API. Inspired by Flutter, S
 >
 > This started as an experiment and still is and I'm primarily building it for my own applications and personal needs. I'm open-sourcing it in case others find it interesting or useful, but keep in mind it's a personal project first.
 
-![Demo](./images/demo.png)
+![Demo](https://raw.githubusercontent.com/sysint64/clew/refs/heads/main/images/demo.png)
 
 ## What is this?
 
@@ -68,7 +68,7 @@ impl Window<CounterApplication, ()> for MainWindow {
 }
 ```
 
-<img src="./images/counter.png" alt="Counter" width="347">
+<img src="https://raw.githubusercontent.com/sysint64/clew/refs/heads/main/images/counter.png" alt="Counter" width="347">
 
 ## Virtual List Example
 

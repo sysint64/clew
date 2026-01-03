@@ -2,6 +2,13 @@
 name = "clew-derive"
 version = "0.0.1"
 edition = "2024"
+authors = ["Andrei Kabylin <sys.int64@gmail.com>"]
+description = "Procedural macros for the clew UI framework."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/sysint64/clew"
+readme = "README.md"
+keywords = ["gui", "ui", "imgui", "immediate", "derive"]
+categories = ["gui"]
 
 [lib]
 proc-macro = true

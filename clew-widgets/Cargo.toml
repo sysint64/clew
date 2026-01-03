@@ -2,9 +2,16 @@
 name = "clew-widgets"
 version = "0.0.1"
 edition = "2024"
+authors = ["Andrei Kabylin <sys.int64@gmail.com>"]
+description = "Opinionated widget collection for the clew UI framework."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/sysint64/clew"
+readme = "README.md"
+keywords = ["gui", "ui", "imgui", "immediate", "ui-kit"]
+categories = ["gui"]
 
 [dependencies]
 log = { workspace = true }
-clew = { path = "../clew" }
-clew-derive = { path = "../clew-derive" }
+clew = { version = "0.0.2", path = "../clew" }
+clew-derive = { version = "0.0.1", path = "../clew-derive" }
 profiling = { workspace = true }

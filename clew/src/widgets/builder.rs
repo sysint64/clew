@@ -9,7 +9,7 @@ use rustc_hash::FxHasher;
 use smallvec::SmallVec;
 
 use crate::{
-    Animation, View, ViewId, WidgetRef,
+    Animation, Value, View, ViewId, WidgetRef,
     interaction::InteractionState,
     io::UserInput,
     layout::LayoutCommand,
@@ -64,8 +64,39 @@ pub struct BuildContext<'a, 'b> {
     pub animations_stepped_this_frame: &'a mut HashSet<usize>,
 }
 
+pub trait Resolve<V> {
+    fn resolve(&mut self, ctx: &mut BuildContext) -> V;
+}
+
+impl<V, A> Resolve<V> for A
+where
+    A: Animation + Value<V>,
+{
+    /// Advances the animation by the current frame's delta time (if not already
+    /// advanced this frame) and returns the resolved value for this frame.
+    ///
+    /// Calling this multiple times in the same frame will not advance time
+    /// multiple times.
+    fn resolve(&mut self, ctx: &mut BuildContext) -> V {
+        ctx.step_animation(self);
+
+        self.value()
+    }
+}
+
 impl BuildContext<'_, '_> {
-    pub fn step_animation<V, T: Animation<V>>(&mut self, animation: &mut T) {
+    /// Advances an animation by the current frame's delta time.
+    ///
+    /// This method updates the animation's internal state and status
+    /// based on the elapsed time since the previous frame.
+    ///
+    /// Each animation is guaranteed to be stepped at most once per frame.
+    /// Calling this method multiple times with the same animation in the
+    /// same frame has no additional effect.
+    ///
+    /// This is typically called explicitly for long-lived animations, or
+    /// indirectly via `resolve(ctx)` when retrieving an animated value.
+    pub fn step_animation<T: Animation>(&mut self, animation: &mut T) {
         if animation.in_progress() {
             let id = animation as *mut T as usize;
 

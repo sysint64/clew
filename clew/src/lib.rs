@@ -17,3 +17,9 @@ pub use foundation::*;
 pub use render::{Renderer, render};
 pub use widget_id::*;
 pub use widgets::*;
+
+pub mod prelude {
+    pub use crate::animation::Animation;
+    pub use crate::foundation::Value;
+    pub use crate::widgets::builder::Resolve;
+}

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::{BuildContext, ColorOkLab, ColorRgb, ColorRgba, EdgeInsets};
+use crate::{ColorOkLab, ColorRgb, ColorRgba, EdgeInsets, Value};
 
 #[derive(Debug, Clone)]
 pub struct Tween<V> {
@@ -34,9 +34,7 @@ pub enum AnimationStatus {
     Ended,
 }
 
-pub trait Animation<T> {
-    fn resolve(&mut self, ctx: &mut BuildContext) -> T;
-
+pub trait Animation {
     fn step(&mut self, delta_time: f32);
 
     fn in_progress(&self) -> bool;
@@ -213,10 +211,6 @@ where
         self.t
     }
 
-    pub fn value(&self) -> V {
-        self.current_value.clone()
-    }
-
     fn should_continue(&self) -> bool {
         match self.repeat {
             Repeat::Once => self.cycles_done < 1,
@@ -228,16 +222,19 @@ where
     }
 }
 
-impl<V> Animation<V> for Tween<V>
+impl<V> Value<V> for Tween<V>
+where
+    V: Clone,
+{
+    fn value(&self) -> V {
+        self.current_value.clone()
+    }
+}
+
+impl<V> Animation for Tween<V>
 where
     V: Lerp + Clone,
 {
-    fn resolve(&mut self, ctx: &mut BuildContext) -> V {
-        ctx.step_animation(self);
-
-        self.value()
-    }
-
     fn step(&mut self, delta_time: f32) {
         if self.status == AnimationStatus::Ended {
             self.status = AnimationStatus::Idle;
@@ -353,10 +350,6 @@ where
     pub fn status(&self) -> AnimationStatus {
         self.status
     }
-
-    pub fn value(&self) -> V {
-        self.current_value.clone()
-    }
 }
 
 impl<V> Damp<V>
@@ -381,16 +374,19 @@ where
     }
 }
 
-impl<V> Animation<V> for Damp<V>
+impl<V> Value<V> for Damp<V>
+where
+    V: Clone,
+{
+    fn value(&self) -> V {
+        self.current_value.clone()
+    }
+}
+
+impl<V> Animation for Damp<V>
 where
     V: Lerp + Clone + Difference,
 {
-    fn resolve(&mut self, ctx: &mut BuildContext) -> V {
-        ctx.step_animation(self);
-
-        self.value()
-    }
-
     fn step(&mut self, delta_time: f32) {
         if self.status == AnimationStatus::Ended {
             self.status = AnimationStatus::Idle;
@@ -910,10 +906,6 @@ where
         }
     }
 
-    pub fn value(&self) -> V {
-        self.current_value.clone()
-    }
-
     pub fn status(&self) -> AnimationStatus {
         self.status
     }
@@ -1049,16 +1041,19 @@ where
     }
 }
 
-impl<V> Animation<V> for Keyframes<V>
+impl<V> Value<V> for Keyframes<V>
+where
+    V: Clone,
+{
+    fn value(&self) -> V {
+        self.current_value.clone()
+    }
+}
+
+impl<V> Animation for Keyframes<V>
 where
     V: Lerp + Clone,
 {
-    fn resolve(&mut self, ctx: &mut BuildContext) -> V {
-        ctx.step_animation(self);
-
-        self.value()
-    }
-
     fn step(&mut self, delta_time: f32) {
         if self.status == AnimationStatus::Ended {
             self.status = AnimationStatus::Idle;

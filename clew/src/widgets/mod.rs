@@ -16,7 +16,7 @@ pub mod vstack;
 pub mod widget;
 pub mod zstack;
 
-pub use builder::BuildContext;
+pub use builder::{BuildContext, Resolve};
 pub use colored_box::colored_box;
 pub use component::{Component, component};
 pub use decorated_box::{decorated_box, decoration};

@@ -1,6 +1,7 @@
 use std::time::Duration;
 
-use clew::{self as ui, Animation};
+use clew as ui;
+use clew::prelude::*;
 use clew_desktop::{
     app::{Application, ApplicationDelegate},
     window::Window,

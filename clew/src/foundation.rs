@@ -3,6 +3,10 @@ use std::ops::{Add, Mul};
 use glam::{Vec2, Vec4};
 use smallvec::{SmallVec, smallvec};
 
+pub trait Value<V> {
+    fn value(&self) -> V;
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Axis {
     Horizontal,

@@ -3,27 +3,27 @@ use std::time::Duration;
 use crate::{ColorOkLab, ColorRgb, ColorRgba, EdgeInsets};
 
 #[derive(Debug, Clone)]
-pub struct Tween<T, V> {
-    t: T,
+pub struct Tween<V> {
+    t: f32,
     start_value: V,
     current_value: V,
     target_value: V,
     status: AnimationStatus,
-    duration: T,
-    curve_fn: fn(t: T) -> T,
+    duration: f32,
+    curve_fn: fn(t: f32) -> f32,
     repeat: Repeat,
     cycles_done: u32,
     reverse: bool,
 }
 
 #[derive(Debug, Clone)]
-pub struct Damp<T, V> {
-    speed: T,
+pub struct Damp<V> {
+    speed: f32,
     current_value: V,
     target_value: V,
     status: AnimationStatus,
-    threshold: T,
-    curve_fn: fn(t: T) -> T,
+    threshold: f32,
+    curve_fn: fn(t: f32) -> f32,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -34,29 +34,29 @@ pub enum AnimationStatus {
     Ended,
 }
 
-pub trait Animation<T> {
-    fn step(&mut self, delta_time: T);
+pub trait Animation {
+    fn step(&mut self, delta_time: f32);
 
     fn in_progress(&self) -> bool;
 }
 
-pub trait Lerp<T> {
-    fn lerp(self, to: Self, t: T) -> Self;
+pub trait Lerp {
+    fn lerp(self, to: Self, t: f32) -> Self;
 }
 
-impl Lerp<f32> for f32 {
+impl Lerp for f32 {
     fn lerp(self, to: f32, t: f32) -> Self {
         (self * (1.0 - t)) + (to * t)
     }
 }
 
-impl Lerp<f32> for f64 {
+impl Lerp for f64 {
     fn lerp(self, to: f64, t: f32) -> Self {
         (self * (1.0 - t) as f64) + (to * t as f64)
     }
 }
 
-impl Lerp<f32> for EdgeInsets {
+impl Lerp for EdgeInsets {
     fn lerp(self, to: Self, t: f32) -> Self {
         EdgeInsets {
             top: f32::lerp(self.top, to.top, t),
@@ -67,7 +67,7 @@ impl Lerp<f32> for EdgeInsets {
     }
 }
 
-impl Lerp<f32> for ColorOkLab {
+impl Lerp for ColorOkLab {
     fn lerp(self, to: Self, t: f32) -> Self {
         ColorOkLab {
             l: f64::lerp(self.l, to.l, t),
@@ -77,7 +77,7 @@ impl Lerp<f32> for ColorOkLab {
     }
 }
 
-impl Lerp<f32> for ColorRgb {
+impl Lerp for ColorRgb {
     fn lerp(self, to: Self, t: f32) -> Self {
         if t == 0. {
             return self;
@@ -95,8 +95,16 @@ impl Lerp<f32> for ColorRgb {
     }
 }
 
-impl Lerp<f32> for ColorRgba {
+impl Lerp for ColorRgba {
     fn lerp(self, to: Self, t: f32) -> Self {
+        if t == 0. {
+            return self;
+        }
+
+        if t == 1. {
+            return to;
+        }
+
         let interpolated_rgb = self.to_rgb().lerp(to.to_rgb(), t);
 
         ColorRgba {
@@ -108,7 +116,7 @@ impl Lerp<f32> for ColorRgba {
     }
 }
 
-impl<V> Default for Tween<f32, V>
+impl<V> Default for Tween<V>
 where
     V: Default,
 {
@@ -128,9 +136,9 @@ where
     }
 }
 
-impl<V> Tween<f32, V>
+impl<V> Tween<V>
 where
-    V: Lerp<f32> + Clone,
+    V: Lerp + Clone,
 {
     pub fn new(value: V) -> Self {
         Self {
@@ -149,6 +157,7 @@ where
 
     pub fn repeat(mut self, repeat: Repeat) -> Self {
         self.repeat = repeat;
+
         self
     }
 
@@ -217,9 +226,9 @@ where
     }
 }
 
-impl<V> Animation<f32> for Tween<f32, V>
+impl<V> Animation for Tween<V>
 where
-    V: Lerp<f32> + Clone,
+    V: Lerp + Clone,
 {
     fn step(&mut self, delta_time: f32) {
         if self.status == AnimationStatus::Ended {
@@ -292,9 +301,9 @@ where
     }
 }
 
-impl<V> Damp<f32, V>
+impl<V> Damp<V>
 where
-    V: Lerp<f32> + Clone,
+    V: Lerp + Clone,
 {
     pub fn new(value: V) -> Self {
         Self {
@@ -342,9 +351,9 @@ where
     }
 }
 
-impl<V> Damp<f32, V>
+impl<V> Damp<V>
 where
-    V: Lerp<f32> + Clone + Difference,
+    V: Lerp + Clone + Difference,
 {
     pub fn approach(&mut self, target: V) {
         if self.current_value.difference(&target) > self.threshold {
@@ -364,9 +373,9 @@ where
     }
 }
 
-impl<V> Animation<f32> for Damp<f32, V>
+impl<V> Animation for Damp<V>
 where
-    V: Lerp<f32> + Clone + Difference,
+    V: Lerp + Clone + Difference,
 {
     fn step(&mut self, delta_time: f32) {
         if self.status == AnimationStatus::Ended {
@@ -952,7 +961,7 @@ where
     /// Evaluate the value at local time `t` in [0..=total] for the "forward" direction.
     fn eval_forward(&self, mut t: f32) -> V
     where
-        V: Lerp<f32>,
+        V: Lerp,
     {
         let n = self.frames.len();
 
@@ -1013,7 +1022,7 @@ where
 
     fn eval(&self, t: f32) -> V
     where
-        V: Lerp<f32>,
+        V: Lerp,
     {
         if matches!(self.repeat, Repeat::PingPong | Repeat::PingPongNCycles(_))
             && !self.pingpong_forward
@@ -1026,9 +1035,9 @@ where
     }
 }
 
-impl<V> Animation<f32> for Keyframes<V>
+impl<V> Animation for Keyframes<V>
 where
-    V: Lerp<f32> + Clone,
+    V: Lerp + Clone,
 {
     fn step(&mut self, delta_time: f32) {
         if self.status == AnimationStatus::Ended {

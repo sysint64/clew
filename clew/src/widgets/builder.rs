@@ -64,7 +64,7 @@ pub struct BuildContext<'a, 'b> {
 }
 
 impl BuildContext<'_, '_> {
-    pub fn step_animation<T: Animation<f32>>(&self, animation: &mut T) {
+    pub fn step_animation<T: Animation>(&self, animation: &mut T) {
         if animation.in_progress() {
             animation.step(self.delta_time);
         }

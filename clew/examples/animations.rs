@@ -41,13 +41,13 @@ impl ApplicationDelegate<()> for AnimationsApplication {
 }
 
 struct MainWindow {
-    offset_y: ui::Tween<f32, f32>,
-    mx: ui::Damp<f32, f32>,
-    my: ui::Damp<f32, f32>,
+    offset_y: ui::Tween<f32>,
+    mx: ui::Damp<f32>,
+    my: ui::Damp<f32>,
     keyframes: ui::Keyframes<f32>,
     color1: ui::Keyframes<ui::ColorRgba>,
     color2: ui::Keyframes<ui::ColorRgba>,
-    gradient_angle: ui::Tween<f32, f32>,
+    gradient_angle: ui::Tween<f32>,
 }
 
 impl MainWindow {
@@ -269,14 +269,6 @@ impl Window<AnimationsApplication, ()> for MainWindow {
                         });
                 });
 
-            // Mouse follower with gradient
-            ui::decorated_box()
-                .shape(ui::BoxShape::Oval)
-                .width(48.)
-                .height(48.)
-                .offset(self.mx.value() - 24., self.my.value() - 24.)
-                .build(ctx);
-
             // Keyframes position box
             ui::decorated_box()
                 .shape(ui::BoxShape::Rect)
@@ -288,6 +280,15 @@ impl Window<AnimationsApplication, ()> for MainWindow {
                 .width(200.)
                 .height(200.)
                 .offset(40., 200. + self.keyframes.value())
+                .build(ctx);
+
+            // Mouse follower with gradient
+            ui::decorated_box()
+                .shape(ui::BoxShape::Oval)
+                .color(ui::ColorRgba::from_hex(0xFFFF0000))
+                .width(48.)
+                .height(48.)
+                .offset(self.mx.value() - 24., self.my.value() - 24.)
                 .build(ctx);
         });
     }

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use clew as ui;
+use clew::{self as ui, Animation};
 use clew_desktop::{
     app::{Application, ApplicationDelegate},
     window::Window,
@@ -195,20 +195,12 @@ impl Window<AnimationsApplication, ()> for MainWindow {
         self.mx.approach(ctx.input.mouse_x / ctx.view.scale_factor);
         self.my.approach(ctx.input.mouse_y / ctx.view.scale_factor);
 
-        ctx.step_animation(&mut self.offset_y);
-        ctx.step_animation(&mut self.keyframes);
-        ctx.step_animation(&mut self.mx);
-        ctx.step_animation(&mut self.my);
-        ctx.step_animation(&mut self.color1);
-        ctx.step_animation(&mut self.color2);
-        ctx.step_animation(&mut self.gradient_angle);
-
         ui::zstack().fill_max_size().build(ctx, |ctx| {
             ui::zstack()
                 .fill_max_size()
                 .align_x(ui::AlignX::Center)
                 .align_y(ui::AlignY::Center)
-                .offset_y(self.offset_y.value())
+                .offset_y(self.offset_y.resolve(ctx))
                 .build(ctx, |ctx| {
                     ui::vstack()
                         .spacing(12.)
@@ -274,12 +266,12 @@ impl Window<AnimationsApplication, ()> for MainWindow {
                 .shape(ui::BoxShape::Rect)
                 .border_radius(ui::BorderRadius::all(24.))
                 .add_linear_gradient(ui::LinearGradient::angled(
-                    self.gradient_angle.value(),
-                    (self.color1.value(), self.color2.value()),
+                    self.gradient_angle.resolve(ctx),
+                    (self.color1.resolve(ctx), self.color2.resolve(ctx)),
                 ))
                 .width(200.)
                 .height(200.)
-                .offset(40., 200. + self.keyframes.value())
+                .offset(40., 200. + self.keyframes.resolve(ctx))
                 .build(ctx);
 
             // Mouse follower with gradient
@@ -288,7 +280,7 @@ impl Window<AnimationsApplication, ()> for MainWindow {
                 .color(ui::ColorRgba::from_hex(0xFFFF0000))
                 .width(48.)
                 .height(48.)
-                .offset(self.mx.value() - 24., self.my.value() - 24.)
+                .offset(self.mx.resolve(ctx) - 24., self.my.resolve(ctx) - 24.)
                 .build(ctx);
         });
     }

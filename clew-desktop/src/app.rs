@@ -86,6 +86,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
     }
 
     broadcast_event_queue.clear();
+    window_state.animations_stepped_this_frame.clear();
 
     let mut build_context = BuildContext {
         current_zindex: 0,
@@ -110,6 +111,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         input: &window_state.ui_state.user_input,
         interaction: &mut window_state.ui_state.interaction_state,
         delta_time: window_state.delta_time_timer.elapsed().as_secs_f32(),
+        animations_stepped_this_frame: &mut window_state.animations_stepped_this_frame,
     };
 
     window_state.delta_time_timer = Instant::now();

@@ -1,6 +1,6 @@
 use std::{
     any::Any,
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     hash::{Hash, Hasher},
     sync::Arc,
 };
@@ -61,12 +61,17 @@ pub struct BuildContext<'a, 'b> {
     pub input: &'a UserInput,
     pub interaction: &'a mut InteractionState,
     pub delta_time: f32,
+    pub animations_stepped_this_frame: &'a mut HashSet<usize>,
 }
 
 impl BuildContext<'_, '_> {
-    pub fn step_animation<T: Animation>(&self, animation: &mut T) {
+    pub fn step_animation<V, T: Animation<V>>(&mut self, animation: &mut T) {
         if animation.in_progress() {
-            animation.step(self.delta_time);
+            let id = animation as *mut T as usize;
+
+            if self.animations_stepped_this_frame.insert(id) {
+                animation.step(self.delta_time)
+            }
         }
     }
 

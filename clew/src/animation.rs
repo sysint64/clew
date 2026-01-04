@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::{ColorOkLab, ColorRgb, ColorRgba, EdgeInsets};
+use crate::{BuildContext, ColorOkLab, ColorRgb, ColorRgba, EdgeInsets};
 
 #[derive(Debug, Clone)]
 pub struct Tween<V> {
@@ -34,7 +34,9 @@ pub enum AnimationStatus {
     Ended,
 }
 
-pub trait Animation {
+pub trait Animation<T> {
+    fn resolve(&mut self, ctx: &mut BuildContext) -> T;
+
     fn step(&mut self, delta_time: f32);
 
     fn in_progress(&self) -> bool;
@@ -226,10 +228,16 @@ where
     }
 }
 
-impl<V> Animation for Tween<V>
+impl<V> Animation<V> for Tween<V>
 where
     V: Lerp + Clone,
 {
+    fn resolve(&mut self, ctx: &mut BuildContext) -> V {
+        ctx.step_animation(self);
+
+        self.value()
+    }
+
     fn step(&mut self, delta_time: f32) {
         if self.status == AnimationStatus::Ended {
             self.status = AnimationStatus::Idle;
@@ -373,10 +381,16 @@ where
     }
 }
 
-impl<V> Animation for Damp<V>
+impl<V> Animation<V> for Damp<V>
 where
     V: Lerp + Clone + Difference,
 {
+    fn resolve(&mut self, ctx: &mut BuildContext) -> V {
+        ctx.step_animation(self);
+
+        self.value()
+    }
+
     fn step(&mut self, delta_time: f32) {
         if self.status == AnimationStatus::Ended {
             self.status = AnimationStatus::Idle;
@@ -1035,10 +1049,16 @@ where
     }
 }
 
-impl<V> Animation for Keyframes<V>
+impl<V> Animation<V> for Keyframes<V>
 where
     V: Lerp + Clone,
 {
+    fn resolve(&mut self, ctx: &mut BuildContext) -> V {
+        ctx.step_animation(self);
+
+        self.value()
+    }
+
     fn step(&mut self, delta_time: f32) {
         if self.status == AnimationStatus::Ended {
             self.status = AnimationStatus::Idle;

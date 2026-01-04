@@ -1,4 +1,8 @@
-use std::{collections::HashMap, sync::Arc, time::Instant};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+    time::Instant,
+};
 
 use clew::{
     ColorRgb, EdgeInsets, PhysicalSize, View, ViewId,
@@ -39,6 +43,7 @@ pub(crate) struct WindowState<'a, App, Event> {
     pub(crate) renderer: Box<dyn Renderer>,
     pub(crate) fill_color: ColorRgb,
     pub(crate) delta_time_timer: Instant,
+    pub(crate) animations_stepped_this_frame: HashSet<usize>,
 }
 
 pub struct WindowManager<'a, App, Event> {
@@ -113,6 +118,7 @@ impl<'a, App, Event> WindowManager<'a, App, Event> {
                             renderer,
                             fill_color: descriptor.fill_color,
                             delta_time_timer: Instant::now(),
+                            animations_stepped_this_frame: HashSet::new(),
                         },
                     );
 

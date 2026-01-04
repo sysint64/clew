@@ -248,7 +248,7 @@ Here are some things I've been working on currently (non-exhaustive), some of th
 - [ ] Support zindex
 - [ ] Basic testing framework
 - [ ] Setup CI
-- [ ] Basic animation API
+- [x] Basic animation API
 - [ ] Text edit widgets
 - [ ] Aspect ratio widget
 - [ ] Focus navigation

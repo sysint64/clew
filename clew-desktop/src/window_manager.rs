@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use clew::{
     ColorRgb, EdgeInsets, PhysicalSize, View, ViewId,
@@ -38,6 +38,7 @@ pub(crate) struct WindowState<'a, App, Event> {
     pub(crate) ui_state: UiState,
     pub(crate) renderer: Box<dyn Renderer>,
     pub(crate) fill_color: ColorRgb,
+    pub(crate) delta_time_timer: Instant,
 }
 
 pub struct WindowManager<'a, App, Event> {
@@ -111,6 +112,7 @@ impl<'a, App, Event> WindowManager<'a, App, Event> {
                             ui_state,
                             renderer,
                             fill_color: descriptor.fill_color,
+                            delta_time_timer: Instant::now(),
                         },
                     );
 

@@ -1,3 +1,4 @@
+pub mod animation;
 pub mod assets;
 mod foundation;
 pub mod identifiable;
@@ -11,6 +12,7 @@ pub mod text;
 mod widget_id;
 pub mod widgets;
 
+pub use animation::*;
 pub use foundation::*;
 pub use render::{Renderer, render};
 pub use widget_id::*;

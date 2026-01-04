@@ -9,7 +9,7 @@ use rustc_hash::FxHasher;
 use smallvec::SmallVec;
 
 use crate::{
-    View, ViewId, WidgetRef,
+    Animation, View, ViewId, WidgetRef,
     interaction::InteractionState,
     io::UserInput,
     layout::LayoutCommand,
@@ -60,9 +60,16 @@ pub struct BuildContext<'a, 'b> {
     pub phase_allocator: &'a bumpalo::Bump,
     pub input: &'a UserInput,
     pub interaction: &'a mut InteractionState,
+    pub delta_time: f32,
 }
 
 impl BuildContext<'_, '_> {
+    pub fn step_animation<T: Animation<f32>>(&self, animation: &mut T) {
+        if animation.in_progress() {
+            animation.step(self.delta_time);
+        }
+    }
+
     pub fn provide<F, T: Any + Send>(&mut self, data: T, callback: F)
     where
         F: FnOnce(&mut Self),

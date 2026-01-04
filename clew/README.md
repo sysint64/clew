@@ -235,29 +235,6 @@ if clew_widgets::button("Open Settings").build(ctx).clicked() {
 }
 ```
 
-## Mini Roadmap
-
-Here are some things I've been working on currently (non-exhaustive), some of these options already got implemented (e.g. text edit with IME support) but lies in another repo where I started experimenting with API.
-
-- [ ] Virtual list with dynamic items sizes
-- [ ] Experimental custom scroll views
-- [ ] Virtual trees
-- [ ] Custom painter widget similar to Flutter
-- [ ] Custom painter for a specific renderer, e.g. the way to draw things directly using say wgpu if vello is being used.
-- [ ] Implement main axis alignment
-- [ ] Support zindex
-- [ ] Basic testing framework
-- [ ] Setup CI
-- [ ] Basic animation API
-- [ ] Text edit widgets
-- [ ] Aspect ratio widget
-- [ ] Focus navigation
-- [ ] Shortcuts API
-- [ ] Image widget
-- [ ] Simple material-3 design implementation
-- [ ] Simple code editor with tree-sitter syntax highlight
-- [ ] Selectable text
-
 ## License
 
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT) at your option.

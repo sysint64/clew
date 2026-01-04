@@ -1,5 +1,6 @@
 use std::any::{Any, TypeId};
 use std::sync::Arc;
+use std::time::Instant;
 
 use clew::PhysicalSize;
 use clew::assets::Assets;
@@ -108,8 +109,10 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         decorators: &mut window_state.ui_state.decorators,
         input: &window_state.ui_state.user_input,
         interaction: &mut window_state.ui_state.interaction_state,
+        delta_time: window_state.delta_time_timer.elapsed().as_secs_f32(),
     };
 
+    window_state.delta_time_timer = Instant::now();
     window_state.window.build(app, &mut build_context);
 
     clew::render(

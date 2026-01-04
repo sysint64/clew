@@ -359,7 +359,10 @@ where
     pub fn approach(&mut self, target: V) {
         if self.current_value.difference(&target) > self.threshold {
             self.target_value = target;
-            self.status = AnimationStatus::Started;
+
+            if self.status != AnimationStatus::Updated {
+                self.status = AnimationStatus::Started;
+            }
         } else {
             // Already close, snap to target and stop
             self.target_value = target.clone();

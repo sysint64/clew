@@ -11,6 +11,9 @@ pub struct Tween<T, V> {
     status: AnimationStatus,
     duration: T,
     curve_fn: fn(t: T) -> T,
+    repeat: Repeat,
+    cycles_done: u32,
+    reverse: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -87,6 +90,9 @@ where
             status: AnimationStatus::Idle,
             curve_fn: curves::f32::ease_out_quad,
             duration: Duration::from_millis(300).as_secs_f32(),
+            repeat: Repeat::Once,
+            cycles_done: 0,
+            reverse: false,
         }
     }
 }
@@ -104,7 +110,15 @@ where
             status: AnimationStatus::Idle,
             curve_fn: curves::f32::ease_out_quad,
             duration: Duration::from_millis(300).as_secs_f32(),
+            repeat: Repeat::Once,
+            cycles_done: 0,
+            reverse: false,
         }
+    }
+
+    pub fn repeat(mut self, repeat: Repeat) -> Self {
+        self.repeat = repeat;
+        self
     }
 
     pub fn duration(mut self, duration: Duration) -> Self {
@@ -120,7 +134,9 @@ where
     }
 
     pub fn reset(&mut self) {
-        self.t = 0.;
+        self.t = 0.0;
+        self.cycles_done = 0;
+        self.reverse = false;
         self.status = AnimationStatus::Started;
     }
 
@@ -129,7 +145,10 @@ where
     }
 
     pub fn tween_to(&mut self, target: V) {
-        self.t = 0.;
+        self.t = 0.0;
+        self.cycles_done = 0;
+        self.reverse = false;
+
         self.start_value = self.current_value.clone();
         self.target_value = target;
         self.status = AnimationStatus::Started;
@@ -155,6 +174,16 @@ where
     pub fn value(&self) -> V {
         self.current_value.clone()
     }
+
+    fn should_continue(&self) -> bool {
+        match self.repeat {
+            Repeat::Once => self.cycles_done < 1,
+            Repeat::Loop => true,
+            Repeat::LoopNCycles(n) => self.cycles_done < n,
+            Repeat::PingPong => true,
+            Repeat::PingPongNCycles(n) => self.cycles_done < n,
+        }
+    }
 }
 
 impl<V> Animation<f32> for Tween<f32, V>
@@ -171,19 +200,59 @@ where
             return;
         }
 
-        self.t += delta_time / self.duration;
+        self.t += delta_time / self.duration.max(0.000_001);
 
-        if self.t >= 1. {
-            self.t = 1.;
-            self.current_value = self.target_value.clone();
-            self.status = AnimationStatus::Ended;
-        } else {
+        if self.t < 1.0 {
             self.status = AnimationStatus::Updated;
+            let mut t = self.t;
+
+            if self.reverse {
+                t = 1.0 - t;
+            }
+
             self.current_value = V::lerp(
                 self.start_value.clone(),
                 self.target_value.clone(),
-                (self.curve_fn)(self.t),
+                (self.curve_fn)(t),
             );
+
+            return;
+        }
+
+        // Clamp end of segment
+        self.t = 1.0;
+
+        // Final value of this cycle
+        self.current_value = if self.reverse {
+            self.start_value.clone()
+        } else {
+            self.target_value.clone()
+        };
+
+        self.cycles_done += 1;
+
+        if !self.should_continue() {
+            self.status = AnimationStatus::Ended;
+            return;
+        }
+
+        // Prepare next cycle
+        self.t = 0.0;
+
+        match self.repeat {
+            Repeat::Once => {
+                self.status = AnimationStatus::Ended;
+            }
+            Repeat::Loop | Repeat::LoopNCycles(_) => {
+                // restart from original direction
+                self.reverse = false;
+                self.status = AnimationStatus::Updated;
+            }
+            Repeat::PingPong | Repeat::PingPongNCycles(_) => {
+                // swap direction
+                self.reverse = !self.reverse;
+                self.status = AnimationStatus::Updated;
+            }
         }
     }
 
@@ -605,5 +674,367 @@ pub mod decay_curves {
         pub fn snappy(t: f64) -> f64 {
             1. - f64::powf(0.05, t)
         }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Repeat {
+    /// Play the animation once.
+    Once,
+
+    /// Repeat the animation indefinitely, restarting from the beginning each cycle.
+    Loop,
+
+    /// Repeat the animation `n` times.
+    ///
+    /// `n` counts **completed cycles** (one full run from start to end).
+    /// For example, `LoopNCycles(1)` is equivalent to `Once`.
+    LoopNCycles(u32),
+
+    /// Repeat the animation indefinitely, alternating direction each cycle:
+    /// forward, backward, forward, backward, ...
+    PingPong,
+
+    /// Repeat the animation `n` times, alternating direction each cycle:
+    /// forward, backward, forward, backward, ...
+    ///
+    /// `n` counts **cycles**, where one cycle is a full traversal from start to end
+    /// in the current direction.
+    ///
+    /// Examples (for a start→end animation):
+    /// - `PingPongNCycles(1)`: forward only (start -> end)
+    /// - `PingPongNCycles(2)`: forward then backward (start -> end -> start)
+    /// - `PingPongNCycles(3)`: forward, backward, forward (start -> end -> start -> end)
+    ///
+    /// Note: If you want "there and back" to count as 1, use `PingPongNCycles(2)`
+    /// with this interpretation, or adjust the implementation to count periods
+    /// instead of cycles.
+    PingPongNCycles(u32),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum FrameKind {
+    /// Stay at the previous value for `dt`, then jump to this keyframe's value at the end.
+    Hold,
+    /// Interpolate from previous value to this value over `duration`.
+    /// If `curve` is None, uses the Keyframes' default curve.
+    Tween { curve: Option<fn(f32) -> f32> },
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Keyframe<V> {
+    /// Duration of the segment from previous keyframe -> this keyframe.
+    /// (For the very first frame, this should be 0.)
+    pub duration: Duration,
+    pub value: V,
+    pub kind: FrameKind,
+}
+
+#[derive(Debug, Clone)]
+pub struct Keyframes<V> {
+    frames: Vec<Keyframe<V>>,
+    /// Seconds from start, within the current cycle (0..=total_cycle_seconds)
+    elapsed: f32,
+    /// Cached total duration of one forward cycle
+    total: f32,
+    /// Default curve used for Tween segments when keyframe curve is None
+    default_curve: fn(f32) -> f32,
+
+    repeat: Repeat,
+    cycles_done: u32,
+    pingpong_forward: bool,
+
+    current_value: V,
+    status: AnimationStatus,
+}
+
+impl<V> Keyframes<V>
+where
+    V: Clone,
+{
+    /// Creates an animation with a single initial keyframe (dt=0).
+    pub fn new(initial: V) -> Self {
+        let frames = vec![Keyframe {
+            duration: Duration::from_millis(0),
+            value: initial.clone(),
+            kind: FrameKind::Hold, // irrelevant for the first frame
+        }];
+
+        Self {
+            frames,
+            elapsed: 0.0,
+            total: 0.0,
+            default_curve: curves::f32::ease_out_quad,
+
+            repeat: Repeat::Once,
+            cycles_done: 0,
+            pingpong_forward: true,
+
+            current_value: initial,
+            status: AnimationStatus::Idle,
+        }
+    }
+
+    /// Set the default curve used for Tween segments when a keyframe doesn't specify a curve.
+    pub fn default_curve(mut self, curve: fn(f32) -> f32) -> Self {
+        self.default_curve = curve;
+
+        self
+    }
+
+    pub fn repeat(mut self, repeat: Repeat) -> Self {
+        self.repeat = repeat;
+
+        self
+    }
+
+    pub fn tween(mut self, duration: Duration, value: V) -> Self {
+        self.frames.push(Keyframe {
+            duration,
+            value,
+            kind: FrameKind::Tween { curve: None },
+        });
+
+        self
+    }
+
+    pub fn tween_with_curve(mut self, duration: Duration, value: V, curve: fn(f32) -> f32) -> Self {
+        self.frames.push(Keyframe {
+            duration,
+            value,
+            kind: FrameKind::Tween { curve: Some(curve) },
+        });
+        self
+    }
+
+    /// Append a segment that holds the previous value for `duration`, then snaps to `value` at the end.
+    pub fn hold(mut self, duration: Duration, value: V) -> Self {
+        self.frames.push(Keyframe {
+            duration,
+            value,
+            kind: FrameKind::Hold,
+        });
+        self
+    }
+
+    /// Start/restart playback from the beginning of the cycle.
+    pub fn play(&mut self) {
+        self.recompute_total();
+        self.elapsed = 0.0;
+        self.cycles_done = 0;
+        self.pingpong_forward = true;
+
+        self.current_value = self.frames.first().unwrap().value.clone();
+        self.status = AnimationStatus::Started;
+    }
+
+    /// Immediately set the animation to a constant value and stop.
+    pub fn set(&mut self, value: V) {
+        self.frames.clear();
+        self.frames.push(Keyframe {
+            duration: Duration::from_millis(0),
+            value: value.clone(),
+            kind: FrameKind::Hold,
+        });
+
+        self.elapsed = 0.0;
+        self.total = 0.0;
+        self.current_value = value;
+
+        if self.status == AnimationStatus::Updated {
+            self.status = AnimationStatus::Ended;
+        } else {
+            self.status = AnimationStatus::Idle;
+        }
+    }
+
+    pub fn value(&self) -> V {
+        self.current_value.clone()
+    }
+
+    pub fn status(&self) -> AnimationStatus {
+        self.status
+    }
+
+    pub fn in_progress(&self) -> bool {
+        self.status != AnimationStatus::Idle
+    }
+
+    fn recompute_total(&mut self) {
+        // sum surations of frames[1..]
+        self.total = self
+            .frames
+            .iter()
+            .skip(1)
+            .map(|k| k.duration.as_secs_f32())
+            .sum();
+
+        // avoid division-by-zero; if total==0, we'll just snap to last frame
+        if self.total <= 0.0 {
+            self.total = 0.0;
+        }
+    }
+
+    fn should_continue(&self) -> bool {
+        match self.repeat {
+            Repeat::Once => self.cycles_done < 1,
+            Repeat::Loop => true,
+            Repeat::LoopNCycles(n) => self.cycles_done < n,
+            Repeat::PingPong => true,
+            Repeat::PingPongNCycles(n) => self.cycles_done < n,
+        }
+    }
+
+    fn on_cycle_end(&mut self) {
+        self.cycles_done = self.cycles_done.saturating_add(1);
+
+        if !self.should_continue() {
+            self.status = AnimationStatus::Ended;
+            return;
+        }
+
+        match self.repeat {
+            Repeat::Once => {
+                // If should_continue() is correct, we should never land here.
+                self.status = AnimationStatus::Ended;
+            }
+            Repeat::Loop | Repeat::LoopNCycles(_) => {
+                self.elapsed = 0.0;
+                self.status = AnimationStatus::Updated;
+            }
+            Repeat::PingPong | Repeat::PingPongNCycles(_) => {
+                self.elapsed = 0.0;
+                self.pingpong_forward = !self.pingpong_forward;
+                self.status = AnimationStatus::Updated;
+            }
+        }
+    }
+
+    /// Evaluate the value at local time `t` in [0..=total] for the "forward" direction.
+    fn eval_forward(&self, mut t: f32) -> V
+    where
+        V: Lerp<f32>,
+    {
+        let n = self.frames.len();
+
+        if n == 0 {
+            // shouldn't happen, but be safe
+            return self.current_value.clone();
+        }
+
+        if n == 1 || self.total <= 0.0 {
+            return self.frames.last().unwrap().value.clone();
+        }
+
+        // Clamp within cycle
+        t = t.clamp(0.0, self.total);
+
+        // Find segment with a linear scan (fine for <=10 frames)
+        let mut seg_start_time = 0.0;
+
+        for i in 1..n {
+            let seg = self.frames[i].clone();
+            let seg_len = seg.duration.as_secs_f32().max(0.0);
+            let seg_end_time = seg_start_time + seg_len;
+
+            if t <= seg_end_time || i == n - 1 {
+                let from = self.frames[i - 1].value.clone();
+                let to = seg.value.clone();
+
+                // zero-length segment: snap to end
+                if seg_len <= 0.0 {
+                    return to;
+                }
+
+                match seg.kind {
+                    FrameKind::Hold => {
+                        // hold "from" until end, then snap to "to"
+                        if t < seg_end_time {
+                            return from;
+                        } else {
+                            return to;
+                        }
+                    }
+                    FrameKind::Tween { curve } => {
+                        let local = ((t - seg_start_time) / seg_len).clamp(0.0, 1.0);
+                        let curve_fn = curve.unwrap_or(self.default_curve);
+                        let eased = curve_fn(local);
+
+                        return V::lerp(from, to, eased);
+                    }
+                }
+            }
+
+            seg_start_time = seg_end_time;
+        }
+
+        // Fallback
+        self.frames.last().unwrap().value.clone()
+    }
+
+    fn eval(&self, t: f32) -> V
+    where
+        V: Lerp<f32>,
+    {
+        if matches!(self.repeat, Repeat::PingPong | Repeat::PingPongNCycles(_))
+            && !self.pingpong_forward
+        {
+            // Reverse direction: mirror time
+            self.eval_forward(self.total - t)
+        } else {
+            self.eval_forward(t)
+        }
+    }
+}
+
+impl<V> Animation<f32> for Keyframes<V>
+where
+    V: Lerp<f32> + Clone,
+{
+    fn step(&mut self, delta_time: f32) {
+        if self.status == AnimationStatus::Ended {
+            self.status = AnimationStatus::Idle;
+
+            return;
+        }
+
+        if self.status == AnimationStatus::Idle {
+            return;
+        }
+
+        if self.frames.len() <= 1 {
+            self.current_value = self.frames.first().unwrap().value.clone();
+            self.status = AnimationStatus::Ended;
+
+            return;
+        }
+
+        // If total == 0, immediately finish (or repeat will cycle instantly)
+        if self.total <= 0.0 {
+            self.current_value = self.frames.last().unwrap().value.clone();
+            self.on_cycle_end();
+
+            return;
+        }
+
+        self.elapsed += delta_time.max(0.0);
+
+        if self.elapsed >= self.total {
+            // Snap to exact end of cycle before repeating/ending
+            self.elapsed = self.total;
+            self.current_value = self.eval(self.elapsed);
+            self.on_cycle_end();
+
+            if self.status != AnimationStatus::Ended {
+                self.current_value = self.eval(self.elapsed);
+            }
+        } else {
+            self.current_value = self.eval(self.elapsed);
+            self.status = AnimationStatus::Updated;
+        }
+    }
+
+    fn in_progress(&self) -> bool {
+        self.status != AnimationStatus::Idle
     }
 }

@@ -774,6 +774,25 @@ impl ColorRgba {
     }
 }
 
+impl ColorOkLab {
+    /// Source: https://bottosson.github.io/posts/oklab/
+    pub fn to_rgb(&self) -> ColorRgb {
+        let l = self.l + 0.3963377774 * self.a + 0.2158037573 * self.b;
+        let m = self.l - 0.1055613458 * self.a - 0.0638541728 * self.b;
+        let s = self.l - 0.0894841775 * self.a - 1.2914855480 * self.b;
+
+        let l = l * l * l;
+        let m = m * m * m;
+        let s = s * s * s;
+
+        ColorRgb {
+            r: (4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s) as f32,
+            g: (-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s) as f32,
+            b: (-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s) as f32,
+        }
+    }
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Copy)]
 pub struct BorderRadius {
     pub top_left: f32,

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::{ColorOkLab, EdgeInsets};
+use crate::{ColorOkLab, ColorRgb, ColorRgba, EdgeInsets};
 
 #[derive(Debug, Clone)]
 pub struct Tween<T, V> {
@@ -73,6 +73,37 @@ impl Lerp<f32> for ColorOkLab {
             l: f64::lerp(self.l, to.l, t),
             a: f64::lerp(self.a, to.a, t),
             b: f64::lerp(self.b, to.b, t),
+        }
+    }
+}
+
+impl Lerp<f32> for ColorRgb {
+    fn lerp(self, to: Self, t: f32) -> Self {
+        if t == 0. {
+            return self;
+        }
+
+        if t == 1. {
+            return to;
+        }
+
+        let oklab_self = self.to_oklab();
+        let oklab_to = to.to_oklab();
+        let interpolated = oklab_self.lerp(oklab_to, t);
+
+        interpolated.to_rgb()
+    }
+}
+
+impl Lerp<f32> for ColorRgba {
+    fn lerp(self, to: Self, t: f32) -> Self {
+        let interpolated_rgb = self.to_rgb().lerp(to.to_rgb(), t);
+
+        ColorRgba {
+            r: interpolated_rgb.r,
+            g: interpolated_rgb.g,
+            b: interpolated_rgb.b,
+            a: f32::lerp(self.a, to.a, t),
         }
     }
 }
@@ -313,10 +344,10 @@ where
 
 impl<V> Damp<f32, V>
 where
-    V: Lerp<f32> + Clone + Distance,
+    V: Lerp<f32> + Clone + Difference,
 {
     pub fn approach(&mut self, target: V) {
-        if self.current_value.distance(&target) > self.threshold {
+        if self.current_value.difference(&target) > self.threshold {
             self.target_value = target;
             self.status = AnimationStatus::Started;
         } else {
@@ -335,7 +366,7 @@ where
 
 impl<V> Animation<f32> for Damp<f32, V>
 where
-    V: Lerp<f32> + Clone + Distance,
+    V: Lerp<f32> + Clone + Difference,
 {
     fn step(&mut self, delta_time: f32) {
         if self.status == AnimationStatus::Ended {
@@ -347,7 +378,7 @@ where
             return;
         }
 
-        let distance = self.current_value.distance(&self.target_value);
+        let distance = self.current_value.difference(&self.target_value);
 
         if distance < self.threshold {
             self.current_value = self.target_value.clone();
@@ -364,22 +395,30 @@ where
     }
 }
 
-pub trait Distance {
-    fn distance(&self, other: &Self) -> f32;
+pub trait Difference {
+    fn difference(&self, other: &Self) -> f32;
 }
 
-impl Distance for f32 {
-    fn distance(&self, other: &Self) -> f32 {
+impl Difference for f32 {
+    fn difference(&self, other: &Self) -> f32 {
         (self - other).abs()
     }
 }
 
-impl Distance for EdgeInsets {
-    fn distance(&self, other: &Self) -> f32 {
+impl Difference for EdgeInsets {
+    fn difference(&self, other: &Self) -> f32 {
         (self.top - other.top).abs()
             + (self.left - other.left).abs()
             + (self.right - other.right).abs()
             + (self.bottom - other.bottom).abs()
+    }
+}
+
+impl Difference for ColorOkLab {
+    fn difference(&self, other: &Self) -> f32 {
+        (self.l - other.l).abs() as f32
+            + (self.a - other.a).abs() as f32
+            + (self.b - other.b).abs() as f32
     }
 }
 

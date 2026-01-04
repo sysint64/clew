@@ -45,10 +45,97 @@ struct MainWindow {
     mx: ui::Damp<f32, f32>,
     my: ui::Damp<f32, f32>,
     keyframes: ui::Keyframes<f32>,
+    color1: ui::Keyframes<ui::ColorRgba>,
+    color2: ui::Keyframes<ui::ColorRgba>,
+    gradient_angle: ui::Tween<f32, f32>,
 }
 
 impl MainWindow {
     fn new() -> Self {
+        let mut gradient_angle = ui::Tween::new(0.0)
+            .duration(Duration::from_secs(10))
+            .curve(ui::curves::f32::linear)
+            .repeat(ui::Repeat::Loop);
+
+        gradient_angle.tween_to(std::f32::consts::TAU);
+
+        // First color in gradient - starts at red, offset by 0
+        let mut color1 = ui::Keyframes::new(ui::ColorRgba::from_hex(0xFFEF4444))
+            .default_curve(ui::curves::f32::ease_in_out_sine)
+            .repeat(ui::Repeat::Loop)
+            .tween(
+                Duration::from_millis(500),
+                ui::ColorRgba::from_hex(0xFFF97316),
+            )
+            .tween(
+                Duration::from_millis(500),
+                ui::ColorRgba::from_hex(0xFFEAB308),
+            )
+            .tween(
+                Duration::from_millis(500),
+                ui::ColorRgba::from_hex(0xFF22C55E),
+            )
+            .tween(
+                Duration::from_millis(500),
+                ui::ColorRgba::from_hex(0xFF06B6D4),
+            )
+            .tween(
+                Duration::from_millis(500),
+                ui::ColorRgba::from_hex(0xFF3B82F6),
+            )
+            .tween(
+                Duration::from_millis(500),
+                ui::ColorRgba::from_hex(0xFFA855F7),
+            )
+            .tween(
+                Duration::from_millis(500),
+                ui::ColorRgba::from_hex(0xFFEC4899),
+            )
+            .tween(
+                Duration::from_millis(500),
+                ui::ColorRgba::from_hex(0xFFEF4444),
+            );
+
+        // Second color - starts at cyan (offset in the rainbow)
+        let mut color2 = ui::Keyframes::new(ui::ColorRgba::from_hex(0xFF06B6D4))
+            .default_curve(ui::curves::f32::ease_in_out_sine)
+            .repeat(ui::Repeat::Loop)
+            .tween(
+                Duration::from_millis(300),
+                ui::ColorRgba::from_hex(0xFF3B82F6),
+            )
+            .tween(
+                Duration::from_millis(300),
+                ui::ColorRgba::from_hex(0xFFA855F7),
+            )
+            .tween(
+                Duration::from_millis(300),
+                ui::ColorRgba::from_hex(0xFFEC4899),
+            )
+            .tween(
+                Duration::from_millis(300),
+                ui::ColorRgba::from_hex(0xFFEF4444),
+            )
+            .tween(
+                Duration::from_millis(300),
+                ui::ColorRgba::from_hex(0xFFF97316),
+            )
+            .tween(
+                Duration::from_millis(300),
+                ui::ColorRgba::from_hex(0xFFEAB308),
+            )
+            .tween(
+                Duration::from_millis(300),
+                ui::ColorRgba::from_hex(0xFF22C55E),
+            )
+            .tween(
+                Duration::from_millis(300),
+                ui::ColorRgba::from_hex(0xFF06B6D4),
+            );
+
+        color1.play();
+        color2.play();
+
         Self {
             offset_y: ui::Tween::new(0.)
                 .duration(Duration::from_secs(1))
@@ -58,33 +145,30 @@ impl MainWindow {
             keyframes: ui::Keyframes::new(0.0)
                 .default_curve(ui::curves::f32::ease_in_out_quad)
                 .repeat(ui::Repeat::Once),
+            color1,
+            color2,
+            gradient_angle,
         }
     }
 
-    // Convenience: build a fun little sequence
     fn configure_keyframes_once(&mut self) {
-        self.keyframes = ui::Keyframes::new(self.keyframes.value())
+        self.keyframes = ui::Keyframes::new(0.)
             .default_curve(ui::curves::f32::ease_in_out_quad)
             .repeat(ui::Repeat::Once)
-            // Up quickly
             .tween(Duration::from_millis(220), -120.0)
-            // Hold for a beat (will hold previous value, then snap to -120 at end;
-            // if you prefer "snap then hold", flip the Hold logic in Keyframes)
             .hold(Duration::from_millis(120), -120.0)
-            // Drop down with bounce curve override
             .tween_with_curve(
                 Duration::from_millis(520),
                 80.0,
                 ui::curves::f32::ease_out_bounce,
             )
-            // Back to 0
             .tween(Duration::from_millis(260), 0.0);
 
         self.keyframes.play();
     }
 
     fn configure_keyframes_loop(&mut self) {
-        self.keyframes = ui::Keyframes::new(self.keyframes.value())
+        self.keyframes = ui::Keyframes::new(0.)
             .default_curve(ui::curves::f32::smooth_step)
             .repeat(ui::Repeat::Loop)
             .tween(Duration::from_millis(350), -60.0)
@@ -95,7 +179,7 @@ impl MainWindow {
     }
 
     fn configure_keyframes_pingpong_6(&mut self) {
-        self.keyframes = ui::Keyframes::new(self.keyframes.value())
+        self.keyframes = ui::Keyframes::new(0.)
             .default_curve(ui::curves::f32::ease_in_out_sine)
             .repeat(ui::Repeat::PingPongNCycles(6))
             .tween(Duration::from_millis(300), -90.0)
@@ -112,9 +196,12 @@ impl Window<AnimationsApplication, ()> for MainWindow {
         self.my.approach(ctx.input.mouse_y / ctx.view.scale_factor);
 
         ctx.step_animation(&mut self.offset_y);
-        ctx.step_animation(&mut self.keyframes); // NEW
+        ctx.step_animation(&mut self.keyframes);
         ctx.step_animation(&mut self.mx);
         ctx.step_animation(&mut self.my);
+        ctx.step_animation(&mut self.color1);
+        ctx.step_animation(&mut self.color2);
+        ctx.step_animation(&mut self.gradient_angle);
 
         ui::zstack().fill_max_size().build(ctx, |ctx| {
             ui::zstack()
@@ -182,36 +269,25 @@ impl Window<AnimationsApplication, ()> for MainWindow {
                         });
                 });
 
-            if self.keyframes.status() == ui::AnimationStatus::Started {
-                println!("Started keyframes");
-            }
-
-            if self.keyframes.status() == ui::AnimationStatus::Ended {
-                println!("Ended keyframes");
-            }
-
-            if self.offset_y.status() == ui::AnimationStatus::Started {
-                println!("Started offsets");
-            }
-
-            if self.offset_y.status() == ui::AnimationStatus::Ended {
-                println!("Ended offsets");
-            }
-
+            // Mouse follower with gradient
             ui::decorated_box()
                 .shape(ui::BoxShape::Oval)
-                .color(ui::ColorRgba::from_hex(0xFFFF0000))
-                .width(32.)
-                .height(32.)
-                .offset(self.mx.value() - 16., self.my.value() - 16.)
+                .width(48.)
+                .height(48.)
+                .offset(self.mx.value() - 24., self.my.value() - 24.)
                 .build(ctx);
 
+            // Keyframes position box
             ui::decorated_box()
                 .shape(ui::BoxShape::Rect)
-                .color(ui::ColorRgba::from_hex(0xFF3B82F6))
-                .width(80.)
-                .height(80.)
-                .offset(40., 140. + self.keyframes.value())
+                .border_radius(ui::BorderRadius::all(24.))
+                .add_linear_gradient(ui::LinearGradient::angled(
+                    self.gradient_angle.value(),
+                    (self.color1.value(), self.color2.value()),
+                ))
+                .width(200.)
+                .height(200.)
+                .offset(40., 200. + self.keyframes.value())
                 .build(ctx);
         });
     }

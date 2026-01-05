@@ -251,6 +251,7 @@ pub fn render(
             || handle_interaction(
                 &mut state.user_input,
                 &mut state.interaction_state,
+                &state.non_interactable,
                 // &mut state.widgets_states,
                 &state.view,
                 text,

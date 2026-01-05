@@ -282,6 +282,7 @@ impl Window<AnimationsApplication, ()> for MainWindow {
                 .width(48.)
                 .height(48.)
                 .offset(self.mx.resolve(ctx) - 24., self.my.resolve(ctx) - 24.)
+                .ignore_pointer(true)
                 .build(ctx);
         });
     }

@@ -4,7 +4,6 @@ use crate::{
     WidgetType,
     assets::Assets,
     rect_contains_boundary,
-    scroll_area::ScrollAreaWidget,
     state::TypedWidgetStates,
     text::{TextId, TextsResources},
 };

@@ -1,7 +1,7 @@
 use std::any::Any;
 
 use glam::Vec2;
-use smallvec::{SmallVec, smallvec};
+use smallvec::SmallVec;
 
 use crate::{
     AlignX, AlignY, Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, TextAlign,

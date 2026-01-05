@@ -36,6 +36,7 @@ pub struct UiState {
     pub user_input: UserInput,
     pub backgrounds: SmallVec<[WidgetRef; 8]>,
     pub foregrounds: SmallVec<[WidgetRef; 8]>,
+    pub non_interactable: FxHashSet<WidgetId>,
     // TODO(sysint64): Maybe move it to build context
     pub layout_direction: LayoutDirection,
     pub async_tx: tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
@@ -162,6 +163,7 @@ impl UiState {
         self.render_state.commands.clear();
         self.widget_placements.clear();
         self.layout_items.clear();
+        self.non_interactable.clear();
 
         std::mem::swap(&mut self.current_event_queue, &mut self.next_event_queue);
         self.next_event_queue.clear();
@@ -194,6 +196,7 @@ impl UiState {
             last_interaction_state: InteractionState::default(),
             user_input: UserInput::default(),
             layout_direction: LayoutDirection::LTR,
+            non_interactable: FxHashSet::default(),
             async_tx,
             async_rx,
         }

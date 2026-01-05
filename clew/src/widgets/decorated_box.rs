@@ -26,6 +26,7 @@ pub struct DecoratedBoxBuilder {
     offset_x: f32,
     offset_y: f32,
     clip: Clip,
+    ignore_pointer: bool,
 
     color: Option<ColorRgba>,
     gradients: SmallVec<[Gradient; 4]>,
@@ -213,6 +214,12 @@ impl DecoratedBoxBuilder {
         self
     }
 
+    pub fn ignore_pointer(mut self, value: bool) -> Self {
+        self.ignore_pointer = value;
+
+        self
+    }
+
     #[profiling::function]
     pub fn build(self, context: &mut BuildContext) {
         let id = self.id.with_seed(context.id_seed);
@@ -225,6 +232,10 @@ impl DecoratedBoxBuilder {
                 offset_x: self.offset_x,
                 offset_y: self.offset_y,
             });
+        }
+
+        if self.ignore_pointer {
+            context.non_interactable.insert(id);
         }
 
         context.push_layout_command(LayoutCommand::Leaf {
@@ -274,6 +285,7 @@ pub fn decorated_box() -> DecoratedBoxBuilder {
         padding: EdgeInsets::ZERO,
         margin: EdgeInsets::ZERO,
         clip: Clip::None,
+        ignore_pointer: false,
     }
 }
 

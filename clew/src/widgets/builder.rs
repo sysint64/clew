@@ -5,18 +5,12 @@ use std::{
     sync::Arc,
 };
 
-use rustc_hash::FxHasher;
+use rustc_hash::{FxHashSet, FxHasher};
 use smallvec::SmallVec;
 
 use crate::{
-    Animation, Value, View, ViewId, WidgetRef,
-    interaction::InteractionState,
-    io::UserInput,
-    layout::LayoutCommand,
-    state::WidgetsStates,
-    text::{FontResources, StringId, StringInterner, TextId, TextsResources},
+    Animation, Value, View, ViewId, WidgetId, WidgetRef, interaction::InteractionState, io::UserInput, layout::LayoutCommand, state::WidgetsStates, text::{FontResources, StringId, StringInterner, TextId, TextsResources}
 };
-// use bumpalo::{Bump, collections::Vec};
 
 #[derive(Debug)]
 pub enum ApplicationEvent {
@@ -58,6 +52,7 @@ pub struct BuildContext<'a, 'b> {
     pub scoped_user_data: Option<&'a mut MutUserDataStack<'a>>,
     pub backgrounds: &'a mut SmallVec<[WidgetRef; 8]>,
     pub foregrounds: &'a mut SmallVec<[WidgetRef; 8]>,
+    pub non_interactable: &'a mut FxHashSet<WidgetId>,
     pub phase_allocator: &'a bumpalo::Bump,
     pub input: &'a UserInput,
     pub interaction: &'a mut InteractionState,

@@ -1,20 +1,17 @@
-use std::collections::HashSet;
-
 use glam::Vec2;
+use rustc_hash::FxHashSet;
 
 use crate::{
-    View, WidgetId, WidgetType,
+    View, WidgetId,
     io::UserInput,
     layout::LayoutItem,
     point_with_rect_hit_test,
-    scroll_area::ScrollAreaWidget,
     text::{FontResources, TextsResources},
-    widgets::{self, gesture_detector::GestureDetector},
 };
 
 #[derive(Default, Clone, PartialEq)]
 pub struct InteractionState {
-    pub(crate) hover: HashSet<WidgetId>,
+    pub(crate) hover: FxHashSet<WidgetId>,
     pub(crate) hot: Option<WidgetId>,
     pub(crate) active: Option<WidgetId>,
     pub(crate) focused: Option<WidgetId>,
@@ -58,7 +55,7 @@ impl InteractionState {
 pub fn handle_interaction(
     user_input: &mut UserInput,
     interaction_state: &mut InteractionState,
-    // widgets_states: &mut WidgetsStates,
+    non_interactable: &FxHashSet<WidgetId>,
     view: &View,
     _text: &mut TextsResources,
     _fonts: &mut FontResources,
@@ -90,6 +87,7 @@ pub fn handle_interaction(
 
     for layout_item in layout_items.iter().rev() {
         if let LayoutItem::Placement(placement) = layout_item
+            && !non_interactable.contains(&placement.widget_ref.id)
             && (!interaction_state.block_hover
                 || interaction_state.active.is_none()
                 || interaction_state.active == Some(placement.widget_ref.id))
@@ -100,86 +98,5 @@ pub fn handle_interaction(
         }
     }
 
-    // let mut need_to_redraw = false;
-
-    for layout_item in layout_items.iter() {
-        if let LayoutItem::Placement(placement) = layout_item {
-            // if placement.widget_ref.widget_type == WidgetType::of::<widgets::button::ButtonWidget>() {
-            //     widgets::button::handle_interaction(
-            //         placement.widget_ref.id,
-            //         user_input,
-            //         interaction_state,
-            //         widgets_states
-            //             .get_mut::<widgets::button::State>(placement.widget_ref.id)
-            //             .unwrap(),
-            //     );
-
-            //     need_to_redraw = need_to_redraw
-            //         || widgets_states.update_last::<widgets::button::State>(placement.widget_ref.id);
-            // }
-
-            // if placement.widget_ref.widget_type
-            //     == WidgetType::of::<widgets::gesture_detector::GestureDetector>()
-            // {
-            //     widgets::gesture_detector::handle_interaction(
-            //         placement.widget_ref.id,
-            //         user_input,
-            //         view,
-            //         interaction_state,
-            //         // widgets_states
-            //         //     .get_mut::<widgets::gesture_detector::State>(placement.widget_ref.id)
-            //         //     .unwrap(),
-            //         widgets_states
-            //             .gesture_detector
-            //             .get_mut(placement.widget_ref.id)
-            //             .unwrap(),
-            //     );
-
-            //     need_to_redraw = need_to_redraw
-            //         || widgets_states
-            //             .update_last::<widgets::gesture_detector::State>(placement.widget_ref.id);
-            // }
-
-            if placement.widget_ref.widget_type
-                == WidgetType::of::<widgets::scroll_area::ScrollAreaWidget>()
-            {
-                // widgets::scroll_area::handle_interaction(
-                //     placement.widget_ref.id,
-                //     user_input,
-                //     interaction_state,
-                //     widgets_states
-                //         .scroll_area
-                //         .get_mut(placement.widget_ref.id)
-                //         .unwrap(),
-                //     widgets_states
-                //         .layout_measures
-                //         .get_mut(placement.widget_ref.id)
-                //         .unwrap(),
-                // );
-
-                // need_to_redraw = need_to_redraw
-                //     || widgets_states
-                //         .update_last::<widgets::gesture_detector::State>(placement.widget_ref.id);
-            }
-
-            // if placement.widget_ref.widget_type
-            //     == WidgetType::of::<widgets::decorated_box::DecoratedBox>()
-            // {
-            //     need_to_redraw = need_to_redraw
-            //         || widgets_states
-            //             .update_last::<widgets::decorated_box::State>(placement.widget_ref.id);
-            // }
-
-            // if placement.widget_ref.widget_type
-            //     == WidgetType::of::<widgets::colored_box::ColoredBox>()
-            // {
-            //     need_to_redraw = need_to_redraw
-            //         || widgets_states
-            //             .update_last::<widgets::colored_box::State>(placement.widget_ref.id);
-            // }
-        }
-    }
-
-    // need_to_redraw
     true
 }

@@ -113,6 +113,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         delta_time: window_state.delta_time_timer.elapsed().as_secs_f32(),
         animations_stepped_this_frame: &mut window_state.animations_stepped_this_frame,
         foregrounds: &mut window_state.ui_state.foregrounds,
+        non_interactable: &mut window_state.ui_state.non_interactable,
     };
 
     window_state.delta_time_timer = Instant::now();

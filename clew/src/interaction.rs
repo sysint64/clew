@@ -7,6 +7,7 @@ use crate::{
     io::UserInput,
     layout::LayoutItem,
     point_with_rect_hit_test,
+    scroll_area::ScrollAreaWidget,
     text::{FontResources, TextsResources},
     widgets::{self, gesture_detector::GestureDetector},
 };
@@ -81,7 +82,6 @@ pub fn handle_interaction(
 
     for layout_item in layout_items.iter() {
         if let LayoutItem::Placement(placement) = layout_item
-            && placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>()
             && point_with_rect_hit_test(mouse_point, placement.rect)
         {
             interaction_state.hover.insert(placement.widget_ref.id);
@@ -90,6 +90,7 @@ pub fn handle_interaction(
 
     for layout_item in layout_items.iter().rev() {
         if let LayoutItem::Placement(placement) = layout_item
+            // TODO: Remove this and put gesture detector to foregrounds instead of backgrounds
             && placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>()
             && (!interaction_state.block_hover
                 || interaction_state.active.is_none()

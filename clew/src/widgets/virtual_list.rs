@@ -1,9 +1,10 @@
 use smallvec::SmallVec;
 
 use crate::{
-    Axis, Clip, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, impl_id,
-    impl_size_methods,
+    Axis, Clip, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType,
+    impl_id, impl_size_methods,
     layout::{ContainerKind, LayoutCommand},
+    scroll_area::ScrollAreaWidget,
     widgets::{scope::scope, scroll_area},
 };
 use std::hash::Hash;
@@ -76,11 +77,13 @@ impl VirtualListBuilder {
         F: Fn(&mut BuildContext, u64),
     {
         let id = self.id.with_seed(context.id_seed);
+        let widget_ref = WidgetRef::new(WidgetType::of::<ScrollAreaWidget>(), id);
 
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
-        let mut widget_refs = std::mem::take(context.decorators);
-        widget_refs.append(&mut self.backgrounds);
+        let mut backgrounds = std::mem::take(context.decorators);
+        backgrounds.append(&mut self.backgrounds);
+        backgrounds.push(widget_ref);
 
         let (offset_x, offset_y, response) = {
             let state =
@@ -110,8 +113,10 @@ impl VirtualListBuilder {
 
             if let Some(layout_measures) = layout_measures {
                 scroll_area::handle_interaction(
-                    context.input,
+                    id,
                     state,
+                    context.input,
+                    context.interaction,
                     layout_measures,
                     match self.axis {
                         Axis::Horizontal => wrap_size,
@@ -148,7 +153,7 @@ impl VirtualListBuilder {
         };
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            backgrounds: widget_refs,
+            backgrounds: backgrounds,
             zindex: 0,
             padding: self.padding,
             margin: self.margin,

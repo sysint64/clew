@@ -4,7 +4,8 @@ use smallvec::SmallVec;
 
 use crate::{
     Clip, Constraints, EdgeInsets, ScrollDirection, Size, SizeConstraint, WidgetId, WidgetRef,
-    impl_id, impl_size_methods,
+    WidgetType, impl_id, impl_size_methods,
+    interaction::InteractionState,
     io::UserInput,
     layout::{ContainerKind, LayoutCommand, LayoutMeasure},
     state::WidgetState,
@@ -120,12 +121,13 @@ impl ScrollAreaBuilder {
         F: FnOnce(&mut BuildContext),
     {
         let id = self.id.with_seed(context.id_seed);
+        let widget_ref = WidgetRef::new(WidgetType::of::<ScrollAreaWidget>(), id);
 
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
-        let mut widget_refs = std::mem::take(context.decorators);
-        widget_refs.append(&mut self.backgrounds);
-        // widget_refs.push(widget_ref);
+        let mut backgrounds = std::mem::take(context.decorators);
+        backgrounds.append(&mut self.backgrounds);
+        backgrounds.push(widget_ref);
 
         let (offset_x, offset_y, response) = {
             let state = context
@@ -153,8 +155,10 @@ impl ScrollAreaBuilder {
 
             if let Some(layout_measures) = layout_measures {
                 handle_interaction(
-                    context.input,
+                    id,
                     state,
+                    context.input,
+                    context.interaction,
                     layout_measures,
                     layout_measures.wrap_width as f64,
                     layout_measures.wrap_height as f64,
@@ -185,7 +189,7 @@ impl ScrollAreaBuilder {
         };
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            backgrounds: widget_refs,
+            backgrounds: backgrounds,
             zindex: 0,
             padding: self.padding,
             margin: self.margin,
@@ -269,8 +273,10 @@ pub fn set_scroll_progress_y(context: &mut BuildContext, id: WidgetId, value: f6
 }
 
 pub fn handle_interaction(
-    input: &UserInput,
+    id: WidgetId,
     widget_state: &mut State,
+    input: &UserInput,
+    interaction_state: &InteractionState,
     layout_measure: &LayoutMeasure,
     wrap_width: f64,
     wrap_height: f64,
@@ -278,7 +284,7 @@ pub fn handle_interaction(
     if widget_state.scroll_direction == ScrollDirection::Vertical
         || widget_state.scroll_direction == ScrollDirection::Both
     {
-        if input.mouse_wheel_delta_y != 0. {
+        if input.mouse_wheel_delta_y != 0. && interaction_state.is_hover(&id) {
             widget_state.offset_y += input.mouse_wheel_delta_y as f64;
         }
 
@@ -299,7 +305,7 @@ pub fn handle_interaction(
     if widget_state.scroll_direction == ScrollDirection::Horizontal
         || widget_state.scroll_direction == ScrollDirection::Both
     {
-        if input.mouse_wheel_delta_x != 0. {
+        if input.mouse_wheel_delta_x != 0. && interaction_state.is_hover(&id) {
             widget_state.offset_x += input.mouse_wheel_delta_x as f64;
         }
 

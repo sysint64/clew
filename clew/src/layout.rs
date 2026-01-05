@@ -4,6 +4,7 @@ use crate::{
     WidgetType,
     assets::Assets,
     rect_contains_boundary,
+    scroll_area::ScrollAreaWidget,
     state::TypedWidgetStates,
     text::{TextId, TextsResources},
 };
@@ -1205,7 +1206,7 @@ pub fn layout(
             }
             LayoutCommand::Leaf {
                 widget_ref,
-                backgrounds: decorators,
+                backgrounds,
                 zindex,
                 padding,
                 margin,
@@ -1286,7 +1287,7 @@ pub fn layout(
                 );
 
                 if should_render {
-                    for widget_ref in decorators {
+                    for widget_ref in backgrounds {
                         layout_items.push(LayoutItem::Placement(WidgetPlacement {
                             widget_ref: *widget_ref,
                             zindex: *zindex,

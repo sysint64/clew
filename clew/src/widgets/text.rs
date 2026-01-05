@@ -25,6 +25,7 @@ pub struct TextBuilder<'a> {
     zindex: Option<i32>,
     color: ColorRgba,
     backgrounds: SmallVec<[WidgetRef; 8]>,
+    foregrounds: SmallVec<[WidgetRef; 8]>,
     text_align_x: AlignX,
     vertical_align: AlignY,
     text_align: TextAlign,
@@ -78,6 +79,12 @@ impl<'a> TextBuilder<'a> {
 
     pub fn background(mut self, decorator: WidgetRef) -> Self {
         self.backgrounds.push(decorator);
+
+        self
+    }
+
+    pub fn foreground(mut self, decorator: WidgetRef) -> Self {
+        self.foregrounds.push(decorator);
 
         self
     }
@@ -161,12 +168,16 @@ impl<'a> TextBuilder<'a> {
             });
         }
 
-        let mut backgrounds = std::mem::take(context.decorators);
+        let mut backgrounds = std::mem::take(context.backgrounds);
         backgrounds.append(&mut self.backgrounds);
+
+        let mut foregrounds = std::mem::take(context.foregrounds);
+        foregrounds.append(&mut self.foregrounds);
 
         context.push_layout_command(LayoutCommand::Leaf {
             widget_ref,
             backgrounds,
+            foregrounds,
             padding: self.padding,
             margin: self.margin,
             constraints: self.constraints,
@@ -202,7 +213,8 @@ pub fn text(text: &str) -> TextBuilder<'_> {
         id: WidgetId::auto(),
         text,
         color: ColorRgba::from_hex(0xFFFFFFFF),
-        backgrounds: smallvec![],
+        backgrounds: SmallVec::new(),
+        foregrounds: SmallVec::new(),
         size: Size::default(),
         zindex: None,
         constraints: Constraints {

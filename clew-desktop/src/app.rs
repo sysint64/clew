@@ -107,11 +107,12 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         scoped_user_data: None,
         strings: &mut window_state.strings,
         phase_allocator: &mut window_state.ui_state.phase_allocator,
-        decorators: &mut window_state.ui_state.decorators,
+        backgrounds: &mut window_state.ui_state.backgrounds,
         input: &window_state.ui_state.user_input,
         interaction: &mut window_state.ui_state.interaction_state,
         delta_time: window_state.delta_time_timer.elapsed().as_secs_f32(),
         animations_stepped_this_frame: &mut window_state.animations_stepped_this_frame,
+        foregrounds: &mut window_state.ui_state.foregrounds,
     };
 
     window_state.delta_time_timer = Instant::now();

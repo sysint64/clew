@@ -152,7 +152,7 @@ impl GestureDetectorBuilder {
             drag_state: state.drag_state,
         };
 
-        context.decorators.push(widget_ref);
+        context.foregrounds.push(widget_ref);
         context.provide(response.clone(), callback);
 
         context

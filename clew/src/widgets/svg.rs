@@ -72,11 +72,13 @@ impl SvgBuilder {
         let id = self.id.with_seed(context.id_seed);
 
         let widget_ref = WidgetRef::new(WidgetType::of::<SvgWidget>(), id);
-        let decorators = std::mem::take(context.decorators);
+        let backgrounds = std::mem::take(context.backgrounds);
+        let foregrounds = std::mem::take(context.foregrounds);
 
         context.push_layout_command(LayoutCommand::Leaf {
             widget_ref,
-            backgrounds: decorators,
+            backgrounds,
+            foregrounds,
             padding: self.padding,
             margin: self.margin,
             constraints: self.constraints,

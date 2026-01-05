@@ -9,6 +9,7 @@ use crate::{
     state::WidgetState,
 };
 
+use smallvec::smallvec;
 use super::builder::BuildContext;
 
 pub struct ColoredBox;
@@ -66,7 +67,7 @@ impl ColoredBoxDecoratorBuilder {
 
         let widget_ref = WidgetRef::new(WidgetType::of::<ColoredBox>(), id);
 
-        context.decorators.push(widget_ref);
+        context.backgrounds.push(widget_ref);
         callback(context);
 
         context.current_zindex = last_zindex;
@@ -90,11 +91,12 @@ impl ColoredBoxChildBuilder {
     pub fn build(&self, context: &mut BuildContext) {
         let id = self.id.with_seed(context.id_seed);
         let widget_ref = WidgetRef::new(WidgetType::of::<ColoredBox>(), id);
-        let decorators = std::mem::take(context.decorators);
+        let decorators = std::mem::take(context.backgrounds);
 
         context.push_layout_command(LayoutCommand::Leaf {
             widget_ref,
             backgrounds: decorators,
+            foregrounds: smallvec![],
             padding: self.padding,
             margin: EdgeInsets::ZERO,
             constraints: self.constraints,

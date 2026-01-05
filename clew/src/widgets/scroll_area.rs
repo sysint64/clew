@@ -26,6 +26,7 @@ pub struct ScrollAreaBuilder {
     scroll_direction: ScrollDirection,
     clip: Clip,
     backgrounds: SmallVec<[WidgetRef; 8]>,
+    foregrounds: SmallVec<[WidgetRef; 8]>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -109,6 +110,12 @@ impl ScrollAreaBuilder {
         self
     }
 
+    pub fn foreground(mut self, decorator: WidgetRef) -> Self {
+        self.foregrounds.push(decorator);
+
+        self
+    }
+
     pub fn scroll_direction(mut self, scroll_direction: ScrollDirection) -> Self {
         self.scroll_direction = scroll_direction;
 
@@ -125,9 +132,13 @@ impl ScrollAreaBuilder {
 
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
-        let mut backgrounds = std::mem::take(context.decorators);
+
+        let mut backgrounds = std::mem::take(context.backgrounds);
         backgrounds.append(&mut self.backgrounds);
         backgrounds.push(widget_ref);
+
+        let mut foregrounds = std::mem::take(context.foregrounds);
+        foregrounds.append(&mut self.foregrounds);
 
         let (offset_x, offset_y, response) = {
             let state = context
@@ -189,7 +200,8 @@ impl ScrollAreaBuilder {
         };
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            backgrounds: backgrounds,
+            backgrounds,
+            foregrounds,
             zindex: 0,
             padding: self.padding,
             margin: self.margin,
@@ -237,6 +249,7 @@ pub fn scroll_area() -> ScrollAreaBuilder {
         scroll_direction: ScrollDirection::Vertical,
         clip: Clip::Rect,
         backgrounds: SmallVec::new(),
+        foregrounds: SmallVec::new(),
     }
 }
 

@@ -94,6 +94,7 @@ impl<'a> ButtonBuilder<'a> {
         context.push_layout_command(LayoutCommand::Leaf {
             widget_ref,
             backgrounds: smallvec![],
+            foregrounds: smallvec![],
             constraints: self.constraints,
             size,
             padding: self.padding.unwrap_or(EdgeInsets::ZERO),

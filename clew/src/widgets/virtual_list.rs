@@ -22,6 +22,7 @@ pub struct VirtualListBuilder {
     margin: EdgeInsets,
     clip: Clip,
     backgrounds: SmallVec<[WidgetRef; 8]>,
+    foregrounds: SmallVec<[WidgetRef; 8]>,
     axis: Axis,
 }
 
@@ -65,6 +66,12 @@ impl VirtualListBuilder {
         self
     }
 
+    pub fn foreground(mut self, decorator: WidgetRef) -> Self {
+        self.foregrounds.push(decorator);
+
+        self
+    }
+
     pub fn scroll_direction(mut self, axis: Axis) -> Self {
         self.axis = axis;
 
@@ -81,9 +88,13 @@ impl VirtualListBuilder {
 
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
-        let mut backgrounds = std::mem::take(context.decorators);
+
+        let mut backgrounds = std::mem::take(context.backgrounds);
         backgrounds.append(&mut self.backgrounds);
         backgrounds.push(widget_ref);
+
+        let mut foregrounds = std::mem::take(context.foregrounds);
+        foregrounds.append(&mut self.foregrounds);
 
         let (offset_x, offset_y, response) = {
             let state =
@@ -153,7 +164,8 @@ impl VirtualListBuilder {
         };
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            backgrounds: backgrounds,
+            backgrounds,
+            foregrounds,
             zindex: 0,
             padding: self.padding,
             margin: self.margin,
@@ -257,6 +269,7 @@ pub fn virtual_list() -> VirtualListBuilder {
         axis: Axis::Vertical,
         clip: Clip::Rect,
         backgrounds: SmallVec::new(),
+        foregrounds: SmallVec::new(),
         item_size: 32.,
         items_count: 0,
     }

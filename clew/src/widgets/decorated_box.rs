@@ -217,7 +217,8 @@ impl DecoratedBoxBuilder {
     pub fn build(self, context: &mut BuildContext) {
         let id = self.id.with_seed(context.id_seed);
         let widget_ref = WidgetRef::new(WidgetType::of::<DecoratedBox>(), id);
-        let backgrounds = std::mem::take(context.decorators);
+        let backgrounds = std::mem::take(context.backgrounds);
+        let foregrounds = std::mem::take(context.foregrounds);
 
         if self.offset_x != 0. || self.offset_y != 0. {
             context.push_layout_command(LayoutCommand::BeginOffset {
@@ -229,6 +230,7 @@ impl DecoratedBoxBuilder {
         context.push_layout_command(LayoutCommand::Leaf {
             widget_ref,
             backgrounds,
+            foregrounds,
             padding: self.padding,
             margin: self.margin,
             constraints: self.constraints,

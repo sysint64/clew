@@ -33,6 +33,7 @@ pub enum LayoutItem {
 pub enum LayoutCommand {
     BeginContainer {
         backgrounds: SmallVec<[WidgetRef; 8]>,
+        foregrounds: SmallVec<[WidgetRef; 8]>,
         kind: ContainerKind,
         constraints: Constraints,
         size: Size,
@@ -50,6 +51,7 @@ pub enum LayoutCommand {
     Leaf {
         widget_ref: WidgetRef,
         backgrounds: SmallVec<[WidgetRef; 8]>,
+        foregrounds: SmallVec<[WidgetRef; 8]>,
         constraints: Constraints,
         padding: EdgeInsets,
         margin: EdgeInsets,
@@ -157,6 +159,9 @@ struct Pass2LayoutContainer {
     idx: usize,
     padding: EdgeInsets,
     clipping: bool,
+    decorator_rect: Rect,
+    zindex: i32,
+    foregrounds: SmallVec<[WidgetRef; 8]>,
 }
 
 pub(crate) struct TextLayout {
@@ -835,6 +840,9 @@ pub fn layout(
         axis: StackAxisPass2::None,
         padding: EdgeInsets::ZERO,
         clipping: false,
+        decorator_rect: Rect::ZERO,
+        foregrounds: SmallVec::new(),
+        zindex: i32::MIN,
     };
     layout_state.push_offset(Vec2::new(0., 0.));
 
@@ -979,6 +987,7 @@ pub fn layout(
                 kind,
                 zindex,
                 backgrounds,
+                foregrounds,
                 padding,
                 margin,
                 clip,
@@ -1107,6 +1116,9 @@ pub fn layout(
                             idx: current_idx,
                             clipping,
                             padding: *padding,
+                            zindex: *zindex,
+                            decorator_rect,
+                            foregrounds: foregrounds.clone(),
                             axis: StackAxisPass2::Vertical {
                                 spacing: *spacing,
                                 rtl_aware: *rtl_aware,
@@ -1132,6 +1144,9 @@ pub fn layout(
                             idx: current_idx,
                             clipping,
                             padding: *padding,
+                            zindex: *zindex,
+                            decorator_rect,
+                            foregrounds: foregrounds.clone(),
                             axis: StackAxisPass2::Horizontal {
                                 spacing: *spacing,
                                 rtl_aware: *rtl_aware,
@@ -1147,8 +1162,11 @@ pub fn layout(
                     ContainerKind::ZStack { align_x, align_y } => {
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             padding: *padding,
+                            zindex: *zindex,
                             clipping,
                             idx: current_idx,
+                            decorator_rect,
+                            foregrounds: foregrounds.clone(),
                             axis: StackAxisPass2::Align {
                                 align_x: *align_x,
                                 align_y: *align_y,
@@ -1161,8 +1179,11 @@ pub fn layout(
                     ContainerKind::None => {
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             padding: *padding,
+                            zindex: *zindex,
                             clipping,
                             idx: current_idx,
+                            decorator_rect,
+                            foregrounds: foregrounds.clone(),
                             axis: StackAxisPass2::None,
                         };
 
@@ -1172,8 +1193,11 @@ pub fn layout(
                     ContainerKind::Measure { id } => {
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             padding: *padding,
+                            zindex: *zindex,
                             clipping,
                             idx: current_idx,
+                            decorator_rect,
+                            foregrounds: foregrounds.clone(),
                             axis: StackAxisPass2::None,
                         };
 
@@ -1203,10 +1227,20 @@ pub fn layout(
                 if container.clipping {
                     layout_items.push(LayoutItem::PopClip);
                 }
+
+                for widget_ref in &container.foregrounds {
+                    layout_items.push(LayoutItem::Placement(WidgetPlacement {
+                        widget_ref: *widget_ref,
+                        zindex: container.zindex,
+                        boundary: Rect::ZERO,
+                        rect: container.decorator_rect,
+                    }));
+                }
             }
             LayoutCommand::Leaf {
                 widget_ref,
                 backgrounds,
+                foregrounds,
                 zindex,
                 padding,
                 margin,
@@ -1319,6 +1353,17 @@ pub fn layout(
 
                     if *clip != Clip::None {
                         layout_items.push(LayoutItem::PopClip);
+                    }
+                }
+
+                if should_render {
+                    for widget_ref in foregrounds {
+                        layout_items.push(LayoutItem::Placement(WidgetPlacement {
+                            widget_ref: *widget_ref,
+                            zindex: *zindex,
+                            boundary,
+                            rect: decorators_rect,
+                        }));
                     }
                 }
 

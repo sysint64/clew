@@ -17,6 +17,7 @@ pub struct ZStackBuilder {
     padding: EdgeInsets,
     margin: EdgeInsets,
     backgrounds: SmallVec<[WidgetRef; 8]>,
+    foregrounds: SmallVec<[WidgetRef; 8]>,
 
     align_x: AlignX,
     align_y: AlignY,
@@ -86,12 +87,22 @@ impl ZStackBuilder {
         self
     }
 
+    pub fn foreground(mut self, decorator: WidgetRef) -> Self {
+        self.foregrounds.push(decorator);
+
+        self
+    }
+
     pub fn build<F>(mut self, context: &mut BuildContext, callback: F)
     where
         F: FnOnce(&mut BuildContext),
     {
-        let mut widgets = std::mem::take(context.decorators);
-        widgets.append(&mut self.backgrounds);
+        let mut backgrounds = std::mem::take(context.backgrounds);
+        backgrounds.append(&mut self.backgrounds);
+
+        let mut foregrounds = std::mem::take(context.foregrounds);
+        foregrounds.append(&mut self.foregrounds);
+
         let last_zindex = context.current_zindex;
         context.current_zindex += 1;
 
@@ -103,7 +114,8 @@ impl ZStackBuilder {
         }
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            backgrounds: widgets,
+            backgrounds,
+            foregrounds,
             zindex: last_zindex,
             padding: self.padding,
             margin: self.margin,
@@ -137,6 +149,7 @@ pub fn zstack() -> ZStackBuilder {
         constraints: Constraints::default(),
         size: Size::default(),
         backgrounds: SmallVec::new(),
+        foregrounds: SmallVec::new(),
         clip: Clip::Rect,
         offset_x: 0.,
         offset_y: 0.,

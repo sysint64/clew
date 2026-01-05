@@ -72,10 +72,13 @@ impl HStackBuilder {
     {
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
-        let widget_refs = std::mem::take(context.decorators);
+
+        let backgrounds = std::mem::take(context.backgrounds);
+        let foregrounds = std::mem::take(context.foregrounds);
 
         context.push_layout_command(LayoutCommand::BeginContainer {
-            backgrounds: widget_refs,
+            backgrounds,
+            foregrounds,
             zindex: 0,
             padding: self.padding,
             margin: self.margin,

@@ -90,8 +90,6 @@ pub fn handle_interaction(
 
     for layout_item in layout_items.iter().rev() {
         if let LayoutItem::Placement(placement) = layout_item
-            // TODO: Remove this and put gesture detector to foregrounds instead of backgrounds
-            && placement.widget_ref.widget_type == WidgetType::of::<GestureDetector>()
             && (!interaction_state.block_hover
                 || interaction_state.active.is_none()
                 || interaction_state.active == Some(placement.widget_ref.id))

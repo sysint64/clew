@@ -15,6 +15,7 @@ pub struct VStackBuilder {
     padding: EdgeInsets,
     margin: EdgeInsets,
     backgrounds: SmallVec<[WidgetRef; 8]>,
+    foregrounds: SmallVec<[WidgetRef; 8]>,
 
     rtl_aware: bool,
     spacing: f32,
@@ -63,6 +64,12 @@ impl VStackBuilder {
         self
     }
 
+    pub fn foreground(mut self, decorator: WidgetRef) -> Self {
+        self.foregrounds.push(decorator);
+
+        self
+    }
+
     pub fn main_axis_alignment(mut self, value: MainAxisAlignment) -> Self {
         self.main_axis_alignment = value;
 
@@ -82,11 +89,16 @@ impl VStackBuilder {
     {
         let last_zindex = context.current_zindex;
         context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
-        let mut backgrounds = std::mem::take(context.decorators);
+
+        let mut backgrounds = std::mem::take(context.backgrounds);
         backgrounds.append(&mut self.backgrounds);
+
+        let mut foregrounds = std::mem::take(context.foregrounds);
+        foregrounds.append(&mut self.foregrounds);
 
         context.push_layout_command(LayoutCommand::BeginContainer {
             backgrounds,
+            foregrounds,
             zindex: 0,
             padding: self.padding,
             margin: self.margin,
@@ -119,6 +131,7 @@ pub fn vstack() -> VStackBuilder {
         padding: EdgeInsets::ZERO,
         margin: EdgeInsets::ZERO,
         backgrounds: SmallVec::new(),
+        foregrounds: SmallVec::new(),
         clip: Clip::None,
     }
 }

@@ -1,59 +1,22 @@
-use smallvec::SmallVec;
+use clew_derive::WidgetBuilder;
 
 use crate::{
-    AlignX, AlignY, Clip, Constraints, EdgeInsets, Size, SizeConstraint, WidgetRef,
-    impl_size_methods,
+    AlignX, AlignY,
     layout::{ContainerKind, LayoutCommand},
 };
 
-use super::builder::BuildContext;
+use super::builder::{BuildContext, WidgetCommon};
 
 pub struct ZStack;
 
+#[derive(WidgetBuilder)]
 pub struct ZStackBuilder {
-    size: Size,
-    constraints: Constraints,
-    zindex: Option<i32>,
-    padding: EdgeInsets,
-    margin: EdgeInsets,
-    backgrounds: SmallVec<[WidgetRef; 8]>,
-    foregrounds: SmallVec<[WidgetRef; 8]>,
-
+    common: WidgetCommon,
     align_x: AlignX,
     align_y: AlignY,
-    offset_x: f32,
-    offset_y: f32,
-    clip: Clip,
 }
 
 impl ZStackBuilder {
-    impl_size_methods!();
-
-    pub fn clip(mut self, clip: Clip) -> Self {
-        self.clip = clip;
-
-        self
-    }
-
-    pub fn offset(mut self, x: f32, y: f32) -> Self {
-        self.offset_x = x;
-        self.offset_y = y;
-
-        self
-    }
-
-    pub fn offset_x(mut self, offset: f32) -> Self {
-        self.offset_x = offset;
-
-        self
-    }
-
-    pub fn offset_y(mut self, offset: f32) -> Self {
-        self.offset_y = offset;
-
-        self
-    }
-
     pub fn align_x(mut self, align: AlignX) -> Self {
         self.align_x = align;
         self
@@ -64,52 +27,23 @@ impl ZStackBuilder {
         self
     }
 
-    pub fn zindex(mut self, zindex: i32) -> Self {
-        self.zindex = Some(zindex);
-        self
-    }
-
-    pub fn padding(mut self, padding: EdgeInsets) -> Self {
-        self.padding = padding;
-
-        self
-    }
-
-    pub fn margin(mut self, margin: EdgeInsets) -> Self {
-        self.margin = margin;
-
-        self
-    }
-
-    pub fn background(mut self, decorator: WidgetRef) -> Self {
-        self.backgrounds.push(decorator);
-
-        self
-    }
-
-    pub fn foreground(mut self, decorator: WidgetRef) -> Self {
-        self.foregrounds.push(decorator);
-
-        self
-    }
-
     pub fn build<F>(mut self, context: &mut BuildContext, callback: F)
     where
         F: FnOnce(&mut BuildContext),
     {
         let mut backgrounds = std::mem::take(context.backgrounds);
-        backgrounds.append(&mut self.backgrounds);
+        backgrounds.append(&mut self.common.backgrounds);
 
         let mut foregrounds = std::mem::take(context.foregrounds);
-        foregrounds.append(&mut self.foregrounds);
+        foregrounds.append(&mut self.common.foregrounds);
 
         let last_zindex = context.current_zindex;
         context.current_zindex += 1;
 
-        if self.offset_x != 0. || self.offset_y != 0. {
+        if self.common.offset_x != 0. || self.common.offset_y != 0. {
             context.push_layout_command(LayoutCommand::BeginOffset {
-                offset_x: self.offset_x,
-                offset_y: self.offset_y,
+                offset_x: self.common.offset_x,
+                offset_y: self.common.offset_y,
             });
         }
 
@@ -117,20 +51,20 @@ impl ZStackBuilder {
             backgrounds,
             foregrounds,
             zindex: last_zindex,
-            padding: self.padding,
-            margin: self.margin,
+            padding: self.common.padding,
+            margin: self.common.margin,
             kind: ContainerKind::ZStack {
                 align_x: self.align_x,
                 align_y: self.align_y,
             },
-            size: self.size,
-            constraints: self.constraints,
-            clip: self.clip,
+            size: self.common.size,
+            constraints: self.common.constraints,
+            clip: self.common.clip,
         });
         callback(context);
         context.push_layout_command(LayoutCommand::EndContainer);
 
-        if self.offset_x != 0. || self.offset_y != 0. {
+        if self.common.offset_x != 0. || self.common.offset_y != 0. {
             context.push_layout_command(LayoutCommand::EndOffset);
         }
 
@@ -141,17 +75,8 @@ impl ZStackBuilder {
 #[track_caller]
 pub fn zstack() -> ZStackBuilder {
     ZStackBuilder {
-        padding: EdgeInsets::ZERO,
-        margin: EdgeInsets::ZERO,
+        common: WidgetCommon::default(),
         align_x: AlignX::Left,
         align_y: AlignY::Top,
-        zindex: None,
-        constraints: Constraints::default(),
-        size: Size::default(),
-        backgrounds: SmallVec::new(),
-        foregrounds: SmallVec::new(),
-        clip: Clip::Rect,
-        offset_x: 0.,
-        offset_y: 0.,
     }
 }

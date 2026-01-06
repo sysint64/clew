@@ -35,7 +35,7 @@ pub fn derive_identifiable(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #[allow(clippy::misnamed_getters)]
-        impl Identifiable for #name {
+        impl ::clew::prelude::Identifiable for #name {
             type Id = #id_field_type;
 
             fn id(&self) -> Self::Id {
@@ -53,7 +53,7 @@ pub fn derive_widget_state(input: TokenStream) -> TokenStream {
     let name = &input.ident;
 
     let expanded = quote! {
-        impl WidgetState for #name {
+        impl ::clew::prelude::WidgetState for #name {
             #[inline]
             fn as_any(&self) -> &dyn std::any::Any {
                 self
@@ -67,6 +67,22 @@ pub fn derive_widget_state(input: TokenStream) -> TokenStream {
             #[inline]
             fn into_any(self: Box<Self>) -> Box<dyn std::any::Any> {
                 self
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+#[proc_macro_derive(WidgetBuilder)]
+pub fn widget_builder_derive(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = &input.ident;
+
+    let expanded = quote! {
+        impl ::clew::prelude::WidgetBuilder for #name {
+            fn common_mut(&mut self) -> &mut WidgetCommon {
+                &mut self.common
             }
         }
     };

@@ -27,6 +27,7 @@ tracy-client = { workspace = true }
 rustc-hash = "2.1"
 slab = "0.4.11"
 bitvec = "1.0.1"
+clew-derive = { path = "../clew-derive" }
 
 [features]
 default = ["tokio"]

@@ -1,7 +1,8 @@
+use clew::prelude::*;
 use clew::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets,
     LinearGradient, SizeConstraint, WidgetId, impl_id, impl_position_methods, impl_width_methods,
-    state::WidgetState, widgets::*,
+    widgets::*,
 };
 use clew_derive::WidgetState;
 use std::hash::Hash;
@@ -81,7 +82,6 @@ impl<'a> ButtonBuilder<'a> {
                         .constraints(self.constraints)
                         .padding(EdgeInsets::symmetric(12., 8.))
                         .build(ctx);
-
                 })
         });
 

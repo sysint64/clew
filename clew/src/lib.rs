@@ -1,3 +1,5 @@
+extern crate self as clew;
+
 pub mod animation;
 pub mod assets;
 mod foundation;
@@ -21,5 +23,7 @@ pub use widgets::*;
 pub mod prelude {
     pub use crate::animation::Animation;
     pub use crate::foundation::Value;
-    pub use crate::widgets::builder::Resolve;
+    pub use crate::identifiable::Identifiable;
+    pub use crate::state::WidgetState;
+    pub use crate::widgets::builder::{Resolve, WidgetBuilder};
 }

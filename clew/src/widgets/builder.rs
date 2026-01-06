@@ -9,7 +9,13 @@ use rustc_hash::{FxHashSet, FxHasher};
 use smallvec::SmallVec;
 
 use crate::{
-    Animation, Value, View, ViewId, WidgetId, WidgetRef, interaction::InteractionState, io::UserInput, layout::LayoutCommand, state::WidgetsStates, text::{FontResources, StringId, StringInterner, TextId, TextsResources}
+    Animation, Clip, Constraints, EdgeInsets, Size, Value, View, ViewId, WidgetId,
+    WidgetRef,
+    interaction::InteractionState,
+    io::UserInput,
+    layout::LayoutCommand,
+    state::WidgetsStates,
+    text::{FontResources, StringId, StringInterner, TextId, TextsResources},
 };
 
 #[derive(Debug)]
@@ -367,4 +373,212 @@ macro_rules! impl_position_methods {
             self
         }
     };
+}
+
+pub struct WidgetCommon {
+    pub id: WidgetId,
+    pub size: Size,
+    pub constraints: Constraints,
+    pub zindex: Option<i32>,
+    pub padding: EdgeInsets,
+    pub margin: EdgeInsets,
+    pub backgrounds: SmallVec<[WidgetRef; 8]>,
+    pub foregrounds: SmallVec<[WidgetRef; 8]>,
+    pub offset_x: f32,
+    pub offset_y: f32,
+    pub clip: Clip,
+}
+
+impl Default for WidgetCommon {
+    #[track_caller]
+    fn default() -> Self {
+        Self {
+            id: WidgetId::auto(),
+            size: Default::default(),
+            constraints: Default::default(),
+            zindex: Default::default(),
+            padding: Default::default(),
+            margin: Default::default(),
+            backgrounds: Default::default(),
+            foregrounds: Default::default(),
+            offset_x: Default::default(),
+            offset_y: Default::default(),
+            clip: Clip::None,
+        }
+    }
+}
+
+pub trait WidgetBuilder {
+    fn common_mut(&mut self) -> &mut WidgetCommon;
+
+    #[track_caller]
+    fn id(mut self, id: impl std::hash::Hash) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().id = ::clew::WidgetId::auto_with_seed(id);
+        self
+    }
+
+    fn size<T: Into<::clew::Size>>(mut self, size: T) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().size = size.into();
+        self
+    }
+
+    fn width<T: Into<::clew::SizeConstraint>>(mut self, size: T) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().size.width = size.into();
+        self
+    }
+
+    fn height<T: Into<::clew::SizeConstraint>>(mut self, size: T) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().size.height = size.into();
+        self
+    }
+
+    fn fill_max_width(mut self) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().size.width = ::clew::SizeConstraint::Fill(1.);
+        self
+    }
+
+    fn fill_max_height(mut self) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().size.height = ::clew::SizeConstraint::Fill(1.);
+        self
+    }
+
+    fn fill_max_size(mut self) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().size.width = ::clew::SizeConstraint::Fill(1.);
+        self.common_mut().size.height = ::clew::SizeConstraint::Fill(1.);
+        self
+    }
+
+    fn constraints(mut self, constraints: ::clew::Constraints) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().constraints = constraints;
+        self
+    }
+
+    fn max_width(mut self, value: f32) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().constraints.max_width = value;
+        self
+    }
+
+    fn max_height(mut self, value: f32) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().constraints.max_height = value;
+        self
+    }
+
+    fn min_width(mut self, value: f32) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().constraints.min_width = value;
+        self
+    }
+
+    fn min_height(mut self, value: f32) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().constraints.min_height = value;
+        self
+    }
+
+    fn clip(mut self, clip: ::clew::Clip) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().clip = clip;
+        self
+    }
+
+    fn offset(mut self, x: f32, y: f32) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().offset_x = x;
+        self.common_mut().offset_y = y;
+        self
+    }
+
+    fn offset_x(mut self, offset: f32) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().offset_x = offset;
+        self
+    }
+
+    fn offset_y(mut self, offset: f32) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().offset_y = offset;
+        self
+    }
+
+    fn zindex(mut self, zindex: i32) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().zindex = Some(zindex);
+        self
+    }
+
+    fn padding(mut self, padding: ::clew::EdgeInsets) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().padding = padding;
+        self
+    }
+
+    fn margin(mut self, margin: ::clew::EdgeInsets) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().margin = margin;
+        self
+    }
+
+    fn background(mut self, decorator: ::clew::WidgetRef) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().backgrounds.push(decorator);
+        self
+    }
+
+    fn foreground(mut self, decorator: ::clew::WidgetRef) -> Self
+    where
+        Self: Sized,
+    {
+        self.common_mut().foregrounds.push(decorator);
+        self
+    }
 }

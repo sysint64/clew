@@ -2,11 +2,13 @@ pub mod builder;
 pub mod component;
 pub mod decorated_box;
 pub mod for_each;
+pub mod frame;
 pub mod gap;
 pub mod gesture_detector;
 pub mod hstack;
 pub mod scope;
 pub mod scroll_area;
+pub mod stateful;
 pub mod svg;
 pub mod text;
 pub mod virtual_list;
@@ -14,6 +16,7 @@ pub mod vstack;
 pub mod widget;
 pub mod zstack;
 
+pub use frame::FrameBuilder;
 pub use builder::{BuildContext, Resolve};
 pub use component::{Component, component};
 pub use decorated_box::{decorated_box, decoration};
@@ -26,6 +29,7 @@ pub use scroll_area::{
     ScrollAreaResponse, scroll_area, set_scroll_offset_x, set_scroll_offset_y,
     set_scroll_progress_x, set_scroll_progress_y,
 };
+pub use stateful::stateful;
 pub use svg::svg;
 pub use text::text;
 pub use virtual_list::virtual_list;

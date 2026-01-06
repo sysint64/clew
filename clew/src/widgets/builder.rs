@@ -9,13 +9,15 @@ use rustc_hash::{FxHashSet, FxHasher};
 use smallvec::SmallVec;
 
 use crate::{
-    Animation, Clip, Constraints, EdgeInsets, Size, Value, View, ViewId, WidgetId, WidgetRef,
+    Animation, Constraints, Size, Value, View, ViewId, WidgetId, WidgetRef,
     interaction::InteractionState,
     io::UserInput,
-    layout::{ContainerKind, LayoutCommand},
+    layout::LayoutCommand,
     state::WidgetsStates,
     text::{FontResources, StringId, StringInterner, TextId, TextsResources},
 };
+
+use super::{FrameBuilder, frame::FrameBuilderFlags};
 
 #[derive(Debug)]
 pub enum ApplicationEvent {
@@ -63,6 +65,7 @@ pub struct BuildContext<'a, 'b> {
     pub interaction: &'a mut InteractionState,
     pub delta_time: f32,
     pub animations_stepped_this_frame: &'a mut HashSet<usize>,
+    pub layout: Option<Layout>,
 }
 
 pub trait Resolve<V> {
@@ -143,6 +146,11 @@ impl BuildContext<'_, '_> {
 
         // Restore parent, dropping our node's reference
         self.scoped_user_data = node.parent;
+    }
+
+    #[inline]
+    pub fn take_layout(&mut self) -> Layout {
+        self.layout.take().unwrap_or_default()
     }
 
     pub fn of<T: 'static>(&self) -> Option<&T> {
@@ -235,69 +243,6 @@ impl BuildContext<'_, '_> {
         self.id_seed = last_id_seed;
 
         result
-    }
-
-    pub fn build_with_common<F, T>(&mut self, common: &mut WidgetCommon, callback: F) -> T
-    where
-        F: FnOnce(&mut BuildContext) -> T,
-    {
-        let has_offset = common.flags.contains(WidgetCommonFlags::OFFSET);
-
-        if has_offset {
-            self.push_layout_command(LayoutCommand::BeginOffset {
-                offset_x: common.offset_x,
-                offset_y: common.offset_y,
-            });
-        }
-
-        let needs_container = common.flags.intersects(
-            WidgetCommonFlags::SIZE
-                .union(WidgetCommonFlags::CONSTRAINTS)
-                .union(WidgetCommonFlags::ZINDEX)
-                .union(WidgetCommonFlags::PADDING)
-                .union(WidgetCommonFlags::MARGIN)
-                .union(WidgetCommonFlags::BACKGROUNDS)
-                .union(WidgetCommonFlags::FOREGROUNDS)
-                .union(WidgetCommonFlags::CLIP),
-        );
-
-        let value;
-
-        if needs_container {
-            let mut backgrounds = std::mem::take(self.backgrounds);
-            backgrounds.append(&mut common.backgrounds);
-
-            let mut foregrounds = std::mem::take(self.foregrounds);
-            foregrounds.append(&mut common.foregrounds);
-
-            let last_zindex = self.current_zindex;
-            self.current_zindex += 1;
-
-            self.push_layout_command(LayoutCommand::BeginContainer {
-                backgrounds,
-                foregrounds,
-                zindex: last_zindex,
-                padding: common.padding,
-                margin: common.margin,
-                kind: ContainerKind::Passthrough,
-                size: common.size,
-                constraints: common.constraints,
-                clip: common.clip,
-            });
-
-            value = self.scope(common.id, callback);
-
-            self.push_layout_command(LayoutCommand::EndContainer);
-            self.current_zindex = last_zindex;
-        } else {
-            value = self.scope(common.id, callback);
-        }
-
-        if has_offset {
-            self.push_layout_command(LayoutCommand::EndOffset);
-        }
-
-        value
     }
 
     pub fn emit<E: Any + Send + 'static>(&mut self, event: E) {
@@ -447,90 +392,28 @@ macro_rules! impl_position_methods {
     };
 }
 
-bitflags::bitflags! {
-    #[derive(Default, Clone, Copy)]
-    pub struct WidgetCommonFlags: u16 {
-        const ID = 1 << 0;
-        const SIZE = 1 << 1;
-        const CONSTRAINTS = 1 << 2;
-        const ZINDEX = 1 << 3;
-        const PADDING = 1 << 4;
-        const MARGIN = 1 << 5;
-        const BACKGROUNDS = 1 << 6;
-        const FOREGROUNDS = 1 << 7;
-        const OFFSET = 1 << 8;
-        const CLIP = 1 << 9;
-    }
-}
-
-pub struct WidgetCommon {
-    pub id: WidgetId,
-    pub size: Size,
-    pub constraints: Constraints,
-    pub zindex: Option<i32>,
-    pub padding: EdgeInsets,
-    pub margin: EdgeInsets,
-    pub backgrounds: SmallVec<[WidgetRef; 8]>,
-    pub foregrounds: SmallVec<[WidgetRef; 8]>,
-    pub offset_x: f32,
-    pub offset_y: f32,
-    pub clip: Clip,
-    pub flags: WidgetCommonFlags,
-}
-
-impl Default for WidgetCommon {
-    #[track_caller]
-    fn default() -> Self {
-        Self {
-            id: WidgetId::auto(),
-            size: Default::default(),
-            constraints: Default::default(),
-            zindex: Default::default(),
-            padding: Default::default(),
-            margin: Default::default(),
-            backgrounds: Default::default(),
-            foregrounds: Default::default(),
-            offset_x: Default::default(),
-            offset_y: Default::default(),
-            clip: Clip::None,
-            flags: WidgetCommonFlags::empty(),
-        }
-    }
-}
-
+#[derive(Default)]
 pub struct Layout {
     pub size: Size,
     pub constraints: Constraints,
 }
 
-impl WidgetCommon {
-    pub fn take_layout(&mut self) -> Layout {
-        self.flags.remove(WidgetCommonFlags::SIZE);
-        self.flags.remove(WidgetCommonFlags::CONSTRAINTS);
-
-        Layout {
-            size: self.size,
-            constraints: self.constraints,
-        }
-    }
-}
-
-impl WidgetBuilder for WidgetCommon {
-    fn common_mut(&mut self) -> &mut WidgetCommon {
+impl WidgetBuilder for FrameBuilder {
+    fn frame_mut(&mut self) -> &mut FrameBuilder {
         self
     }
 }
 
 pub trait WidgetBuilder {
-    fn common_mut(&mut self) -> &mut WidgetCommon;
+    fn frame_mut(&mut self) -> &mut FrameBuilder;
 
     #[track_caller]
     fn id(mut self, id: impl std::hash::Hash) -> Self
     where
         Self: Sized,
     {
-        self.common_mut().id = ::clew::WidgetId::auto_with_seed(id);
-        self.common_mut().flags |= WidgetCommonFlags::ID;
+        self.frame_mut().id = ::clew::WidgetId::auto_with_seed(id);
+        self.frame_mut().flags |= FrameBuilderFlags::ID;
         self
     }
 
@@ -538,8 +421,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().size = size.into();
-        self.common_mut().flags |= WidgetCommonFlags::SIZE;
+        self.frame_mut().size = size.into();
+        self.frame_mut().flags |= FrameBuilderFlags::SIZE;
         self
     }
 
@@ -547,8 +430,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().size.width = size.into();
-        self.common_mut().flags |= WidgetCommonFlags::SIZE;
+        self.frame_mut().size.width = size.into();
+        self.frame_mut().flags |= FrameBuilderFlags::SIZE;
         self
     }
 
@@ -556,8 +439,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().size.height = size.into();
-        self.common_mut().flags |= WidgetCommonFlags::SIZE;
+        self.frame_mut().size.height = size.into();
+        self.frame_mut().flags |= FrameBuilderFlags::SIZE;
         self
     }
 
@@ -565,8 +448,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().size.width = ::clew::SizeConstraint::Fill(1.);
-        self.common_mut().flags |= WidgetCommonFlags::SIZE;
+        self.frame_mut().size.width = ::clew::SizeConstraint::Fill(1.);
+        self.frame_mut().flags |= FrameBuilderFlags::SIZE;
         self
     }
 
@@ -574,8 +457,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().size.height = ::clew::SizeConstraint::Fill(1.);
-        self.common_mut().flags |= WidgetCommonFlags::SIZE;
+        self.frame_mut().size.height = ::clew::SizeConstraint::Fill(1.);
+        self.frame_mut().flags |= FrameBuilderFlags::SIZE;
         self
     }
 
@@ -583,9 +466,9 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().size.width = ::clew::SizeConstraint::Fill(1.);
-        self.common_mut().size.height = ::clew::SizeConstraint::Fill(1.);
-        self.common_mut().flags |= WidgetCommonFlags::SIZE;
+        self.frame_mut().size.width = ::clew::SizeConstraint::Fill(1.);
+        self.frame_mut().size.height = ::clew::SizeConstraint::Fill(1.);
+        self.frame_mut().flags |= FrameBuilderFlags::SIZE;
         self
     }
 
@@ -593,8 +476,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().constraints = constraints;
-        self.common_mut().flags |= WidgetCommonFlags::CONSTRAINTS;
+        self.frame_mut().constraints = constraints;
+        self.frame_mut().flags |= FrameBuilderFlags::CONSTRAINTS;
         self
     }
 
@@ -602,8 +485,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().constraints.max_width = value;
-        self.common_mut().flags |= WidgetCommonFlags::CONSTRAINTS;
+        self.frame_mut().constraints.max_width = value;
+        self.frame_mut().flags |= FrameBuilderFlags::CONSTRAINTS;
         self
     }
 
@@ -611,8 +494,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().constraints.max_height = value;
-        self.common_mut().flags |= WidgetCommonFlags::CONSTRAINTS;
+        self.frame_mut().constraints.max_height = value;
+        self.frame_mut().flags |= FrameBuilderFlags::CONSTRAINTS;
         self
     }
 
@@ -620,8 +503,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().constraints.min_width = value;
-        self.common_mut().flags |= WidgetCommonFlags::CONSTRAINTS;
+        self.frame_mut().constraints.min_width = value;
+        self.frame_mut().flags |= FrameBuilderFlags::CONSTRAINTS;
         self
     }
 
@@ -629,8 +512,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().constraints.min_height = value;
-        self.common_mut().flags |= WidgetCommonFlags::CONSTRAINTS;
+        self.frame_mut().constraints.min_height = value;
+        self.frame_mut().flags |= FrameBuilderFlags::CONSTRAINTS;
         self
     }
 
@@ -638,8 +521,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().clip = clip;
-        self.common_mut().flags |= WidgetCommonFlags::CLIP;
+        self.frame_mut().clip = clip;
+        self.frame_mut().flags |= FrameBuilderFlags::CLIP;
         self
     }
 
@@ -647,9 +530,9 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().offset_x = x;
-        self.common_mut().offset_y = y;
-        self.common_mut().flags |= WidgetCommonFlags::OFFSET;
+        self.frame_mut().offset_x = x;
+        self.frame_mut().offset_y = y;
+        self.frame_mut().flags |= FrameBuilderFlags::OFFSET;
         self
     }
 
@@ -657,8 +540,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().offset_x = offset;
-        self.common_mut().flags |= WidgetCommonFlags::OFFSET;
+        self.frame_mut().offset_x = offset;
+        self.frame_mut().flags |= FrameBuilderFlags::OFFSET;
         self
     }
 
@@ -666,8 +549,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().offset_y = offset;
-        self.common_mut().flags |= WidgetCommonFlags::OFFSET;
+        self.frame_mut().offset_y = offset;
+        self.frame_mut().flags |= FrameBuilderFlags::OFFSET;
         self
     }
 
@@ -675,8 +558,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().zindex = Some(zindex);
-        self.common_mut().flags |= WidgetCommonFlags::ZINDEX;
+        self.frame_mut().zindex = Some(zindex);
+        self.frame_mut().flags |= FrameBuilderFlags::ZINDEX;
         self
     }
 
@@ -684,8 +567,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().padding = padding;
-        self.common_mut().flags |= WidgetCommonFlags::PADDING;
+        self.frame_mut().padding = padding;
+        self.frame_mut().flags |= FrameBuilderFlags::PADDING;
         self
     }
 
@@ -693,8 +576,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().margin = margin;
-        self.common_mut().flags |= WidgetCommonFlags::MARGIN;
+        self.frame_mut().margin = margin;
+        self.frame_mut().flags |= FrameBuilderFlags::MARGIN;
         self
     }
 
@@ -702,8 +585,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().backgrounds.push(decorator);
-        self.common_mut().flags |= WidgetCommonFlags::BACKGROUNDS;
+        self.frame_mut().backgrounds.push(decorator);
+        self.frame_mut().flags |= FrameBuilderFlags::BACKGROUNDS;
         self
     }
 
@@ -711,8 +594,8 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.common_mut().foregrounds.push(decorator);
-        self.common_mut().flags |= WidgetCommonFlags::FOREGROUNDS;
+        self.frame_mut().foregrounds.push(decorator);
+        self.frame_mut().flags |= FrameBuilderFlags::FOREGROUNDS;
         self
     }
 }

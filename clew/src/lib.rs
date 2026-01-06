@@ -26,4 +26,5 @@ pub mod prelude {
     pub use crate::identifiable::Identifiable;
     pub use crate::state::WidgetState;
     pub use crate::widgets::builder::{Resolve, WidgetBuilder};
+    pub use crate::widgets::stateful::StatefulWidgetBuilder;
 }

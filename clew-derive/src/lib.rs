@@ -7,6 +7,7 @@ use syn::{Data, DeriveInput, Fields, parse_macro_input};
 pub fn derive_identifiable(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let fields = match &input.data {
         Data::Struct(data) => match &data.fields {
@@ -35,7 +36,7 @@ pub fn derive_identifiable(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #[allow(clippy::misnamed_getters)]
-        impl ::clew::prelude::Identifiable for #name {
+        impl #impl_generics ::clew::prelude::Identifiable for #name #ty_generics #where_clause {
             type Id = #id_field_type;
 
             fn id(&self) -> Self::Id {
@@ -51,9 +52,10 @@ pub fn derive_identifiable(input: TokenStream) -> TokenStream {
 pub fn derive_widget_state(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let expanded = quote! {
-        impl ::clew::prelude::WidgetState for #name {
+        impl #impl_generics ::clew::prelude::WidgetState for #name #ty_generics #where_clause {
             #[inline]
             fn as_any(&self) -> &dyn std::any::Any {
                 self
@@ -82,8 +84,8 @@ pub fn widget_builder_derive(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl #impl_generics ::clew::prelude::WidgetBuilder for #name #ty_generics #where_clause {
-            fn common_mut(&mut self) -> &mut WidgetCommon {
-                &mut self.common
+            fn frame_mut(&mut self) -> &mut ::clew::FrameBuilder {
+                &mut self.frame
             }
         }
     };

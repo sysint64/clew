@@ -1,5 +1,5 @@
-use clew::builder::WidgetCommon;
 use clew::prelude::*;
+use clew::stateful::{StatefulWidget, StatefulWidgetBuilder};
 use clew::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets,
     LinearGradient, widgets::*,
@@ -8,7 +8,7 @@ use clew_derive::{WidgetBuilder, WidgetState};
 
 #[derive(WidgetBuilder)]
 pub struct ButtonBuilder<'a> {
-    common: WidgetCommon,
+    frame: FrameBuilder,
     text: &'a str,
 }
 
@@ -25,8 +25,8 @@ impl ButtonResponse {
 impl<'a> ButtonBuilder<'a> {
     #[profiling::function]
     pub fn build(mut self, ctx: &mut BuildContext) -> ButtonResponse {
-        let layout = self.common.take_layout();
-        let response = ctx.build_with_common(&mut self.common, |ctx| {
+        let layout = self.frame.take_layout();
+        let response = self.frame.build(ctx, |ctx| {
             gesture_detector()
                 .clickable(true)
                 .focusable(true)
@@ -88,7 +88,7 @@ impl<'a> ButtonBuilder<'a> {
 #[track_caller]
 pub fn button(text: &str) -> ButtonBuilder<'_> {
     ButtonBuilder {
-        common: WidgetCommon::default().constraints(Constraints {
+        frame: FrameBuilder::new().constraints(Constraints {
             min_width: 20.,
             min_height: 0.,
             max_width: f32::INFINITY,
@@ -104,10 +104,10 @@ pub struct HorizontalScrollBar {
     last_offset: f64,
 }
 
-impl Widget for HorizontalScrollBar {
+impl StatefulWidget for HorizontalScrollBar {
     type Event = ();
 
-    fn build(&mut self, ctx: &mut BuildContext) {
+    fn build(&mut self, ctx: &mut BuildContext, _: &mut FrameBuilder) {
         zstack()
             .fill_max_size()
             .align_y(AlignY::Bottom)
@@ -165,16 +165,49 @@ impl Widget for HorizontalScrollBar {
     }
 }
 
+pub fn horizontal_scroll_bar() -> impl StatefulWidgetBuilder {
+    stateful::<HorizontalScrollBar>()
+}
+
+#[derive(WidgetBuilder)]
+pub struct VerticalScrollBarBuilder {
+    frame: FrameBuilder,
+    thinkness: f32,
+}
+
+pub fn vertical_scroll_bar() -> VerticalScrollBarBuilder {
+    VerticalScrollBarBuilder {
+        frame: FrameBuilder::default(),
+        thinkness: 4.,
+    }
+}
+
+impl VerticalScrollBarBuilder {
+    pub fn thinkness(mut self, thinkness: f32) -> Self {
+        self.thinkness = thinkness;
+        self
+    }
+
+    #[profiling::function]
+    pub fn build(mut self, ctx: &mut BuildContext) {
+        self.frame.build(ctx, |ctx| {
+            stateful::<VerticalScrollBar>()
+                .update_state_and_build(ctx, |state| state.thinkness = self.thinkness);
+        });
+    }
+}
+
 #[derive(WidgetState, Default)]
 pub struct VerticalScrollBar {
     offset: f64,
     last_offset: f64,
+    thinkness: f32,
 }
 
-impl Widget for VerticalScrollBar {
+impl StatefulWidget for VerticalScrollBar {
     type Event = ();
 
-    fn build(&mut self, ctx: &mut BuildContext) {
+    fn build(&mut self, ctx: &mut BuildContext, _: &mut FrameBuilder) {
         zstack()
             .fill_max_size()
             .align_x(AlignX::Right)

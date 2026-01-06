@@ -73,7 +73,7 @@ impl Window<DemoApplication, ()> for MainWindow {
 
                         if response.overflow_y {
                             ctx.provide(response.clone(), |ctx| {
-                                ui::widget::<clew_widgets::VerticalScrollBar>().build(ctx);
+                                clew_widgets::vertical_scroll_bar().build(ctx);
                             });
                         }
                     });
@@ -106,7 +106,7 @@ impl Window<DemoApplication, ()> for MainWindow {
 
                         if response.overflow_x {
                             ctx.provide(response.clone(), |ctx| {
-                                ui::widget::<clew_widgets::HorizontalScrollBar>().build(ctx);
+                                clew_widgets::horizontal_scroll_bar().build(ctx);
                             });
                         }
                     });

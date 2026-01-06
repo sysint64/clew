@@ -5,13 +5,13 @@ use crate::{
     layout::{ContainerKind, LayoutCommand},
 };
 
-use super::builder::{BuildContext, WidgetCommon};
+use super::{FrameBuilder, builder::BuildContext};
 
 pub struct ZStack;
 
 #[derive(WidgetBuilder)]
 pub struct ZStackBuilder {
-    common: WidgetCommon,
+    frame: FrameBuilder,
     align_x: AlignX,
     align_y: AlignY,
 }
@@ -32,18 +32,18 @@ impl ZStackBuilder {
         F: FnOnce(&mut BuildContext),
     {
         let mut backgrounds = std::mem::take(context.backgrounds);
-        backgrounds.append(&mut self.common.backgrounds);
+        backgrounds.append(&mut self.frame.backgrounds);
 
         let mut foregrounds = std::mem::take(context.foregrounds);
-        foregrounds.append(&mut self.common.foregrounds);
+        foregrounds.append(&mut self.frame.foregrounds);
 
         let last_zindex = context.current_zindex;
         context.current_zindex += 1;
 
-        if self.common.offset_x != 0. || self.common.offset_y != 0. {
+        if self.frame.offset_x != 0. || self.frame.offset_y != 0. {
             context.push_layout_command(LayoutCommand::BeginOffset {
-                offset_x: self.common.offset_x,
-                offset_y: self.common.offset_y,
+                offset_x: self.frame.offset_x,
+                offset_y: self.frame.offset_y,
             });
         }
 
@@ -51,20 +51,20 @@ impl ZStackBuilder {
             backgrounds,
             foregrounds,
             zindex: last_zindex,
-            padding: self.common.padding,
-            margin: self.common.margin,
+            padding: self.frame.padding,
+            margin: self.frame.margin,
             kind: ContainerKind::ZStack {
                 align_x: self.align_x,
                 align_y: self.align_y,
             },
-            size: self.common.size,
-            constraints: self.common.constraints,
-            clip: self.common.clip,
+            size: self.frame.size,
+            constraints: self.frame.constraints,
+            clip: self.frame.clip,
         });
         callback(context);
         context.push_layout_command(LayoutCommand::EndContainer);
 
-        if self.common.offset_x != 0. || self.common.offset_y != 0. {
+        if self.frame.offset_x != 0. || self.frame.offset_y != 0. {
             context.push_layout_command(LayoutCommand::EndOffset);
         }
 
@@ -74,7 +74,7 @@ impl ZStackBuilder {
 
 pub fn zstack() -> ZStackBuilder {
     ZStackBuilder {
-        common: WidgetCommon::default(),
+        frame: FrameBuilder::default(),
         align_x: AlignX::Left,
         align_y: AlignY::Top,
     }

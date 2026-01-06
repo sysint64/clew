@@ -2,19 +2,18 @@ use std::{any::TypeId, marker::PhantomData};
 
 use clew_derive::WidgetBuilder;
 
-use super::builder::WidgetCommon;
-use super::{builder::BuildContext};
+use super::{FrameBuilder, builder::BuildContext};
 use crate::state::WidgetState;
 
 #[derive(WidgetBuilder)]
 pub struct WidgetBuilder<T: WidgetState + Widget> {
-    common: WidgetCommon,
+    frame: FrameBuilder,
     phantom_data: PhantomData<T>,
 }
 
 #[derive(WidgetBuilder)]
 pub struct WidgetWithStateBuilder<'a, T: WidgetState + Widget> {
-    common: WidgetCommon,
+    frame: FrameBuilder,
     state: &'a mut T,
 }
 
@@ -31,13 +30,13 @@ pub trait Widget: 'static {
 impl<T: WidgetState + Widget + Default> WidgetBuilder<T> {
     pub fn state<'a>(self, state: &'a mut T) -> WidgetWithStateBuilder<'a, T> {
         WidgetWithStateBuilder {
-            common: self.common,
+            frame: self.frame,
             state,
         }
     }
 
     pub fn build(&mut self, context: &mut BuildContext) {
-        let id = self.common.id.with_seed(context.id_seed);
+        let id = self.frame.id.with_seed(context.id_seed);
         let (idx, mut state) = context.widgets_states.take_or_create(id, T::default);
 
         // Skip event processing for () type
@@ -50,7 +49,7 @@ impl<T: WidgetState + Widget + Default> WidgetBuilder<T> {
         }
 
         context.widgets_states.custom.accessed_this_frame.insert(id);
-        context.build_with_common(&mut self.common, |ctx| state.build(ctx));
+        self.frame.build(context, |ctx| state.build(ctx));
 
         context.widgets_states.restore(idx, state);
     }
@@ -58,7 +57,7 @@ impl<T: WidgetState + Widget + Default> WidgetBuilder<T> {
 
 impl<'a, T: WidgetState + Widget + Default> WidgetWithStateBuilder<'a, T> {
     pub fn build(&mut self, context: &mut BuildContext) {
-        let id = self.common.id.with_seed(context.id_seed);
+        let id = self.frame.id.with_seed(context.id_seed);
 
         // Skip event processing for () type
         if TypeId::of::<T::Event>() != TypeId::of::<()>() {
@@ -70,14 +69,14 @@ impl<'a, T: WidgetState + Widget + Default> WidgetWithStateBuilder<'a, T> {
         }
 
         context.widgets_states.custom.accessed_this_frame.insert(id);
-        context.build_with_common(&mut self.common, |ctx| self.state.build(ctx));
+        self.frame.build(context, |ctx| self.state.build(ctx));
     }
 }
 
 #[track_caller]
 pub fn widget<T: WidgetState + Widget>() -> WidgetBuilder<T> {
     WidgetBuilder {
-        common: WidgetCommon::default(),
+        frame: FrameBuilder::default(),
         phantom_data: PhantomData,
     }
 }

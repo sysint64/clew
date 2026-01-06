@@ -2,11 +2,9 @@ use clew::builder::WidgetCommon;
 use clew::prelude::*;
 use clew::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets,
-    LinearGradient, SizeConstraint, WidgetId, impl_id, impl_position_methods, impl_width_methods,
-    widgets::*,
+    LinearGradient, widgets::*,
 };
 use clew_derive::{WidgetBuilder, WidgetState};
-use std::hash::Hash;
 
 #[derive(WidgetBuilder)]
 pub struct ButtonBuilder<'a> {
@@ -26,8 +24,9 @@ impl ButtonResponse {
 
 impl<'a> ButtonBuilder<'a> {
     #[profiling::function]
-    pub fn build(self, ctx: &mut BuildContext) -> ButtonResponse {
-        let response = scope(self.common.id).build(ctx, |ctx| {
+    pub fn build(mut self, ctx: &mut BuildContext) -> ButtonResponse {
+        let layout = self.common.take_layout();
+        let response = ctx.build_with_common(&mut self.common, |ctx| {
             gesture_detector()
                 .clickable(true)
                 .focusable(true)
@@ -73,8 +72,8 @@ impl<'a> ButtonBuilder<'a> {
                         )
                         .text_align_x(AlignX::Center)
                         .text_vertical_align(AlignY::Center)
-                        .size(self.common.size)
-                        .constraints(self.common.constraints)
+                        .size(layout.size)
+                        .constraints(layout.constraints)
                         .padding(EdgeInsets::symmetric(12., 8.))
                         .build(ctx);
                 })
@@ -88,16 +87,15 @@ impl<'a> ButtonBuilder<'a> {
 
 #[track_caller]
 pub fn button(text: &str) -> ButtonBuilder<'_> {
-    let mut common = WidgetCommon::default();
-
-    common.constraints = Constraints {
-        min_width: 20.,
-        min_height: 0.,
-        max_width: f32::INFINITY,
-        max_height: f32::INFINITY,
-    };
-
-    ButtonBuilder { common, text }
+    ButtonBuilder {
+        common: WidgetCommon::default().constraints(Constraints {
+            min_width: 20.,
+            min_height: 0.,
+            max_width: f32::INFINITY,
+            max_height: f32::INFINITY,
+        }),
+        text,
+    }
 }
 
 #[derive(WidgetState, Default)]

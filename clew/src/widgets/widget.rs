@@ -1,11 +1,10 @@
-use std::hash::Hash;
 use std::{any::TypeId, marker::PhantomData};
 
 use clew_derive::WidgetBuilder;
 
 use super::builder::WidgetCommon;
-use super::{builder::BuildContext, scope::scope};
-use crate::{WidgetId, state::WidgetState};
+use super::{builder::BuildContext};
+use crate::state::WidgetState;
 
 #[derive(WidgetBuilder)]
 pub struct WidgetBuilder<T: WidgetState + Widget> {

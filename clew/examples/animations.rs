@@ -192,6 +192,7 @@ impl MainWindow {
 }
 
 impl Window<AnimationsApplication, ()> for MainWindow {
+    #[profiling::function]
     fn build(&mut self, _: &mut AnimationsApplication, ctx: &mut ui::BuildContext) {
         self.mx.approach(ctx.input.mouse_x / ctx.view.scale_factor);
         self.my.approach(ctx.input.mouse_y / ctx.view.scale_factor);

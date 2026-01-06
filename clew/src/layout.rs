@@ -1,5 +1,5 @@
 use crate::{
-    AlignX, AlignY, Clip, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets,
+    AlignX, AlignY, Axis, Clip, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets,
     LayoutDirection, MainAxisAlignment, Rect, Size, SizeConstraint, View, WidgetId, WidgetRef,
     WidgetType,
     assets::Assets,
@@ -76,6 +76,7 @@ pub enum DeriveWrapSize {
 pub enum ContainerKind {
     #[default]
     None,
+    Passthrough,
     VStack {
         spacing: f32,
         main_axis_alignment: MainAxisAlignment,
@@ -119,6 +120,9 @@ enum StackAxis {
 enum StackAxisPass2 {
     #[default]
     None,
+    Passthrough {
+        stretch: Option<Axis>,
+    },
     Align {
         align_x: AlignX,
         align_y: AlignY,
@@ -695,6 +699,18 @@ pub fn layout(
                             },
                         };
                     }
+                    ContainerKind::Passthrough => {
+                        layout_state.parent_container = LayoutContainer {
+                            idx: layout_state.current_idx(),
+                            axis: StackAxis::None,
+                            command: LayoutContainerCommand {
+                                kind: *kind,
+                                constraints: *constraints,
+                                size: *size,
+                                insets,
+                            },
+                        };
+                    }
                     ContainerKind::Measure { .. } => {
                         layout_state.parent_container = LayoutContainer {
                             idx: layout_state.current_idx(),
@@ -752,6 +768,7 @@ pub fn layout(
                     }
                     ContainerKind::ZStack { .. } => {}
                     ContainerKind::None => {}
+                    ContainerKind::Passthrough => {}
                     ContainerKind::Measure { .. } => {}
                 };
 
@@ -784,27 +801,27 @@ pub fn layout(
                 layout_state.add_flex_sum_x(size.width);
                 layout_state.add_flex_sum_y(size.height);
 
-                let wrap_size = if size.width.constrained() && size.height.constrained() {
-                    Vec2::new(constraints.min_width, constraints.min_height)
-                } else {
-                    match derive_wrap_size {
-                        DeriveWrapSize::Constraints => {
-                            Vec2::new(constraints.min_width, constraints.min_height)
-                        }
-                        DeriveWrapSize::Text(text_id) => {
-                            let text_size = text.get_mut(*text_id).layout();
+                // let wrap_size = if size.width.constrained() && size.height.constrained() {
+                // Vec2::new(constraints.min_width, constraints.min_height)
+                // } else {
+                let wrap_size = match derive_wrap_size {
+                    DeriveWrapSize::Constraints => {
+                        Vec2::new(constraints.min_width, constraints.min_height)
+                    }
+                    DeriveWrapSize::Text(text_id) => {
+                        let text_size = text.get_mut(*text_id).layout();
 
-                            text_size / view.scale_factor
-                        }
-                        DeriveWrapSize::Svg(asset_id) => {
-                            let tree = assets.get_svg_tree(asset_id).unwrap_or_else(|| {
-                                panic!("SVG with ID = {asset_id} has not found")
-                            });
+                        text_size / view.scale_factor
+                    }
+                    DeriveWrapSize::Svg(asset_id) => {
+                        let tree = assets
+                            .get_svg_tree(asset_id)
+                            .unwrap_or_else(|| panic!("SVG with ID = {asset_id} has not found"));
 
-                            Vec2::new(tree.size().width(), tree.size().height())
-                        }
+                        Vec2::new(tree.size().width(), tree.size().height())
                     }
                 };
+                // };
 
                 layout_state.add_size(*size, *constraints, wrap_size, *padding + *margin);
             }
@@ -866,7 +883,9 @@ pub fn layout(
             let container_flex_size = layout_state.flex_sizes[container_idx];
 
             let mut size = match layout_state.pass2_parent_container.axis {
-                StackAxisPass2::None => container_size_resized.x,
+                StackAxisPass2::None | StackAxisPass2::Passthrough { .. } => {
+                    container_size_resized.x
+                }
                 StackAxisPass2::Align { .. } => container_size_resized.x,
                 StackAxisPass2::Horizontal { spacing, .. } => {
                     let flex_sum_x = layout_state.flex_sum_x[container_idx].max(1.);
@@ -879,6 +898,7 @@ pub fn layout(
                 StackAxisPass2::Vertical { .. } => container_size_resized.x,
             };
 
+            // let wrap_size = layout_state.wrap_sizes[current_idx].x;
             size = apply_constraints_width(size, constraints);
             layout_state.actual_sizes[current_idx].x = size;
         }
@@ -888,7 +908,9 @@ pub fn layout(
             let container_flex_size = layout_state.flex_sizes[container_idx];
 
             let mut size = match layout_state.pass2_parent_container.axis {
-                StackAxisPass2::None => container_size_resized.y,
+                StackAxisPass2::None | StackAxisPass2::Passthrough { .. } => {
+                    container_size_resized.y
+                }
                 StackAxisPass2::Align { .. } => container_size_resized.y,
                 StackAxisPass2::Horizontal { .. } => container_size_resized.y,
                 StackAxisPass2::Vertical { spacing, .. } => {
@@ -901,6 +923,7 @@ pub fn layout(
                 }
             };
 
+            // size = f32::max(size, layout_state.wrap_sizes[current_idx].y);
             size = apply_constraints_height(size, constraints);
             layout_state.actual_sizes[current_idx].y = size;
         }
@@ -908,7 +931,7 @@ pub fn layout(
         let mut widget_size = layout_state.actual_sizes[current_idx];
 
         let (boundary_position, boundary_size) = match layout_state.pass2_parent_container.axis {
-            StackAxisPass2::None => (
+            StackAxisPass2::None | StackAxisPass2::Passthrough { .. } => (
                 container_position,
                 Vec2::new(
                     container_size.x - layout_state.pass2_parent_container.padding.horizontal(),
@@ -971,6 +994,20 @@ pub fn layout(
                     widget_size.x = width.max(layout_state.actual_sizes[current_idx].x);
                 }
             }
+            StackAxisPass2::Passthrough { stretch } => {
+                if let Some(axis) = stretch {
+                    match axis {
+                        Axis::Horizontal => {
+                            let height = boundary.height;
+                            widget_size.y = height.max(layout_state.actual_sizes[current_idx].y);
+                        }
+                        Axis::Vertical => {
+                            let width = boundary.width;
+                            widget_size.x = width.max(layout_state.actual_sizes[current_idx].x);
+                        }
+                    }
+                }
+            }
         }
 
         match command {
@@ -992,6 +1029,8 @@ pub fn layout(
                 clip,
                 ..
             } => {
+                let parent_container_axis = layout_state.pass2_parent_container.axis;
+
                 layout_state.push_position(current_position);
                 layout_state.push_pass2_container(layout_state.pass2_parent_container.clone());
 
@@ -1000,7 +1039,7 @@ pub fn layout(
                 let clipping = *clip != Clip::None;
 
                 let align_x = match layout_state.pass2_parent_container.axis {
-                    StackAxisPass2::None => AlignX::Start,
+                    StackAxisPass2::None | StackAxisPass2::Passthrough { .. } => AlignX::Start,
                     StackAxisPass2::Align { align_x, .. } => align_x,
                     StackAxisPass2::Horizontal { .. } => AlignX::Start,
                     StackAxisPass2::Vertical {
@@ -1031,7 +1070,7 @@ pub fn layout(
                 };
 
                 let align_y = match layout_state.pass2_parent_container.axis {
-                    StackAxisPass2::None => AlignY::Top,
+                    StackAxisPass2::None | StackAxisPass2::Passthrough { .. } => AlignY::Top,
                     StackAxisPass2::Align { align_y, .. } => align_y,
                     StackAxisPass2::Horizontal {
                         cross_axis_alignment,
@@ -1189,6 +1228,46 @@ pub fn layout(
                         current_idx += 1;
                         go_next = false;
                     }
+                    ContainerKind::Passthrough => {
+                        layout_state.pass2_parent_container = Pass2LayoutContainer {
+                            padding: *padding,
+                            zindex: *zindex,
+                            clipping,
+                            idx: current_idx,
+                            decorator_rect,
+                            foregrounds: foregrounds.clone(),
+                            axis: StackAxisPass2::Passthrough {
+                                stretch: match parent_container_axis {
+                                    StackAxisPass2::None
+                                    | StackAxisPass2::Passthrough { .. }
+                                    | StackAxisPass2::Align { .. } => None,
+                                    StackAxisPass2::Horizontal {
+                                        cross_axis_alignment,
+                                        ..
+                                    } => {
+                                        if cross_axis_alignment == CrossAxisAlignment::Stretch {
+                                            Some(Axis::Horizontal)
+                                        } else {
+                                            None
+                                        }
+                                    }
+                                    StackAxisPass2::Vertical {
+                                        cross_axis_alignment,
+                                        ..
+                                    } => {
+                                        if cross_axis_alignment == CrossAxisAlignment::Stretch {
+                                            Some(Axis::Vertical)
+                                        } else {
+                                            None
+                                        }
+                                    }
+                                },
+                            },
+                        };
+
+                        current_idx += 1;
+                        go_next = false;
+                    }
                     ContainerKind::Measure { id } => {
                         layout_state.pass2_parent_container = Pass2LayoutContainer {
                             padding: *padding,
@@ -1248,7 +1327,7 @@ pub fn layout(
                 ..
             } => {
                 let align_x = match layout_state.pass2_parent_container.axis {
-                    StackAxisPass2::None => AlignX::Start,
+                    StackAxisPass2::None | StackAxisPass2::Passthrough { .. } => AlignX::Start,
                     StackAxisPass2::Align { align_x, .. } => align_x,
                     StackAxisPass2::Horizontal { .. } => AlignX::Start,
                     StackAxisPass2::Vertical {
@@ -1279,7 +1358,7 @@ pub fn layout(
                 };
 
                 let align_y = match layout_state.pass2_parent_container.axis {
-                    StackAxisPass2::None => AlignY::Top,
+                    StackAxisPass2::None | StackAxisPass2::Passthrough { .. } => AlignY::Top,
                     StackAxisPass2::Align { align_y, .. } => align_y,
                     StackAxisPass2::Horizontal {
                         cross_axis_alignment,
@@ -1426,8 +1505,9 @@ pub fn layout(
                 StackAxisPass2::Vertical { spacing, .. } => {
                     current_position.y += widget_size.y + spacing;
                 }
-                StackAxisPass2::None => {}
-                StackAxisPass2::Align { .. } => {}
+                StackAxisPass2::None
+                | StackAxisPass2::Align { .. }
+                | StackAxisPass2::Passthrough { .. } => {}
             }
         }
     }

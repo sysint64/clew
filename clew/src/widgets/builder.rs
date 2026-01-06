@@ -237,9 +237,9 @@ impl BuildContext<'_, '_> {
         result
     }
 
-    pub fn build_with_common<F>(&mut self, common: &mut WidgetCommon, callback: F)
+    pub fn build_with_common<F, T>(&mut self, common: &mut WidgetCommon, callback: F) -> T
     where
-        F: FnOnce(&mut BuildContext),
+        F: FnOnce(&mut BuildContext) -> T,
     {
         let has_offset = common.flags.contains(WidgetCommonFlags::OFFSET);
 
@@ -261,6 +261,8 @@ impl BuildContext<'_, '_> {
                 .union(WidgetCommonFlags::CLIP),
         );
 
+        let value;
+
         if needs_container {
             let mut backgrounds = std::mem::take(self.backgrounds);
             backgrounds.append(&mut common.backgrounds);
@@ -277,23 +279,25 @@ impl BuildContext<'_, '_> {
                 zindex: last_zindex,
                 padding: common.padding,
                 margin: common.margin,
-                kind: ContainerKind::None,
+                kind: ContainerKind::Passthrough,
                 size: common.size,
                 constraints: common.constraints,
                 clip: common.clip,
             });
 
-            self.scope(common.id, callback);
+            value = self.scope(common.id, callback);
 
             self.push_layout_command(LayoutCommand::EndContainer);
             self.current_zindex = last_zindex;
         } else {
-            self.scope(common.id, callback);
+            value = self.scope(common.id, callback);
         }
 
         if has_offset {
             self.push_layout_command(LayoutCommand::EndOffset);
         }
+
+        value
     }
 
     pub fn emit<E: Any + Send + 'static>(&mut self, event: E) {
@@ -491,6 +495,29 @@ impl Default for WidgetCommon {
             clip: Clip::None,
             flags: WidgetCommonFlags::empty(),
         }
+    }
+}
+
+pub struct Layout {
+    pub size: Size,
+    pub constraints: Constraints,
+}
+
+impl WidgetCommon {
+    pub fn take_layout(&mut self) -> Layout {
+        self.flags.remove(WidgetCommonFlags::SIZE);
+        self.flags.remove(WidgetCommonFlags::CONSTRAINTS);
+
+        Layout {
+            size: self.size,
+            constraints: self.constraints,
+        }
+    }
+}
+
+impl WidgetBuilder for WidgetCommon {
+    fn common_mut(&mut self) -> &mut WidgetCommon {
+        self
     }
 }
 

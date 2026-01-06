@@ -106,10 +106,7 @@ impl Window<DemoApplication, ()> for MainWindow {
 
                         if response.overflow_x {
                             ctx.provide(response.clone(), |ctx| {
-                                ui::widget::<clew_widgets::HorizontalScrollBar>()
-                                    .fill_max_size()
-                                    .padding(ui::EdgeInsets::all(16.))
-                                    .build(ctx);
+                                ui::widget::<clew_widgets::HorizontalScrollBar>().build(ctx);
                             });
                         }
                     });

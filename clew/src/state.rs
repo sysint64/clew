@@ -9,7 +9,7 @@ use crate::{
     io::UserInput,
     layout::{LayoutCommand, LayoutItem, LayoutMeasure, LayoutState, WidgetPlacement},
     render::RenderState,
-    widgets::{colored_box, decorated_box, gesture_detector, scroll_area, svg, text},
+    widgets::{decorated_box, gesture_detector, scroll_area, svg, text},
 };
 
 pub trait WidgetState: Any + Send + 'static {
@@ -53,7 +53,6 @@ pub struct WidgetsStates {
     pub scroll_area: TypedWidgetStates<scroll_area::State>,
     pub text: TypedWidgetStates<text::State>,
     pub gesture_detector: TypedWidgetStates<gesture_detector::State>,
-    pub colored_box: TypedWidgetStates<colored_box::State>,
     pub svg: TypedWidgetStates<svg::State>,
     pub components: TypedWidgetStates<Box<dyn Any>>,
     pub custom: TypedWidgetStates<Option<Box<dyn WidgetState>>>,
@@ -359,7 +358,6 @@ impl WidgetsStates {
     #[profiling::function]
     pub fn sweep(&mut self) {
         self.decorated_box.clear();
-        self.colored_box.clear();
         self.svg.clear();
         self.gesture_detector.sweep();
         self.custom.sweep();

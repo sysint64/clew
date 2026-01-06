@@ -1,6 +1,4 @@
 pub mod builder;
-pub mod button;
-pub mod colored_box;
 pub mod component;
 pub mod decorated_box;
 pub mod for_each;
@@ -17,7 +15,6 @@ pub mod widget;
 pub mod zstack;
 
 pub use builder::{BuildContext, Resolve};
-pub use colored_box::colored_box;
 pub use component::{Component, component};
 pub use decorated_box::{decorated_box, decoration};
 pub use for_each::for_each;

@@ -296,24 +296,6 @@ pub fn render(
                     }
 
                     if placement.widget_ref.widget_type
-                        == WidgetType::of::<widgets::colored_box::ColoredBox>()
-                    {
-                        widgets::colored_box::render(
-                            &mut render_context,
-                            placement,
-                            state
-                                .widgets_states
-                                .colored_box
-                                .get(placement.widget_ref.id)
-                                .unwrap(),
-                            // state
-                            //     .widgets_states
-                            //     .get_mut::<widgets::colored_box::State>(placement.widget_ref.id)
-                            //     .unwrap(),
-                        );
-                    }
-
-                    if placement.widget_ref.widget_type
                         == WidgetType::of::<widgets::decorated_box::DecoratedBox>()
                     {
                         widgets::decorated_box::render(
@@ -372,10 +354,7 @@ pub fn render(
             }
         }
 
-        tracy_client::plot!(
-            "clew :: Layout Items",
-            state.layout_items.len() as f64
-        );
+        tracy_client::plot!("clew :: Layout Items", state.layout_items.len() as f64);
 
         tracy_client::plot!(
             "clew :: Render Commands",

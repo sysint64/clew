@@ -624,7 +624,7 @@ impl Rect {
         self.expand(-size)
     }
 
-    pub(crate) fn offset(&self, dx: f32, dy: f32) -> Rect {
+    pub fn offset(&self, dx: f32, dy: f32) -> Rect {
         Rect {
             x: self.x + dx,
             y: self.y + dy,

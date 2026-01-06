@@ -177,7 +177,7 @@ pub struct VerticalScrollBarBuilder {
 
 pub fn vertical_scroll_bar() -> VerticalScrollBarBuilder {
     VerticalScrollBarBuilder {
-        frame: FrameBuilder::default(),
+        frame: FrameBuilder::new(),
         thinkness: 4.,
     }
 }
@@ -189,11 +189,10 @@ impl VerticalScrollBarBuilder {
     }
 
     #[profiling::function]
-    pub fn build(mut self, ctx: &mut BuildContext) {
-        self.frame.build(ctx, |ctx| {
-            stateful::<VerticalScrollBar>()
-                .update_state_and_build(ctx, |state| state.thinkness = self.thinkness);
-        });
+    pub fn build(self, ctx: &mut BuildContext) {
+        stateful::<VerticalScrollBar>()
+            .frame(self.frame)
+            .update_state_and_build(ctx, |state| state.thinkness = self.thinkness);
     }
 }
 

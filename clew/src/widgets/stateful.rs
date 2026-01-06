@@ -39,6 +39,18 @@ impl<T> StatefulWidgetAutoStateBuilder<T> {
             state,
         }
     }
+
+    pub fn frame(mut self, frame: FrameBuilder) -> Self {
+        self.frame = frame;
+        self
+    }
+}
+
+impl<'a, T> StatefulWidgetWithStateBuilder<'a, T> {
+    pub fn frame(mut self, frame: FrameBuilder) -> Self {
+        self.frame = frame;
+        self
+    }
 }
 
 impl<T: WidgetState + StatefulWidget + Default> StatefulWidgetBuilder

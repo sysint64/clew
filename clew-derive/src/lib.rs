@@ -78,9 +78,10 @@ pub fn derive_widget_state(input: TokenStream) -> TokenStream {
 pub fn widget_builder_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let expanded = quote! {
-        impl ::clew::prelude::WidgetBuilder for #name {
+        impl #impl_generics ::clew::prelude::WidgetBuilder for #name #ty_generics #where_clause {
             fn common_mut(&mut self) -> &mut WidgetCommon {
                 &mut self.common
             }

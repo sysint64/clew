@@ -1,18 +1,17 @@
+use clew::builder::WidgetCommon;
 use clew::prelude::*;
 use clew::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets,
     LinearGradient, SizeConstraint, WidgetId, impl_id, impl_position_methods, impl_width_methods,
     widgets::*,
 };
-use clew_derive::WidgetState;
+use clew_derive::{WidgetBuilder, WidgetState};
 use std::hash::Hash;
 
+#[derive(WidgetBuilder)]
 pub struct ButtonBuilder<'a> {
-    id: WidgetId,
+    common: WidgetCommon,
     text: &'a str,
-    width: SizeConstraint,
-    constraints: Constraints,
-    zindex: Option<i32>,
 }
 
 pub struct ButtonResponse {
@@ -26,13 +25,9 @@ impl ButtonResponse {
 }
 
 impl<'a> ButtonBuilder<'a> {
-    impl_id!();
-    impl_width_methods!();
-    impl_position_methods!();
-
     #[profiling::function]
     pub fn build(self, ctx: &mut BuildContext) -> ButtonResponse {
-        let response = scope(self.id).build(ctx, |ctx| {
+        let response = scope(self.common.id).build(ctx, |ctx| {
             gesture_detector()
                 .clickable(true)
                 .focusable(true)
@@ -78,8 +73,8 @@ impl<'a> ButtonBuilder<'a> {
                         )
                         .text_align_x(AlignX::Center)
                         .text_vertical_align(AlignY::Center)
-                        .width(self.width)
-                        .constraints(self.constraints)
+                        .size(self.common.size)
+                        .constraints(self.common.constraints)
                         .padding(EdgeInsets::symmetric(12., 8.))
                         .build(ctx);
                 })
@@ -93,18 +88,16 @@ impl<'a> ButtonBuilder<'a> {
 
 #[track_caller]
 pub fn button(text: &str) -> ButtonBuilder<'_> {
-    ButtonBuilder {
-        id: WidgetId::auto(),
-        text,
-        width: SizeConstraint::Wrap,
-        zindex: None,
-        constraints: Constraints {
-            min_width: 20.,
-            min_height: 0.,
-            max_width: f32::INFINITY,
-            max_height: f32::INFINITY,
-        },
-    }
+    let mut common = WidgetCommon::default();
+
+    common.constraints = Constraints {
+        min_width: 20.,
+        min_height: 0.,
+        max_width: f32::INFINITY,
+        max_height: f32::INFINITY,
+    };
+
+    ButtonBuilder { common, text }
 }
 
 #[derive(WidgetState, Default)]

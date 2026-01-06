@@ -72,7 +72,6 @@ impl ZStackBuilder {
     }
 }
 
-#[track_caller]
 pub fn zstack() -> ZStackBuilder {
     ZStackBuilder {
         common: WidgetCommon::default(),

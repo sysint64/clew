@@ -1,16 +1,21 @@
 use std::hash::Hash;
 use std::{any::TypeId, marker::PhantomData};
 
-use super::{builder::BuildContext, scope::scope};
-use crate::{WidgetId, impl_id, state::WidgetState};
+use clew_derive::WidgetBuilder;
 
+use super::builder::WidgetCommon;
+use super::{builder::BuildContext, scope::scope};
+use crate::{WidgetId, state::WidgetState};
+
+#[derive(WidgetBuilder)]
 pub struct WidgetBuilder<T: WidgetState + Widget> {
-    id: WidgetId,
+    common: WidgetCommon,
     phantom_data: PhantomData<T>,
 }
 
+#[derive(WidgetBuilder)]
 pub struct WidgetWithStateBuilder<'a, T: WidgetState + Widget> {
-    id: WidgetId,
+    common: WidgetCommon,
     state: &'a mut T,
 }
 
@@ -25,14 +30,15 @@ pub trait Widget: 'static {
 }
 
 impl<T: WidgetState + Widget + Default> WidgetBuilder<T> {
-    impl_id!();
-
     pub fn state<'a>(self, state: &'a mut T) -> WidgetWithStateBuilder<'a, T> {
-        WidgetWithStateBuilder { id: self.id, state }
+        WidgetWithStateBuilder {
+            common: self.common,
+            state,
+        }
     }
 
     pub fn build(&mut self, context: &mut BuildContext) {
-        let id = self.id.with_seed(context.id_seed);
+        let id = self.common.id.with_seed(context.id_seed);
         let (idx, mut state) = context.widgets_states.take_or_create(id, T::default);
 
         // Skip event processing for () type
@@ -45,20 +51,15 @@ impl<T: WidgetState + Widget + Default> WidgetBuilder<T> {
         }
 
         context.widgets_states.custom.accessed_this_frame.insert(id);
-
-        scope(id).build(context, |context| {
-            state.build(context);
-        });
+        context.build_with_common(&mut self.common, |ctx| state.build(ctx));
 
         context.widgets_states.restore(idx, state);
     }
 }
 
 impl<'a, T: WidgetState + Widget + Default> WidgetWithStateBuilder<'a, T> {
-    impl_id!();
-
     pub fn build(&mut self, context: &mut BuildContext) {
-        let id = self.id.with_seed(context.id_seed);
+        let id = self.common.id.with_seed(context.id_seed);
 
         // Skip event processing for () type
         if TypeId::of::<T::Event>() != TypeId::of::<()>() {
@@ -70,17 +71,14 @@ impl<'a, T: WidgetState + Widget + Default> WidgetWithStateBuilder<'a, T> {
         }
 
         context.widgets_states.custom.accessed_this_frame.insert(id);
-
-        scope(id).build(context, |context| {
-            self.state.build(context);
-        });
+        context.build_with_common(&mut self.common, |ctx| self.state.build(ctx));
     }
 }
 
 #[track_caller]
 pub fn widget<T: WidgetState + Widget>() -> WidgetBuilder<T> {
     WidgetBuilder {
-        id: WidgetId::auto(),
+        common: WidgetCommon::default(),
         phantom_data: PhantomData,
     }
 }

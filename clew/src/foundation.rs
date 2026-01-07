@@ -1,7 +1,5 @@
-use std::ops::{Add, Mul};
-
-use glam::{Vec2, Vec4};
 use smallvec::{SmallVec, smallvec};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 pub trait Value<V> {
     fn value(&self) -> V;
@@ -493,6 +491,108 @@ impl Constraints {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Vec2 {
+    pub x: f32,
+    pub y: f32,
+}
+
+impl Vec2 {
+    pub const ZERO: Self = Vec2 { x: 0., y: 0. };
+
+    pub fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
+}
+
+impl Add<Vec2> for Vec2 {
+    type Output = Self;
+    fn add(self, rhs: Vec2) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl Sub<Vec2> for Vec2 {
+    type Output = Self;
+    fn sub(self, rhs: Vec2) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
+impl Mul<f32> for Vec2 {
+    type Output = Self;
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self {
+            x: self.x * rhs,
+            y: self.y * rhs,
+        }
+    }
+}
+
+impl Mul<Vec2> for f32 {
+    type Output = Vec2;
+    fn mul(self, rhs: Vec2) -> Self::Output {
+        Vec2 {
+            x: self * rhs.x,
+            y: self * rhs.y,
+        }
+    }
+}
+
+impl Div<f32> for Vec2 {
+    type Output = Self;
+    fn div(self, rhs: f32) -> Self::Output {
+        Self {
+            x: self.x / rhs,
+            y: self.y / rhs,
+        }
+    }
+}
+
+impl Neg for Vec2 {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Self {
+            x: -self.x,
+            y: -self.y,
+        }
+    }
+}
+
+impl AddAssign<Vec2> for Vec2 {
+    fn add_assign(&mut self, rhs: Vec2) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+    }
+}
+
+impl SubAssign<Vec2> for Vec2 {
+    fn sub_assign(&mut self, rhs: Vec2) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+    }
+}
+
+impl MulAssign<f32> for Vec2 {
+    fn mul_assign(&mut self, rhs: f32) {
+        self.x *= rhs;
+        self.y *= rhs;
+    }
+}
+
+impl DivAssign<f32> for Vec2 {
+    fn div_assign(&mut self, rhs: f32) {
+        self.x /= rhs;
+        self.y /= rhs;
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct PhysicalSize {
     pub width: u32,
@@ -569,7 +669,7 @@ impl Rect {
         }
     }
 
-    pub(crate) fn from_pos_size(pos: Vec2, size: Vec2) -> Self {
+    pub fn from_pos_size(pos: Vec2, size: Vec2) -> Self {
         Self {
             x: pos.x,
             y: pos.y,
@@ -634,14 +734,14 @@ impl Rect {
     }
 }
 
-pub(crate) fn point_with_rect_hit_test(point: Vec2, rect: Rect) -> bool {
+pub fn point_with_rect_hit_test(point: Vec2, rect: Rect) -> bool {
     point.x >= rect.position().x
         && point.x <= rect.position().x + rect.size().x
         && point.y >= rect.position().y
         && point.y <= rect.position().y + rect.size().y
 }
 
-pub(crate) fn rect_contains_boundary(boundary: Rect, rect: Rect) -> bool {
+pub fn rect_contains_boundary(boundary: Rect, rect: Rect) -> bool {
     let left_top = boundary.position();
     let right_top = boundary.position() + Vec2::new(boundary.size().x, 0.);
     let left_bottom = boundary.position() + Vec2::new(0., boundary.size().y);
@@ -1342,28 +1442,6 @@ impl SweepGradient {
 impl ColorStop {
     pub fn new(offset: f32, color: ColorRgba) -> Self {
         Self { offset, color }
-    }
-}
-
-impl From<Vec4> for ColorRgba {
-    fn from(value: Vec4) -> Self {
-        ColorRgba {
-            r: value.x,
-            g: value.y,
-            b: value.z,
-            a: value.w,
-        }
-    }
-}
-
-impl From<Vec4> for Rect {
-    fn from(value: Vec4) -> Self {
-        Rect {
-            x: value.x,
-            y: value.y,
-            width: value.z,
-            height: value.w,
-        }
     }
 }
 

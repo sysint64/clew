@@ -1,15 +1,8 @@
 use std::any::Any;
-
-use glam::Vec2;
 use smallvec::SmallVec;
 
 use crate::{
-    AlignX, AlignY, Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, TextAlign,
-    WidgetId, WidgetRef, WidgetType, impl_id, impl_size_methods,
-    layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
-    render::{PixelExtension, RenderCommand, RenderContext},
-    state::WidgetState,
-    text::TextId,
+    AlignX, AlignY, Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, TextAlign, Vec2, WidgetId, WidgetRef, WidgetType, impl_id, impl_size_methods, layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement}, render::{PixelExtension, RenderCommand, RenderContext}, state::WidgetState, text::TextId
 };
 
 use super::builder::BuildContext;

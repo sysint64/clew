@@ -49,6 +49,7 @@ struct MainWindow {
     color1: ui::Keyframes<ui::ColorRgba>,
     color2: ui::Keyframes<ui::ColorRgba>,
     gradient_angle: ui::Tween<f32>,
+    circle_opacity: ui::Damp<f32>,
 }
 
 impl MainWindow {
@@ -149,6 +150,10 @@ impl MainWindow {
             color1,
             color2,
             gradient_angle,
+            circle_opacity: ui::Damp::new(1.).speed(8.),
+            // circle_opacity: ui::Tween::new(1.)
+            //     .duration(Duration::from_millis(300))
+            //     .curve(ui::curves::f32::smooth_step),
         }
     }
 
@@ -194,8 +199,24 @@ impl MainWindow {
 impl Window<AnimationsApplication, ()> for MainWindow {
     #[profiling::function]
     fn build(&mut self, _: &mut AnimationsApplication, ctx: &mut ui::BuildContext) {
-        self.mx.approach(ctx.input.mouse_x / ctx.view.scale_factor);
-        self.my.approach(ctx.input.mouse_y / ctx.view.scale_factor);
+        let mouse_pos = ui::Vec2::new(
+            ctx.input.mouse_x / ctx.view.scale_factor,
+            ctx.input.mouse_y / ctx.view.scale_factor,
+        );
+
+        self.mx.approach(mouse_pos.x);
+        self.my.approach(mouse_pos.y);
+
+        let rect = ui::Rect::from_pos_size(
+            ui::Vec2::new(self.mx.value() - 24., self.my.value() - 24.),
+            ui::Vec2::new(48., 48.),
+        );
+
+        if ui::point_with_rect_hit_test(mouse_pos, rect) {
+            self.circle_opacity.approach(0.5);
+        } else {
+            self.circle_opacity.approach(1.);
+        }
 
         ui::zstack().fill_max_size().build(ctx, |ctx| {
             ui::zstack()
@@ -224,6 +245,8 @@ impl Window<AnimationsApplication, ()> for MainWindow {
                             if clew_widgets::button("Move Up (Tween)").build(ctx).clicked() {
                                 self.offset_y.tween_to(-100.);
                             }
+
+                            clew_widgets::button("Move Down (Tween)");
 
                             if clew_widgets::button("Move Down (Tween)")
                                 .build(ctx)
@@ -276,10 +299,13 @@ impl Window<AnimationsApplication, ()> for MainWindow {
                 .offset(40., 200. + self.keyframes.resolve(ctx))
                 .build(ctx);
 
-            // Mouse follower with gradient
+            // Mouse follower
             ui::decorated_box()
                 .shape(ui::BoxShape::Oval)
-                .color(ui::ColorRgba::from_hex(0xFFFF0000))
+                .color(
+                    ui::ColorRgba::from_hex(0xFFFF0000)
+                        .with_opacity(self.circle_opacity.resolve(ctx)),
+                )
                 .width(48.)
                 .height(48.)
                 .offset(self.mx.resolve(ctx) - 24., self.my.resolve(ctx) - 24.)

@@ -1,9 +1,8 @@
 use cosmic_text::Edit;
-use glam::Vec2;
 use slotmap::{SlotMap, new_key_type};
 use string_interner;
 
-use crate::View;
+use crate::{Vec2, View};
 
 new_key_type! {
     pub struct FontId;

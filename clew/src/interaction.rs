@@ -1,12 +1,7 @@
-use glam::Vec2;
 use rustc_hash::FxHashSet;
 
 use crate::{
-    View, WidgetId,
-    io::UserInput,
-    layout::LayoutItem,
-    point_with_rect_hit_test,
-    text::{FontResources, TextsResources},
+    Vec2, View, WidgetId, io::UserInput, layout::LayoutItem, point_with_rect_hit_test, text::{FontResources, TextsResources}
 };
 
 #[derive(Default, Clone, PartialEq)]

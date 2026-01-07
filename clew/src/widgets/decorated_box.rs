@@ -16,6 +16,7 @@ use super::builder::BuildContext;
 
 pub struct DecoratedBox;
 
+#[must_use = "widget is not rendered until .build(ctx) is called"]
 pub struct DecoratedBoxBuilder {
     id: WidgetId,
     size: Size,

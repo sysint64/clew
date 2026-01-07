@@ -8,18 +8,18 @@ use crate::{
 use super::{BuildContext, builder::Layout};
 
 pub struct FrameBuilder {
-    pub id: WidgetId,
-    pub size: Size,
-    pub constraints: Constraints,
-    pub zindex: Option<i32>,
-    pub padding: EdgeInsets,
-    pub margin: EdgeInsets,
-    pub backgrounds: SmallVec<[WidgetRef; 8]>,
-    pub foregrounds: SmallVec<[WidgetRef; 8]>,
-    pub offset_x: f32,
-    pub offset_y: f32,
-    pub clip: Clip,
-    pub flags: FrameBuilderFlags,
+    pub(crate) id: WidgetId,
+    pub(crate) size: Size,
+    pub(crate) constraints: Constraints,
+    pub(crate) zindex: Option<i32>,
+    pub(crate) padding: EdgeInsets,
+    pub(crate) margin: EdgeInsets,
+    pub(crate) backgrounds: SmallVec<[WidgetRef; 8]>,
+    pub(crate) foregrounds: SmallVec<[WidgetRef; 8]>,
+    pub(crate) offset_x: f32,
+    pub(crate) offset_y: f32,
+    pub(crate) clip: Clip,
+    pub(crate) flags: FrameBuilderFlags,
 }
 
 impl FrameBuilder {

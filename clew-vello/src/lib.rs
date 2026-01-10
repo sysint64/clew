@@ -515,7 +515,7 @@ impl Renderer for VelloRenderer {
                         }
                     });
                 }
-                RenderCommand::PushClip { rect, shape } => match shape {
+                RenderCommand::PushClip { rect, shape, .. } => match shape {
                     ClipShape::Rect => {
                         self.scene.push_clip_layer(
                             Affine::IDENTITY,
@@ -572,6 +572,9 @@ impl Renderer for VelloRenderer {
                     } else {
                         log::warn!("SVG with ID = {} not found", asset_id);
                     }
+                }
+                RenderCommand::BeginGroup { .. } | RenderCommand::EndGroup => {
+                    // No-op
                 }
             }
         }

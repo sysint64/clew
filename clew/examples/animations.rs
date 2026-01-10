@@ -151,9 +151,6 @@ impl MainWindow {
             color2,
             gradient_angle,
             circle_opacity: ui::Damp::new(1.).speed(8.),
-            // circle_opacity: ui::Tween::new(1.)
-            //     .duration(Duration::from_millis(300))
-            //     .curve(ui::curves::f32::smooth_step),
         }
     }
 

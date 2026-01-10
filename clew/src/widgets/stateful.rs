@@ -29,7 +29,7 @@ pub trait StatefulWidget: 'static {
         false
     }
 
-    fn build(&mut self, ctx: &mut BuildContext, frame: &mut FrameBuilder);
+    fn build(&mut self, ctx: &mut BuildContext, frame: FrameBuilder);
 }
 
 impl<T> StatefulWidgetAutoStateBuilder<T> {
@@ -56,7 +56,7 @@ impl<'a, T> StatefulWidgetWithStateBuilder<'a, T> {
 impl<T: WidgetState + StatefulWidget + Default> StatefulWidgetBuilder
     for StatefulWidgetAutoStateBuilder<T>
 {
-    fn build(mut self, context: &mut BuildContext) {
+    fn build(self, context: &mut BuildContext) {
         let id = self.frame.id.with_seed(context.id_seed);
         let (idx, mut state) = context.widgets_states.take_or_create(id, T::default);
 
@@ -70,14 +70,14 @@ impl<T: WidgetState + StatefulWidget + Default> StatefulWidgetBuilder
         }
 
         context.widgets_states.custom.accessed_this_frame.insert(id);
-        state.build(context, &mut self.frame);
+        state.build(context, self.frame);
 
         context.widgets_states.restore(idx, state);
     }
 }
 
 impl<T: WidgetState + StatefulWidget + Default> StatefulWidgetAutoStateBuilder<T> {
-    pub fn update_state_and_build<F>(mut self, context: &mut BuildContext, update_state: F)
+    pub fn update_state_and_build<F>(self, context: &mut BuildContext, update_state: F)
     where
         F: FnOnce(&mut T),
     {
@@ -96,7 +96,7 @@ impl<T: WidgetState + StatefulWidget + Default> StatefulWidgetAutoStateBuilder<T
         }
 
         context.widgets_states.custom.accessed_this_frame.insert(id);
-        state.build(context, &mut self.frame);
+        state.build(context, self.frame);
 
         context.widgets_states.restore(idx, state);
     }
@@ -105,7 +105,7 @@ impl<T: WidgetState + StatefulWidget + Default> StatefulWidgetAutoStateBuilder<T
 impl<'a, T: WidgetState + StatefulWidget + Default> StatefulWidgetBuilder
     for StatefulWidgetWithStateBuilder<'a, T>
 {
-    fn build(mut self, context: &mut BuildContext) {
+    fn build(self, context: &mut BuildContext) {
         let id = self.frame.id.with_seed(context.id_seed);
 
         // Skip event processing for () type
@@ -118,7 +118,7 @@ impl<'a, T: WidgetState + StatefulWidget + Default> StatefulWidgetBuilder
         }
 
         context.widgets_states.custom.accessed_this_frame.insert(id);
-        self.state.build(context, &mut self.frame);
+        self.state.build(context, self.frame);
     }
 }
 

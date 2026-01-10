@@ -21,7 +21,7 @@ pub struct DecoratedBoxBuilder {
     id: WidgetId,
     size: Size,
     constraints: Constraints,
-    zindex: Option<i32>,
+    zindex: i32,
     padding: EdgeInsets,
     margin: EdgeInsets,
     offset_x: f32,
@@ -148,6 +148,12 @@ impl DecoratedBoxBuilder {
         self
     }
 
+    pub fn zindex(mut self, value: i32) -> Self {
+        self.zindex = value;
+
+        self
+    }
+
     pub fn offset(mut self, x: f32, y: f32) -> Self {
         self.offset_x = x;
         self.offset_y = y;
@@ -247,7 +253,7 @@ impl DecoratedBoxBuilder {
             margin: self.margin,
             constraints: self.constraints,
             size: self.size,
-            zindex: self.zindex.unwrap_or(context.current_zindex),
+            zindex: self.zindex,
             derive_wrap_size: DeriveWrapSize::Constraints,
             clip: self.clip,
         });
@@ -273,7 +279,7 @@ impl DecoratedBoxBuilder {
 pub fn decorated_box() -> DecoratedBoxBuilder {
     DecoratedBoxBuilder {
         id: WidgetId::auto(),
-        zindex: None,
+        zindex: 0,
         color: None,
         gradients: smallvec![],
         border_radius: None,

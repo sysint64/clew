@@ -1,7 +1,15 @@
 use std::collections::HashMap;
 
 use crate::{
-    Border, BorderRadius, BorderSide, ClipShape, ColorRgb, ColorRgba, DebugBoundary, Gradient, LayoutDirection, Rect, Vec2, View, WidgetType, assets::Assets, interaction::{InteractionState, handle_interaction}, io::UserInput, layout::{LayoutItem, WidgetPlacement, layout}, state::UiState, text::{FontResources, StringId, StringInterner, TextId, TextsResources}, widgets::{self, builder::BuildContext}
+    Border, BorderRadius, BorderSide, ClipShape, ColorRgb, ColorRgba, DebugBoundary, Gradient,
+    LayoutDirection, Rect, Vec2, View, WidgetType,
+    assets::Assets,
+    interaction::{InteractionState, handle_interaction},
+    io::UserInput,
+    layout::{LayoutItem, WidgetPlacement, layout},
+    state::UiState,
+    text::{FontResources, StringId, StringInterner, TextId, TextsResources},
+    widgets::{self, builder::BuildContext},
 };
 
 #[derive(Debug, Default)]
@@ -40,16 +48,17 @@ pub struct RenderContext<'a, 'b> {
     pub string_interner: &'a mut StringInterner,
     pub strings: &'a mut HashMap<StringId, TextId>,
     pub layout_direction: LayoutDirection,
+    unsorted_commands: &'a mut Vec<RenderCommandUnsorted>,
     commands: &'a mut Vec<RenderCommand>,
 }
 
 impl RenderContext<'_, '_> {
-    pub fn push_command(&mut self, command: RenderCommand) {
+    pub fn push_command(&mut self, zindex: i32, command: RenderCommand) {
         self.commands.push(command);
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RenderCommand {
     Rect {
         zindex: i32,
@@ -78,26 +87,41 @@ pub enum RenderCommand {
         tint_color: Option<ColorRgba>,
     },
     PushClip {
+        zindex: i32,
         rect: Rect,
         shape: ClipShape,
     },
     PopClip,
+    BeginGroup {
+        zindex: i32,
+    },
+    EndGroup,
+}
+
+#[derive(Debug, Clone)]
+pub enum RenderCommandUnsorted {
+    RenderCommand { zindex: i32, command: RenderCommand },
+    BeginGroup { zindex: i32 },
+    EndGroup,
 }
 
 impl RenderCommand {
-    fn _zindex(&self) -> Option<i32> {
+    pub fn zindex(&self) -> i32 {
         match self {
-            RenderCommand::Rect { zindex, .. } => Some(*zindex),
-            RenderCommand::Oval { zindex, .. } => Some(*zindex),
-            RenderCommand::Text { zindex, .. } => Some(*zindex),
-            RenderCommand::Svg { zindex, .. } => Some(*zindex),
-            RenderCommand::PushClip { .. } => None,
-            RenderCommand::PopClip => None,
+            RenderCommand::Rect { zindex, .. } => *zindex,
+            RenderCommand::Oval { zindex, .. } => *zindex,
+            RenderCommand::Text { zindex, .. } => *zindex,
+            RenderCommand::Svg { zindex, .. } => *zindex,
+            RenderCommand::PushClip { zindex, .. } => *zindex,
+            RenderCommand::BeginGroup { zindex } => *zindex,
+            RenderCommand::PopClip | RenderCommand::EndGroup => {
+                unreachable!("End markers should not be sorted independently")
+            }
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Fill {
     None,
     Color(ColorRgba),
@@ -181,6 +205,110 @@ where
             ctx.strings.insert(symbol, text_id);
 
             text_id
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum GroupKind {
+    Clip,
+    Group,
+}
+
+impl GroupKind {
+    fn matches_end(&self, cmd: &RenderCommand) -> bool {
+        matches!(
+            (self, cmd),
+            (GroupKind::Clip, RenderCommand::PopClip) | (GroupKind::Group, RenderCommand::EndGroup)
+        )
+    }
+}
+
+fn group_start(cmd: &RenderCommand) -> Option<GroupKind> {
+    match cmd {
+        RenderCommand::PushClip { .. } => Some(GroupKind::Clip),
+        RenderCommand::BeginGroup { .. } => Some(GroupKind::Group),
+        _ => None,
+    }
+}
+
+fn group_end(cmd: &RenderCommand) -> Option<GroupKind> {
+    match cmd {
+        RenderCommand::PopClip => Some(GroupKind::Clip),
+        RenderCommand::EndGroup => Some(GroupKind::Group),
+        _ => None,
+    }
+}
+
+pub fn sort_render_commands(commands: &mut Vec<RenderCommand>) {
+    let len = commands.len();
+    sort_segment(commands, 0, len);
+}
+
+fn sort_segment(commands: &mut [RenderCommand], start: usize, end: usize) {
+    let mut items: Vec<(usize, usize, i32)> = Vec::new();
+    let mut i = start;
+
+    while i < end {
+        if let Some(kind) = group_start(&commands[i]) {
+            let group_start_idx = i;
+            let group_zindex = commands[i].zindex();
+            let mut depth = 1;
+            i += 1;
+
+            while i < end && depth > 0 {
+                if group_start(&commands[i]).is_some() {
+                    depth += 1;
+                } else if kind.matches_end(&commands[i]) {
+                    depth -= 1;
+                }
+                i += 1;
+            }
+
+            items.push((group_start_idx, i, group_zindex));
+        } else if group_end(&commands[i]).is_some() {
+            break;
+        } else {
+            items.push((i, i + 1, commands[i].zindex()));
+            i += 1;
+        }
+    }
+
+    items.sort_by_key(|&(start, _, z)| (z, start));
+
+    let original: Vec<RenderCommand> = commands[start..end].to_vec();
+    let base = start;
+
+    let mut write_pos = start;
+    for (item_start, item_end, _) in &items {
+        let src_start = item_start - base;
+        let src_end = item_end - base;
+        let len = src_end - src_start;
+
+        commands[write_pos..write_pos + len].clone_from_slice(&original[src_start..src_end]);
+        write_pos += len;
+    }
+
+    // Recursively sort inside each group
+    let mut i = start;
+    while i < end {
+        if let Some(kind) = group_start(&commands[i]) {
+            let content_start = i + 1;
+            let mut depth = 1;
+            i += 1;
+
+            while i < end && depth > 0 {
+                if group_start(&commands[i]).is_some() {
+                    depth += 1;
+                } else if kind.matches_end(&commands[i]) {
+                    depth -= 1;
+                }
+                i += 1;
+            }
+
+            sort_segment(commands, content_start, i - 1);
+        } else {
+            i += 1;
         }
     }
 }
@@ -325,7 +453,7 @@ pub fn render(
                         render_debug_boundary(&mut render_context, placement);
                     }
                 }
-                LayoutItem::PushClip { rect, clip } => {
+                LayoutItem::PushClip { rect, clip, zindex } => {
                     let shape = clip
                         .to_shape()
                         .expect("Cannot push clip without a shape")
@@ -333,13 +461,23 @@ pub fn render(
 
                     let rect = rect.px(&render_context);
 
-                    state
-                        .render_state
-                        .commands
-                        .push(RenderCommand::PushClip { rect, shape })
+                    state.render_state.commands.push(RenderCommand::PushClip {
+                        rect,
+                        shape,
+                        zindex: *zindex,
+                    })
                 }
                 LayoutItem::PopClip => {
                     state.render_state.commands.push(RenderCommand::PopClip);
+                }
+                LayoutItem::BeginGroup { zindex } => {
+                    state
+                        .render_state
+                        .commands
+                        .push(RenderCommand::BeginGroup { zindex: *zindex });
+                }
+                LayoutItem::EndGroup => {
+                    state.render_state.commands.push(RenderCommand::EndGroup);
                 }
             }
         }
@@ -357,6 +495,20 @@ pub fn render(
 
     {
         profiling::scope!("clew :: Sort commands by zindex");
+
+        // println!("Before sort:");
+        // for (i, cmd) in state.render_state.commands.iter().enumerate() {
+        //     println!("  {}: {:?}", i, cmd);
+        // }
+
+        sort_render_commands(&mut state.render_state.commands);
+
+        // println!("After sort:");
+        // for (i, cmd) in state.render_state.commands.iter().enumerate() {
+        //     println!("  {}: {:?}", i, cmd);
+        // }
+
+        // sort_render_commands(&mut state.render_state.commands);
         // state
         //     .render_state
         //     .commands

@@ -558,7 +558,7 @@ pub trait WidgetBuilder {
     where
         Self: Sized,
     {
-        self.frame_mut().zindex = Some(zindex);
+        self.frame_mut().zindex = zindex;
         self.frame_mut().flags |= FrameBuilderFlags::ZINDEX;
         self
     }

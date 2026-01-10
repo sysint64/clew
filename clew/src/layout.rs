@@ -1,5 +1,11 @@
 use crate::{
-    AlignX, AlignY, Axis, Clip, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets, LayoutDirection, MainAxisAlignment, Rect, Size, SizeConstraint, Vec2, View, WidgetId, WidgetRef, WidgetType, assets::Assets, rect_contains_boundary, state::TypedWidgetStates, text::{TextId, TextsResources}
+    AlignX, AlignY, Axis, Clip, Constraints, CrossAxisAlignment, DebugBoundary, EdgeInsets,
+    LayoutDirection, MainAxisAlignment, Rect, Size, SizeConstraint, Vec2, View, WidgetId,
+    WidgetRef, WidgetType,
+    assets::Assets,
+    rect_contains_boundary,
+    state::TypedWidgetStates,
+    text::{TextId, TextsResources},
 };
 use smallvec::SmallVec;
 
@@ -17,8 +23,10 @@ pub struct WidgetPlacement {
 #[derive(Debug)]
 pub enum LayoutItem {
     Placement(WidgetPlacement),
-    PushClip { rect: Rect, clip: Clip },
+    PushClip { rect: Rect, clip: Clip, zindex: i32 },
     PopClip,
+    BeginGroup { zindex: i32 },
+    EndGroup,
 }
 
 #[derive(Debug, Clone)]
@@ -1133,7 +1141,10 @@ pub fn layout(
                     layout_items.push(LayoutItem::PushClip {
                         rect: decorator_rect,
                         clip: *clip,
+                        zindex: *zindex,
                     });
+                } else {
+                    layout_items.push(LayoutItem::BeginGroup { zindex: *zindex });
                 }
 
                 match kind {
@@ -1297,6 +1308,8 @@ pub fn layout(
 
                 if container.clipping {
                     layout_items.push(LayoutItem::PopClip);
+                } else {
+                    layout_items.push(LayoutItem::EndGroup);
                 }
 
                 for widget_ref in &container.foregrounds {
@@ -1412,6 +1425,7 @@ pub fn layout(
                         layout_items.push(LayoutItem::PushClip {
                             rect: decorators_rect,
                             clip: *clip,
+                            zindex: *zindex,
                         });
                     }
 

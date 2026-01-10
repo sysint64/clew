@@ -37,9 +37,6 @@ impl ZStackBuilder {
         let mut foregrounds = std::mem::take(context.foregrounds);
         foregrounds.append(&mut self.frame.foregrounds);
 
-        let last_zindex = context.current_zindex;
-        context.current_zindex += 1;
-
         if self.frame.offset_x != 0. || self.frame.offset_y != 0. {
             context.push_layout_command(LayoutCommand::BeginOffset {
                 offset_x: self.frame.offset_x,
@@ -50,7 +47,7 @@ impl ZStackBuilder {
         context.push_layout_command(LayoutCommand::BeginContainer {
             backgrounds,
             foregrounds,
-            zindex: last_zindex,
+            zindex: self.frame.zindex,
             padding: self.frame.padding,
             margin: self.frame.margin,
             kind: ContainerKind::ZStack {
@@ -67,8 +64,6 @@ impl ZStackBuilder {
         if self.frame.offset_x != 0. || self.frame.offset_y != 0. {
             context.push_layout_command(LayoutCommand::EndOffset);
         }
-
-        context.current_zindex = last_zindex;
     }
 }
 

@@ -11,7 +11,7 @@ pub struct FrameBuilder {
     pub(crate) id: WidgetId,
     pub(crate) size: Size,
     pub(crate) constraints: Constraints,
-    pub(crate) zindex: Option<i32>,
+    pub(crate) zindex: i32,
     pub(crate) padding: EdgeInsets,
     pub(crate) margin: EdgeInsets,
     pub(crate) backgrounds: SmallVec<[WidgetRef; 8]>,
@@ -84,13 +84,10 @@ impl FrameBuilder {
             let mut foregrounds = std::mem::take(context.foregrounds);
             foregrounds.append(&mut self.foregrounds);
 
-            let last_zindex = context.current_zindex;
-            context.current_zindex += 1;
-
             context.push_layout_command(LayoutCommand::BeginContainer {
                 backgrounds,
                 foregrounds,
-                zindex: last_zindex,
+                zindex: self.zindex,
                 padding: self.padding,
                 margin: self.margin,
                 kind: ContainerKind::Passthrough,
@@ -102,7 +99,6 @@ impl FrameBuilder {
             value = context.scope(self.id, callback);
 
             context.push_layout_command(LayoutCommand::EndContainer);
-            context.current_zindex = last_zindex;
         } else {
             value = context.scope(self.id, callback);
         }

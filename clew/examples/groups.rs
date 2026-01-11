@@ -68,12 +68,12 @@ fn group2(ctx: &mut ui::BuildContext, texts: &[&str]) {
             ui::decoration()
                 .id(id)
                 .color(ui::ColorRgba::from_hex(0xFF880088))
-                .defer(|_, is_first, is_last, _| {
+                .when_positioned(|_, child| {
                     let mut decoration = ui::decoration();
-                    if is_first {
+                    if child.is_first {
                         decoration = decoration.border_radius(ui::BorderRadius::top(8.));
                     }
-                    if is_last {
+                    if child.is_last {
                         decoration = decoration.border_radius(ui::BorderRadius::bottom(8.));
                     }
                     decoration
@@ -95,14 +95,14 @@ fn grouped(ctx: &mut ui::BuildContext, text: &str) {
             .background(
                 ui::decoration()
                     .color(ui::ColorRgba::from_hex(0xFF888800))
-                    .defer(move |_, is_first, is_last, _| {
+                    .when_positioned(move |_, child| {
                         let mut decoration = ui::decoration();
 
-                        if is_first {
+                        if child.is_first {
                             decoration = decoration.border_radius(ui::BorderRadius::left(8.));
                         }
 
-                        if is_last {
+                        if child.is_last {
                             decoration = decoration.border_radius(ui::BorderRadius::right(8.));
                         }
 

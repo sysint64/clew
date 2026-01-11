@@ -17,7 +17,17 @@ use crate::{
     text::{FontResources, StringId, StringInterner, TextId, TextsResources},
 };
 
-use super::{FrameBuilder, decorated_box::DecorationDeferFn, frame::FrameBuilderFlags};
+use super::{FrameBuilder, decorated_box::DecorationBuilder, frame::FrameBuilderFlags};
+
+pub struct PositionedChildMeta {
+    pub index: u32,
+    pub count: u32,
+    pub is_first: bool,
+    pub is_last: bool,
+}
+
+pub(crate) type DecorationDeferFn =
+    Box<dyn Fn(&BuildContext, PositionedChildMeta) -> DecorationBuilder>;
 
 #[derive(Debug)]
 pub enum ApplicationEvent {
@@ -134,7 +144,14 @@ impl BuildContext<'_, '_> {
         for i in start..end {
             let (id, child_index, defer) = &self.decoration_defer[i];
 
-            let mut builder = defer(self, *child_index == 0, *child_index == count, *child_index);
+            let child_meta = PositionedChildMeta {
+                index: *child_index,
+                count,
+                is_first: *child_index == 0,
+                is_last: *child_index == count,
+            };
+
+            let mut builder = defer(self, child_meta);
             let state = self
                 .widgets_states
                 .decorated_box

@@ -11,11 +11,12 @@ use crate::{
     state::WidgetState,
 };
 
-use super::{FrameBuilder, builder::BuildContext};
+use super::{
+    FrameBuilder,
+    builder::{BuildContext, DecorationDeferFn, PositionedChildMeta},
+};
 
 pub struct DecoratedBox;
-
-pub(crate) type DecorationDeferFn = Box<dyn Fn(&BuildContext, bool, bool, u32) -> DecorationBuilder>;
 
 #[must_use = "widget is not rendered until .build(ctx) is called"]
 #[derive(WidgetBuilder)]
@@ -109,9 +110,9 @@ impl DecorationBuilder {
         self
     }
 
-    pub fn defer<F>(mut self, f: F) -> Self
+    pub fn when_positioned<F>(mut self, f: F) -> Self
     where
-        F: Fn(&BuildContext, bool, bool, u32) -> DecorationBuilder + 'static,
+        F: Fn(&BuildContext, PositionedChildMeta) -> DecorationBuilder + 'static,
     {
         self.defer = Some(Box::new(f));
         self

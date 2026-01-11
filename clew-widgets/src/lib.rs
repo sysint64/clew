@@ -1,9 +1,9 @@
-use clew::prelude::*;
 use clew::stateful::{StatefulWidget, StatefulWidgetBuilder};
 use clew::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets,
     LinearGradient, widgets::*,
 };
+use clew::{TextAlign, prelude::*};
 use clew_derive::{WidgetBuilder, WidgetState};
 
 #[derive(WidgetBuilder)]
@@ -70,7 +70,7 @@ impl<'a> ButtonBuilder<'a> {
                                 .border(Border::all(BorderSide::new(1., border_color)))
                                 .build(ctx),
                         )
-                        .text_align_x(AlignX::Center)
+                        .text_align(TextAlign::Center)
                         .text_vertical_align(AlignY::Center)
                         .size(layout.size)
                         .constraints(layout.constraints)

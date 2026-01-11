@@ -1,32 +1,23 @@
 use std::any::Any;
 
-use smallvec::SmallVec;
+use clew_derive::WidgetBuilder;
 
 use crate::{
-    Clip, Constraints, EdgeInsets, ScrollDirection, Size, SizeConstraint, WidgetId, WidgetRef,
-    WidgetType, impl_id, impl_size_methods,
+    ScrollDirection, WidgetId, WidgetRef, WidgetType,
     interaction::InteractionState,
     io::UserInput,
     layout::{ContainerKind, LayoutCommand, LayoutMeasure},
     state::WidgetState,
 };
-use std::hash::Hash;
 
-use super::builder::BuildContext;
+use super::{FrameBuilder, builder::BuildContext};
 
 pub struct ScrollAreaWidget;
 
+#[derive(WidgetBuilder)]
 pub struct ScrollAreaBuilder {
-    id: WidgetId,
-    size: Size,
-    constraints: Constraints,
-    zindex: i32,
-    padding: EdgeInsets,
-    margin: EdgeInsets,
+    frame: FrameBuilder,
     scroll_direction: ScrollDirection,
-    clip: Clip,
-    backgrounds: SmallVec<[WidgetRef; 8]>,
-    foregrounds: SmallVec<[WidgetRef; 8]>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -83,39 +74,6 @@ impl WidgetState for State {
 }
 
 impl ScrollAreaBuilder {
-    impl_id!();
-    impl_size_methods!();
-
-    pub fn clip(mut self, clip: Clip) -> Self {
-        self.clip = clip;
-
-        self
-    }
-
-    pub fn padding(mut self, padding: EdgeInsets) -> Self {
-        self.padding = padding;
-
-        self
-    }
-
-    pub fn margin(mut self, margin: EdgeInsets) -> Self {
-        self.margin = margin;
-
-        self
-    }
-
-    pub fn background(mut self, decorator: WidgetRef) -> Self {
-        self.backgrounds.push(decorator);
-
-        self
-    }
-
-    pub fn foreground(mut self, decorator: WidgetRef) -> Self {
-        self.foregrounds.push(decorator);
-
-        self
-    }
-
     pub fn scroll_direction(mut self, scroll_direction: ScrollDirection) -> Self {
         self.scroll_direction = scroll_direction;
 
@@ -127,15 +85,15 @@ impl ScrollAreaBuilder {
     where
         F: FnOnce(&mut BuildContext),
     {
-        let id = self.id.with_seed(context.id_seed);
+        let id = self.frame.id.with_seed(context.id_seed);
         let widget_ref = WidgetRef::new(WidgetType::of::<ScrollAreaWidget>(), id);
 
         let mut backgrounds = std::mem::take(context.backgrounds);
-        backgrounds.append(&mut self.backgrounds);
+        backgrounds.append(&mut self.frame.backgrounds);
         backgrounds.push(widget_ref);
 
         let mut foregrounds = std::mem::take(context.foregrounds);
-        foregrounds.append(&mut self.foregrounds);
+        foregrounds.append(&mut self.frame.foregrounds);
 
         let (offset_x, offset_y, response) = {
             let state = context
@@ -199,13 +157,13 @@ impl ScrollAreaBuilder {
         context.push_layout_command(LayoutCommand::BeginContainer {
             backgrounds,
             foregrounds,
-            zindex: self.zindex,
-            padding: self.padding,
-            margin: self.margin,
+            zindex: self.frame.zindex,
+            padding: self.frame.padding,
+            margin: self.frame.margin,
             kind: ContainerKind::Measure { id },
-            size: self.size,
-            constraints: self.constraints,
-            clip: self.clip,
+            size: self.frame.size,
+            constraints: self.frame.constraints,
+            clip: self.frame.clip,
         });
 
         context.push_layout_command(LayoutCommand::BeginOffset {
@@ -235,16 +193,8 @@ impl ScrollAreaBuilder {
 #[track_caller]
 pub fn scroll_area() -> ScrollAreaBuilder {
     ScrollAreaBuilder {
-        id: WidgetId::auto(),
-        size: Size::default(),
-        constraints: Constraints::default(),
-        zindex: 0,
-        padding: EdgeInsets::ZERO,
-        margin: EdgeInsets::ZERO,
+        frame: FrameBuilder::new(),
         scroll_direction: ScrollDirection::Vertical,
-        clip: Clip::Rect,
-        backgrounds: SmallVec::new(),
-        foregrounds: SmallVec::new(),
     }
 }
 

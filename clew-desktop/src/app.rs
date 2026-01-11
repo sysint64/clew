@@ -89,6 +89,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
     window_state.animations_stepped_this_frame.clear();
 
     let mut build_context = BuildContext {
+        ignore_pointer: false,
         layout_commands: &mut window_state.ui_state.layout_commands,
         widgets_states: &mut window_state.ui_state.widgets_states,
         event_queue: &mut window_state.ui_state.current_event_queue,

@@ -1,46 +1,22 @@
+use clew_derive::WidgetBuilder;
+
 use crate::{
-    Clip, Constraints, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, Size, SizeConstraint,
-    impl_position_methods, impl_size_methods,
+    CrossAxisAlignment, MainAxisAlignment,
     layout::{ContainerKind, LayoutCommand},
 };
 
-use super::builder::BuildContext;
+use super::{FrameBuilder, builder::BuildContext};
 
+#[derive(WidgetBuilder)]
 pub struct HStackBuilder {
-    size: Size,
+    frame: FrameBuilder,
     rtl_aware: bool,
     spacing: f32,
-    constraints: Constraints,
-    zindex: i32,
     main_axis_alignment: MainAxisAlignment,
     cross_axis_alignment: CrossAxisAlignment,
-    padding: EdgeInsets,
-    margin: EdgeInsets,
-    clip: Clip,
 }
 
 impl HStackBuilder {
-    impl_size_methods!();
-    impl_position_methods!();
-
-    pub fn clip(mut self, clip: Clip) -> Self {
-        self.clip = clip;
-
-        self
-    }
-
-    pub fn padding(mut self, padding: EdgeInsets) -> Self {
-        self.padding = padding;
-
-        self
-    }
-
-    pub fn margin(mut self, margin: EdgeInsets) -> Self {
-        self.margin = margin;
-
-        self
-    }
-
     pub fn rtl_aware(mut self, rtl_aware: bool) -> Self {
         self.rtl_aware = rtl_aware;
 
@@ -66,46 +42,55 @@ impl HStackBuilder {
     }
 
     #[profiling::function]
-    pub fn build<F>(self, context: &mut BuildContext, callback: F)
+    pub fn build<F>(mut self, context: &mut BuildContext, callback: F)
     where
         F: FnOnce(&mut BuildContext),
     {
-        let backgrounds = std::mem::take(context.backgrounds);
-        let foregrounds = std::mem::take(context.foregrounds);
+        let mut backgrounds = std::mem::take(context.backgrounds);
+        backgrounds.append(&mut self.frame.backgrounds);
+
+        let mut foregrounds = std::mem::take(context.foregrounds);
+        foregrounds.append(&mut self.frame.foregrounds);
+
+        if self.frame.offset_x != 0. || self.frame.offset_y != 0. {
+            context.push_layout_command(LayoutCommand::BeginOffset {
+                offset_x: self.frame.offset_x,
+                offset_y: self.frame.offset_y,
+            });
+        }
 
         context.push_layout_command(LayoutCommand::BeginContainer {
             backgrounds,
             foregrounds,
-            zindex: self.zindex,
-            padding: self.padding,
-            margin: self.margin,
+            zindex: self.frame.zindex,
+            padding: self.frame.padding,
+            margin: self.frame.margin,
             kind: ContainerKind::HStack {
                 spacing: self.spacing,
                 rtl_aware: self.rtl_aware,
                 main_axis_alignment: self.main_axis_alignment,
                 cross_axis_alignment: self.cross_axis_alignment,
             },
-            size: self.size,
-            constraints: self.constraints,
-            clip: self.clip,
+            size: self.frame.size,
+            constraints: self.frame.constraints,
+            clip: self.frame.clip,
         });
 
         callback(context);
         context.push_layout_command(LayoutCommand::EndContainer);
+
+        if self.frame.offset_x != 0. || self.frame.offset_y != 0. {
+            context.push_layout_command(LayoutCommand::EndOffset);
+        }
     }
 }
 
 pub fn hstack() -> HStackBuilder {
     HStackBuilder {
-        size: Size::default(),
-        constraints: Constraints::default(),
+        frame: FrameBuilder::new(),
         rtl_aware: false,
         spacing: 5.,
-        zindex: 0,
         main_axis_alignment: MainAxisAlignment::default(),
         cross_axis_alignment: CrossAxisAlignment::default(),
-        padding: EdgeInsets::ZERO,
-        margin: EdgeInsets::ZERO,
-        clip: Clip::None,
     }
 }

@@ -69,7 +69,7 @@ impl ZStackBuilder {
 
 pub fn zstack() -> ZStackBuilder {
     ZStackBuilder {
-        frame: FrameBuilder::default(),
+        frame: FrameBuilder::new(),
         align_x: AlignX::Left,
         align_y: AlignY::Top,
     }

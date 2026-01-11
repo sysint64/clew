@@ -189,6 +189,19 @@ pub enum TextAlign {
     Justified,
 }
 
+impl TextAlign {
+    pub(crate) fn to_align_x(self) -> AlignX {
+        match self {
+            TextAlign::Auto => AlignX::Start,
+            TextAlign::Left => AlignX::Left,
+            TextAlign::Right => AlignX::Right,
+            TextAlign::Center => AlignX::Center,
+            TextAlign::End => AlignX::End,
+            TextAlign::Justified => AlignX::Start,
+        }
+    }
+}
+
 impl AlignX {
     #[inline]
     pub fn position(&self, layout_direction: LayoutDirection, boundary: f32, size: f32) -> f32 {

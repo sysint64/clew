@@ -245,7 +245,7 @@ Here are some things I've been working on currently (non-exhaustive), some of th
 - [ ] Custom painter widget similar to Flutter
 - [ ] Custom painter for a specific renderer, e.g. the way to draw things directly using say wgpu if vello is being used.
 - [ ] Implement main axis alignment
-- [ ] Support zindex
+- [x] Support zindex
 - [ ] Basic testing framework
 - [ ] Setup CI
 - [x] Basic animation API

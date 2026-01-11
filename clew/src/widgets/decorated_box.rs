@@ -1,34 +1,24 @@
 use std::any::Any;
-use std::hash::Hash;
 
+use clew_derive::WidgetBuilder;
 use smallvec::{SmallVec, smallvec};
 
 use crate::{
-    Border, BorderRadius, BorderSide, BoxShape, Clip, ColorRgba, Constraints, EdgeInsets, Gradient,
-    LinearGradient, RadialGradient, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType, impl_id,
-    impl_size_methods,
+    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, Gradient, LinearGradient,
+    RadialGradient, WidgetId, WidgetRef, WidgetType,
     layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
     render::{Fill, PixelExtension, RenderCommand, RenderContext},
     state::WidgetState,
 };
 
-use super::builder::BuildContext;
+use super::{FrameBuilder, builder::BuildContext};
 
 pub struct DecoratedBox;
 
 #[must_use = "widget is not rendered until .build(ctx) is called"]
+#[derive(WidgetBuilder)]
 pub struct DecoratedBoxBuilder {
-    id: WidgetId,
-    size: Size,
-    constraints: Constraints,
-    zindex: i32,
-    padding: EdgeInsets,
-    margin: EdgeInsets,
-    offset_x: f32,
-    offset_y: f32,
-    clip: Clip,
-    ignore_pointer: bool,
-
+    frame: FrameBuilder,
     color: Option<ColorRgba>,
     gradients: SmallVec<[Gradient; 4]>,
     border_radius: Option<BorderRadius>,
@@ -133,54 +123,8 @@ impl DecorationBuilder {
 }
 
 impl DecoratedBoxBuilder {
-    impl_id!();
-    impl_size_methods!();
-
-    pub fn padding(mut self, padding: EdgeInsets) -> Self {
-        self.padding = padding;
-
-        self
-    }
-
-    pub fn margin(mut self, margin: EdgeInsets) -> Self {
-        self.margin = margin;
-
-        self
-    }
-
-    pub fn zindex(mut self, value: i32) -> Self {
-        self.zindex = value;
-
-        self
-    }
-
-    pub fn offset(mut self, x: f32, y: f32) -> Self {
-        self.offset_x = x;
-        self.offset_y = y;
-
-        self
-    }
-
-    pub fn offset_x(mut self, offset: f32) -> Self {
-        self.offset_x = offset;
-
-        self
-    }
-
-    pub fn offset_y(mut self, offset: f32) -> Self {
-        self.offset_y = offset;
-
-        self
-    }
-
     pub fn color(mut self, color: ColorRgba) -> Self {
         self.color = Some(color);
-
-        self
-    }
-
-    pub fn clip(mut self, clip: Clip) -> Self {
-        self.clip = clip;
 
         self
     }
@@ -221,27 +165,21 @@ impl DecoratedBoxBuilder {
         self
     }
 
-    pub fn ignore_pointer(mut self, value: bool) -> Self {
-        self.ignore_pointer = value;
-
-        self
-    }
-
     #[profiling::function]
     pub fn build(self, context: &mut BuildContext) {
-        let id = self.id.with_seed(context.id_seed);
+        let id = self.frame.id.with_seed(context.id_seed);
         let widget_ref = WidgetRef::new(WidgetType::of::<DecoratedBox>(), id);
         let backgrounds = std::mem::take(context.backgrounds);
         let foregrounds = std::mem::take(context.foregrounds);
 
-        if self.offset_x != 0. || self.offset_y != 0. {
+        if self.frame.offset_x != 0. || self.frame.offset_y != 0. {
             context.push_layout_command(LayoutCommand::BeginOffset {
-                offset_x: self.offset_x,
-                offset_y: self.offset_y,
+                offset_x: self.frame.offset_x,
+                offset_y: self.frame.offset_y,
             });
         }
 
-        if self.ignore_pointer {
+        if self.frame.ignore_pointer {
             context.non_interactable.insert(id);
         }
 
@@ -249,16 +187,16 @@ impl DecoratedBoxBuilder {
             widget_ref,
             backgrounds,
             foregrounds,
-            padding: self.padding,
-            margin: self.margin,
-            constraints: self.constraints,
-            size: self.size,
-            zindex: self.zindex,
+            padding: self.frame.padding,
+            margin: self.frame.margin,
+            constraints: self.frame.constraints,
+            size: self.frame.size,
+            zindex: self.frame.zindex,
             derive_wrap_size: DeriveWrapSize::Constraints,
-            clip: self.clip,
+            clip: self.frame.clip,
         });
 
-        if self.offset_x != 0. || self.offset_y != 0. {
+        if self.frame.offset_x != 0. || self.frame.offset_y != 0. {
             context.push_layout_command(LayoutCommand::EndOffset);
         }
 
@@ -278,21 +216,12 @@ impl DecoratedBoxBuilder {
 #[track_caller]
 pub fn decorated_box() -> DecoratedBoxBuilder {
     DecoratedBoxBuilder {
-        id: WidgetId::auto(),
-        zindex: 0,
+        frame: FrameBuilder::new(),
         color: None,
         gradients: smallvec![],
         border_radius: None,
         border: None,
         shape: BoxShape::Rect,
-        offset_x: 0.,
-        offset_y: 0.,
-        size: Size::default(),
-        constraints: Constraints::default(),
-        padding: EdgeInsets::ZERO,
-        margin: EdgeInsets::ZERO,
-        clip: Clip::None,
-        ignore_pointer: false,
     }
 }
 

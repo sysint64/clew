@@ -1,35 +1,27 @@
-use smallvec::SmallVec;
+use clew_derive::WidgetBuilder;
 
 use crate::{
-    Axis, Clip, Constraints, EdgeInsets, Size, SizeConstraint, WidgetId, WidgetRef, WidgetType,
-    impl_id, impl_size_methods,
+    Axis, Clip, WidgetRef, WidgetType,
     layout::{ContainerKind, LayoutCommand},
     scroll_area::ScrollAreaWidget,
     widgets::{scope::scope, scroll_area},
 };
-use std::hash::Hash;
 
-use super::{builder::BuildContext, scroll_area::ScrollAreaResponse};
+use super::{
+    FrameBuilder,
+    builder::{BuildContext, WidgetBuilder},
+    scroll_area::ScrollAreaResponse,
+};
 
+#[derive(WidgetBuilder)]
 pub struct VirtualListBuilder {
-    id: WidgetId,
+    frame: FrameBuilder,
     item_size: f32,
     items_count: u64,
-    size: Size,
-    constraints: Constraints,
-    zindex: i32,
-    padding: EdgeInsets,
-    margin: EdgeInsets,
-    clip: Clip,
-    backgrounds: SmallVec<[WidgetRef; 8]>,
-    foregrounds: SmallVec<[WidgetRef; 8]>,
     axis: Axis,
 }
 
 impl VirtualListBuilder {
-    impl_id!();
-    impl_size_methods!();
-
     pub fn item_size(mut self, size: f32) -> Self {
         self.item_size = size;
 
@@ -38,36 +30,6 @@ impl VirtualListBuilder {
 
     pub fn items_count(mut self, count: u64) -> Self {
         self.items_count = count;
-
-        self
-    }
-
-    pub fn clip(mut self, clip: Clip) -> Self {
-        self.clip = clip;
-
-        self
-    }
-
-    pub fn padding(mut self, padding: EdgeInsets) -> Self {
-        self.padding = padding;
-
-        self
-    }
-
-    pub fn margin(mut self, margin: EdgeInsets) -> Self {
-        self.margin = margin;
-
-        self
-    }
-
-    pub fn background(mut self, decorator: WidgetRef) -> Self {
-        self.backgrounds.push(decorator);
-
-        self
-    }
-
-    pub fn foreground(mut self, decorator: WidgetRef) -> Self {
-        self.foregrounds.push(decorator);
 
         self
     }
@@ -83,15 +45,15 @@ impl VirtualListBuilder {
     where
         F: Fn(&mut BuildContext, u64),
     {
-        let id = self.id.with_seed(context.id_seed);
+        let id = self.frame.id.with_seed(context.id_seed);
         let widget_ref = WidgetRef::new(WidgetType::of::<ScrollAreaWidget>(), id);
 
         let mut backgrounds = std::mem::take(context.backgrounds);
-        backgrounds.append(&mut self.backgrounds);
+        backgrounds.append(&mut self.frame.backgrounds);
         backgrounds.push(widget_ref);
 
         let mut foregrounds = std::mem::take(context.foregrounds);
-        foregrounds.append(&mut self.foregrounds);
+        foregrounds.append(&mut self.frame.foregrounds);
 
         let (offset_x, offset_y, response) = {
             let state =
@@ -163,13 +125,13 @@ impl VirtualListBuilder {
         context.push_layout_command(LayoutCommand::BeginContainer {
             backgrounds,
             foregrounds,
-            zindex: self.zindex,
-            padding: self.padding,
-            margin: self.margin,
+            zindex: self.frame.zindex,
+            padding: self.frame.padding,
+            margin: self.frame.margin,
             kind: ContainerKind::Measure { id },
-            size: self.size,
-            constraints: self.constraints,
-            clip: self.clip,
+            size: self.frame.size,
+            constraints: self.frame.constraints,
+            clip: self.frame.clip,
         });
 
         match self.axis {
@@ -255,16 +217,8 @@ impl VirtualListBuilder {
 #[track_caller]
 pub fn virtual_list() -> VirtualListBuilder {
     VirtualListBuilder {
-        id: WidgetId::auto(),
-        size: Size::default(),
-        constraints: Constraints::default(),
-        zindex: 0,
-        padding: EdgeInsets::ZERO,
-        margin: EdgeInsets::ZERO,
+        frame: FrameBuilder::new().clip(Clip::Rect),
         axis: Axis::Vertical,
-        clip: Clip::Rect,
-        backgrounds: SmallVec::new(),
-        foregrounds: SmallVec::new(),
         item_size: 32.,
         items_count: 0,
     }

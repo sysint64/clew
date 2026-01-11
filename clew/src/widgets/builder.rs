@@ -39,6 +39,7 @@ pub struct MutUserDataStack<'a> {
 }
 
 pub struct BuildContext<'a, 'b> {
+    pub ignore_pointer: bool,
     pub layout_commands: &'a mut Vec<LayoutCommand>,
     pub widgets_states: &'a mut WidgetsStates,
     pub event_queue: &'a mut Vec<Arc<dyn Any + Send>>,
@@ -595,6 +596,15 @@ pub trait WidgetBuilder {
     {
         self.frame_mut().foregrounds.push(decorator);
         self.frame_mut().flags |= FrameBuilderFlags::FOREGROUNDS;
+        self
+    }
+
+    fn ignore_pointer(mut self, value: bool) -> Self
+    where
+        Self: Sized,
+    {
+        self.frame_mut().ignore_pointer = value;
+        self.frame_mut().flags |= FrameBuilderFlags::IGNORE_POINTER;
         self
     }
 }

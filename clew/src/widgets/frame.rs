@@ -19,6 +19,7 @@ pub struct FrameBuilder {
     pub(crate) offset_x: f32,
     pub(crate) offset_y: f32,
     pub(crate) clip: Clip,
+    pub(crate) ignore_pointer: bool,
     pub(crate) flags: FrameBuilderFlags,
 }
 
@@ -37,6 +38,7 @@ impl FrameBuilder {
             offset_x: Default::default(),
             offset_y: Default::default(),
             clip: Clip::None,
+            ignore_pointer: false,
             flags: FrameBuilderFlags::empty(),
         }
     }
@@ -77,6 +79,9 @@ impl FrameBuilder {
 
         let value;
 
+        let last_ignore_pointer = context.ignore_pointer;
+        context.ignore_pointer = self.ignore_pointer && context.ignore_pointer;
+
         if needs_container {
             let mut backgrounds = std::mem::take(context.backgrounds);
             backgrounds.append(&mut self.backgrounds);
@@ -107,6 +112,8 @@ impl FrameBuilder {
             context.push_layout_command(LayoutCommand::EndOffset);
         }
 
+        context.ignore_pointer = last_ignore_pointer;
+
         value
     }
 }
@@ -124,6 +131,7 @@ bitflags::bitflags! {
         const FOREGROUNDS = 1 << 7;
         const OFFSET = 1 << 8;
         const CLIP = 1 << 9;
+        const IGNORE_POINTER = 1 << 10;
     }
 }
 

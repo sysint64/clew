@@ -20,7 +20,7 @@ pub struct TextBuilder<'a> {
     text: &'a str,
     size: Size,
     constraints: Constraints,
-    zindex: Option<i32>,
+    zindex: i32,
     color: ColorRgba,
     backgrounds: SmallVec<[WidgetRef; 8]>,
     foregrounds: SmallVec<[WidgetRef; 8]>,
@@ -180,7 +180,7 @@ impl<'a> TextBuilder<'a> {
             margin: self.margin,
             constraints: self.constraints,
             size: self.size,
-            zindex: self.zindex.unwrap_or(context.current_zindex),
+            zindex: self.zindex,
             derive_wrap_size: DeriveWrapSize::Text(text_id),
             clip: self.clip,
         });
@@ -214,7 +214,7 @@ pub fn text(text: &str) -> TextBuilder<'_> {
         backgrounds: SmallVec::new(),
         foregrounds: SmallVec::new(),
         size: Size::default(),
-        zindex: None,
+        zindex: 0,
         constraints: Constraints {
             min_width: 12.,
             min_height: 12.,

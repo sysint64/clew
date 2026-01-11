@@ -11,7 +11,7 @@ pub struct HStackBuilder {
     rtl_aware: bool,
     spacing: f32,
     constraints: Constraints,
-    zindex: Option<i32>,
+    zindex: i32,
     main_axis_alignment: MainAxisAlignment,
     cross_axis_alignment: CrossAxisAlignment,
     padding: EdgeInsets,
@@ -70,16 +70,13 @@ impl HStackBuilder {
     where
         F: FnOnce(&mut BuildContext),
     {
-        let last_zindex = context.current_zindex;
-        context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
-
         let backgrounds = std::mem::take(context.backgrounds);
         let foregrounds = std::mem::take(context.foregrounds);
 
         context.push_layout_command(LayoutCommand::BeginContainer {
             backgrounds,
             foregrounds,
-            zindex: 0,
+            zindex: self.zindex,
             padding: self.padding,
             margin: self.margin,
             kind: ContainerKind::HStack {
@@ -95,8 +92,6 @@ impl HStackBuilder {
 
         callback(context);
         context.push_layout_command(LayoutCommand::EndContainer);
-
-        context.current_zindex = last_zindex;
     }
 }
 
@@ -106,7 +101,7 @@ pub fn hstack() -> HStackBuilder {
         constraints: Constraints::default(),
         rtl_aware: false,
         spacing: 5.,
-        zindex: None,
+        zindex: 0,
         main_axis_alignment: MainAxisAlignment::default(),
         cross_axis_alignment: CrossAxisAlignment::default(),
         padding: EdgeInsets::ZERO,

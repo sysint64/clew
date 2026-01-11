@@ -20,7 +20,7 @@ pub struct ScrollAreaBuilder {
     id: WidgetId,
     size: Size,
     constraints: Constraints,
-    zindex: Option<i32>,
+    zindex: i32,
     padding: EdgeInsets,
     margin: EdgeInsets,
     scroll_direction: ScrollDirection,
@@ -130,9 +130,6 @@ impl ScrollAreaBuilder {
         let id = self.id.with_seed(context.id_seed);
         let widget_ref = WidgetRef::new(WidgetType::of::<ScrollAreaWidget>(), id);
 
-        let last_zindex = context.current_zindex;
-        context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
-
         let mut backgrounds = std::mem::take(context.backgrounds);
         backgrounds.append(&mut self.backgrounds);
         backgrounds.push(widget_ref);
@@ -202,7 +199,7 @@ impl ScrollAreaBuilder {
         context.push_layout_command(LayoutCommand::BeginContainer {
             backgrounds,
             foregrounds,
-            zindex: 0,
+            zindex: self.zindex,
             padding: self.padding,
             margin: self.margin,
             kind: ContainerKind::Measure { id },
@@ -219,8 +216,6 @@ impl ScrollAreaBuilder {
         context.push_layout_command(LayoutCommand::EndOffset);
 
         context.push_layout_command(LayoutCommand::EndContainer);
-
-        context.current_zindex = last_zindex;
 
         context
             .widgets_states
@@ -243,7 +238,7 @@ pub fn scroll_area() -> ScrollAreaBuilder {
         id: WidgetId::auto(),
         size: Size::default(),
         constraints: Constraints::default(),
-        zindex: None,
+        zindex: 0,
         padding: EdgeInsets::ZERO,
         margin: EdgeInsets::ZERO,
         scroll_direction: ScrollDirection::Vertical,

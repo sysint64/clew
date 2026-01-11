@@ -50,7 +50,6 @@ pub struct RenderContext<'a, 'b> {
     pub strings: &'a mut HashMap<StringId, TextId>,
     pub layout_direction: LayoutDirection,
     unsorted_commands: &'a mut Vec<RenderCommandUnsorted>,
-    commands: &'a mut Vec<RenderCommand>,
 }
 
 impl RenderContext<'_, '_> {
@@ -92,6 +91,7 @@ pub enum RenderCommand {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum RenderCommandUnsorted {
     RenderCommand { zindex: i32, command: RenderCommand },
     BeginGroup { zindex: i32 },
@@ -418,7 +418,6 @@ pub fn render(
                 string_interner,
                 strings,
                 layout_direction: state.layout_direction,
-                commands: &mut state.render_state.commands,
                 unsorted_commands: &mut state.render_state.unsorted_commands,
             };
 
@@ -505,7 +504,7 @@ pub fn render(
                     state
                         .render_state
                         .unsorted_commands
-                        .push(RenderCommandUnsorted::BeginGroup { zindex: 0 });
+                        .push(RenderCommandUnsorted::BeginGroup { zindex: *zindex });
                 }
                 LayoutItem::EndGroup => {
                     // state.render_state.commands.push(RenderCommand::EndGroup);

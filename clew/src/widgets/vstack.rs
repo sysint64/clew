@@ -11,7 +11,7 @@ use super::builder::BuildContext;
 pub struct VStackBuilder {
     size: Size,
     constraints: Constraints,
-    zindex: Option<i32>,
+    zindex: i32,
     padding: EdgeInsets,
     margin: EdgeInsets,
     backgrounds: SmallVec<[WidgetRef; 8]>,
@@ -87,9 +87,6 @@ impl VStackBuilder {
     where
         F: FnOnce(&mut BuildContext),
     {
-        let last_zindex = context.current_zindex;
-        context.current_zindex = self.zindex.unwrap_or(context.current_zindex);
-
         let mut backgrounds = std::mem::take(context.backgrounds);
         backgrounds.append(&mut self.backgrounds);
 
@@ -99,7 +96,7 @@ impl VStackBuilder {
         context.push_layout_command(LayoutCommand::BeginContainer {
             backgrounds,
             foregrounds,
-            zindex: 0,
+            zindex: self.zindex,
             padding: self.padding,
             margin: self.margin,
             kind: ContainerKind::VStack {
@@ -114,8 +111,6 @@ impl VStackBuilder {
         });
         callback(context);
         context.push_layout_command(LayoutCommand::EndContainer);
-
-        context.current_zindex = last_zindex;
     }
 }
 
@@ -125,7 +120,7 @@ pub fn vstack() -> VStackBuilder {
         constraints: Constraints::default(),
         spacing: 5.,
         rtl_aware: false,
-        zindex: None,
+        zindex: 0,
         main_axis_alignment: MainAxisAlignment::default(),
         cross_axis_alignment: CrossAxisAlignment::default(),
         padding: EdgeInsets::ZERO,

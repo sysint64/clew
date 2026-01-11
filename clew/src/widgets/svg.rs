@@ -17,7 +17,7 @@ pub struct SvgBuilder {
     asset_id: &'static str,
     size: Size,
     constraints: Constraints,
-    zindex: Option<i32>,
+    zindex: i32,
     color: Option<ColorRgba>,
     padding: EdgeInsets,
     margin: EdgeInsets,
@@ -83,7 +83,7 @@ impl SvgBuilder {
             margin: self.margin,
             constraints: self.constraints,
             size: self.size,
-            zindex: self.zindex.unwrap_or(context.current_zindex),
+            zindex: self.zindex,
             derive_wrap_size: DeriveWrapSize::Svg(self.asset_id),
             clip: self.clip,
         });
@@ -105,7 +105,7 @@ pub fn svg(asset_id: &'static str) -> SvgBuilder {
         asset_id,
         color: None,
         size: Size::default(),
-        zindex: None,
+        zindex: 0,
         constraints: Constraints {
             min_width: 0.,
             min_height: 0.,

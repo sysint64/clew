@@ -39,7 +39,6 @@ pub struct MutUserDataStack<'a> {
 }
 
 pub struct BuildContext<'a, 'b> {
-    pub current_zindex: i32,
     pub layout_commands: &'a mut Vec<LayoutCommand>,
     pub widgets_states: &'a mut WidgetsStates,
     pub event_queue: &'a mut Vec<Arc<dyn Any + Send>>,
@@ -386,7 +385,7 @@ macro_rules! impl_width_methods {
 macro_rules! impl_position_methods {
     () => {
         pub fn zindex(mut self, zindex: i32) -> Self {
-            self.zindex = Some(zindex);
+            self.zindex = zindex;
             self
         }
     };

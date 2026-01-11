@@ -15,6 +15,7 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct RenderState {
     pub(crate) commands: Vec<RenderCommand>,
+    pub(crate) unsorted_commands: Vec<RenderCommandUnsorted>,
 }
 
 impl RenderState {
@@ -54,48 +55,40 @@ pub struct RenderContext<'a, 'b> {
 
 impl RenderContext<'_, '_> {
     pub fn push_command(&mut self, zindex: i32, command: RenderCommand) {
-        self.commands.push(command);
+        self.unsorted_commands
+            .push(RenderCommandUnsorted::RenderCommand { zindex, command });
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum RenderCommand {
     Rect {
-        zindex: i32,
         boundary: Rect,
         fill: Option<Fill>,
         border_radius: Option<BorderRadius>,
         border: Option<Border>,
     },
     Oval {
-        zindex: i32,
         boundary: Rect,
         fill: Option<Fill>,
         border: Option<BorderSide>,
     },
     Text {
-        zindex: i32,
         x: f32,
         y: f32,
         text_id: TextId,
         tint_color: Option<ColorRgba>,
     },
     Svg {
-        zindex: i32,
         boundary: Rect,
         asset_id: &'static str,
         tint_color: Option<ColorRgba>,
     },
     PushClip {
-        zindex: i32,
         rect: Rect,
         shape: ClipShape,
     },
     PopClip,
-    BeginGroup {
-        zindex: i32,
-    },
-    EndGroup,
 }
 
 #[derive(Debug, Clone)]
@@ -105,16 +98,12 @@ pub enum RenderCommandUnsorted {
     EndGroup,
 }
 
-impl RenderCommand {
+impl RenderCommandUnsorted {
     pub fn zindex(&self) -> i32 {
         match self {
-            RenderCommand::Rect { zindex, .. } => *zindex,
-            RenderCommand::Oval { zindex, .. } => *zindex,
-            RenderCommand::Text { zindex, .. } => *zindex,
-            RenderCommand::Svg { zindex, .. } => *zindex,
-            RenderCommand::PushClip { zindex, .. } => *zindex,
-            RenderCommand::BeginGroup { zindex } => *zindex,
-            RenderCommand::PopClip | RenderCommand::EndGroup => {
+            RenderCommandUnsorted::RenderCommand { zindex, .. } => *zindex,
+            RenderCommandUnsorted::BeginGroup { zindex, .. } => *zindex,
+            RenderCommandUnsorted::EndGroup => {
                 unreachable!("End markers should not be sorted independently")
             }
         }
@@ -216,43 +205,76 @@ enum GroupKind {
 }
 
 impl GroupKind {
-    fn matches_end(&self, cmd: &RenderCommand) -> bool {
+    fn matches_end(&self, cmd: &RenderCommandUnsorted) -> bool {
         matches!(
             (self, cmd),
-            (GroupKind::Clip, RenderCommand::PopClip) | (GroupKind::Group, RenderCommand::EndGroup)
+            (
+                GroupKind::Clip,
+                RenderCommandUnsorted::RenderCommand {
+                    command: RenderCommand::PopClip,
+                    ..
+                }
+            ) | (GroupKind::Group, RenderCommandUnsorted::EndGroup)
         )
     }
 }
 
-fn group_start(cmd: &RenderCommand) -> Option<GroupKind> {
+fn get_zindex(cmd: &RenderCommandUnsorted) -> i32 {
     match cmd {
-        RenderCommand::PushClip { .. } => Some(GroupKind::Clip),
-        RenderCommand::BeginGroup { .. } => Some(GroupKind::Group),
+        RenderCommandUnsorted::RenderCommand { zindex, .. } => *zindex,
+        RenderCommandUnsorted::BeginGroup { zindex } => *zindex,
+        RenderCommandUnsorted::EndGroup => {
+            unreachable!("EndGroup should not be queried for zindex")
+        }
+    }
+}
+
+fn group_start(cmd: &RenderCommandUnsorted) -> Option<GroupKind> {
+    match cmd {
+        RenderCommandUnsorted::RenderCommand {
+            command: RenderCommand::PushClip { .. },
+            ..
+        } => Some(GroupKind::Clip),
+        RenderCommandUnsorted::BeginGroup { .. } => Some(GroupKind::Group),
         _ => None,
     }
 }
 
-fn group_end(cmd: &RenderCommand) -> Option<GroupKind> {
+fn group_end(cmd: &RenderCommandUnsorted) -> Option<GroupKind> {
     match cmd {
-        RenderCommand::PopClip => Some(GroupKind::Clip),
-        RenderCommand::EndGroup => Some(GroupKind::Group),
+        RenderCommandUnsorted::RenderCommand {
+            command: RenderCommand::PopClip,
+            ..
+        } => Some(GroupKind::Clip),
+        RenderCommandUnsorted::EndGroup => Some(GroupKind::Group),
         _ => None,
     }
 }
 
-pub fn sort_render_commands(commands: &mut Vec<RenderCommand>) {
+pub fn sort_render_commands(
+    commands: &mut Vec<RenderCommandUnsorted>,
+    output: &mut Vec<RenderCommand>,
+) {
     let len = commands.len();
     sort_segment(commands, 0, len);
+
+    output.clear();
+
+    for cmd in commands.drain(..) {
+        if let RenderCommandUnsorted::RenderCommand { command, .. } = cmd {
+            output.push(command);
+        }
+    }
 }
 
-fn sort_segment(commands: &mut [RenderCommand], start: usize, end: usize) {
+fn sort_segment(commands: &mut [RenderCommandUnsorted], start: usize, end: usize) {
     let mut items: Vec<(usize, usize, i32)> = Vec::new();
     let mut i = start;
 
     while i < end {
         if let Some(kind) = group_start(&commands[i]) {
             let group_start_idx = i;
-            let group_zindex = commands[i].zindex();
+            let group_zindex = get_zindex(&commands[i]);
             let mut depth = 1;
             i += 1;
 
@@ -269,14 +291,14 @@ fn sort_segment(commands: &mut [RenderCommand], start: usize, end: usize) {
         } else if group_end(&commands[i]).is_some() {
             break;
         } else {
-            items.push((i, i + 1, commands[i].zindex()));
+            items.push((i, i + 1, get_zindex(&commands[i])));
             i += 1;
         }
     }
 
     items.sort_by_key(|&(start, _, z)| (z, start));
 
-    let original: Vec<RenderCommand> = commands[start..end].to_vec();
+    let original: Vec<RenderCommandUnsorted> = commands[start..end].to_vec();
     let base = start;
 
     let mut write_pos = start;
@@ -381,6 +403,8 @@ pub fn render(
         state.last_interaction_state = state.interaction_state.clone();
     }
 
+    state.render_state.unsorted_commands.clear();
+
     if force_redraw || need_to_redraw {
         profiling::scope!("clew :: Collect Render Commands");
 
@@ -395,6 +419,7 @@ pub fn render(
                 strings,
                 layout_direction: state.layout_direction,
                 commands: &mut state.render_state.commands,
+                unsorted_commands: &mut state.render_state.unsorted_commands,
             };
 
             match layout_item {
@@ -461,23 +486,34 @@ pub fn render(
 
                     let rect = rect.px(&render_context);
 
-                    state.render_state.commands.push(RenderCommand::PushClip {
-                        rect,
-                        shape,
-                        zindex: *zindex,
-                    })
+                    state.render_state.unsorted_commands.push(
+                        RenderCommandUnsorted::RenderCommand {
+                            zindex: *zindex,
+                            command: RenderCommand::PushClip { rect, shape },
+                        },
+                    )
                 }
                 LayoutItem::PopClip => {
-                    state.render_state.commands.push(RenderCommand::PopClip);
+                    state.render_state.unsorted_commands.push(
+                        RenderCommandUnsorted::RenderCommand {
+                            zindex: 0,
+                            command: RenderCommand::PopClip,
+                        },
+                    );
                 }
                 LayoutItem::BeginGroup { zindex } => {
                     state
                         .render_state
-                        .commands
-                        .push(RenderCommand::BeginGroup { zindex: *zindex });
+                        .unsorted_commands
+                        .push(RenderCommandUnsorted::BeginGroup { zindex: 0 });
                 }
                 LayoutItem::EndGroup => {
-                    state.render_state.commands.push(RenderCommand::EndGroup);
+                    // state.render_state.commands.push(RenderCommand::EndGroup);
+
+                    state
+                        .render_state
+                        .unsorted_commands
+                        .push(RenderCommandUnsorted::EndGroup);
                 }
             }
         }
@@ -501,7 +537,10 @@ pub fn render(
         //     println!("  {}: {:?}", i, cmd);
         // }
 
-        sort_render_commands(&mut state.render_state.commands);
+        sort_render_commands(
+            &mut state.render_state.unsorted_commands,
+            &mut state.render_state.commands,
+        );
 
         // println!("After sort:");
         // for (i, cmd) in state.render_state.commands.iter().enumerate() {
@@ -524,14 +563,16 @@ pub fn render(
 }
 
 fn render_debug_boundary(ctx: &mut RenderContext, placement: &WidgetPlacement) {
-    ctx.push_command(RenderCommand::Rect {
-        zindex: placement.zindex,
-        boundary: placement.rect.shrink(2.).px(ctx),
-        fill: None,
-        border_radius: None,
-        border: Some(Border::all(BorderSide::new(
-            2.,
-            ColorRgba::from_hex(0xFFFF0000),
-        ))),
-    });
+    ctx.push_command(
+        placement.zindex,
+        RenderCommand::Rect {
+            boundary: placement.rect.shrink(2.).px(ctx),
+            fill: None,
+            border_radius: None,
+            border: Some(Border::all(BorderSide::new(
+                2.,
+                ColorRgba::from_hex(0xFFFF0000),
+            ))),
+        },
+    );
 }

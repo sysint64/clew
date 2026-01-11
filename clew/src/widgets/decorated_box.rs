@@ -312,23 +312,27 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
     match state.shape {
         BoxShape::Rect => {
             if let Some(color) = state.color {
-                ctx.push_command(RenderCommand::Rect {
-                    zindex: placement.zindex,
-                    boundary: placement.rect.px(ctx),
-                    fill: Some(Fill::Color(color)),
-                    border_radius: state.border_radius.map(|it| it.px(ctx)),
-                    border: state.border.map(|it| it.px(ctx)),
-                });
+                ctx.push_command(
+                    placement.zindex,
+                    RenderCommand::Rect {
+                        boundary: placement.rect.px(ctx),
+                        fill: Some(Fill::Color(color)),
+                        border_radius: state.border_radius.map(|it| it.px(ctx)),
+                        border: state.border.map(|it| it.px(ctx)),
+                    },
+                );
             }
 
             for gradient in &state.gradients {
-                ctx.push_command(RenderCommand::Rect {
-                    zindex: placement.zindex,
-                    boundary: placement.rect.px(ctx),
-                    fill: Some(Fill::Gradient(gradient.clone())),
-                    border_radius: state.border_radius.map(|it| it.px(ctx)),
-                    border: state.border.map(|it| it.px(ctx)),
-                });
+                ctx.push_command(
+                    placement.zindex,
+                    RenderCommand::Rect {
+                        boundary: placement.rect.px(ctx),
+                        fill: Some(Fill::Gradient(gradient.clone())),
+                        border_radius: state.border_radius.map(|it| it.px(ctx)),
+                        border: state.border.map(|it| it.px(ctx)),
+                    },
+                );
             }
         }
         BoxShape::Oval => {
@@ -341,21 +345,25 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
             });
 
             if let Some(color) = state.color {
-                ctx.push_command(RenderCommand::Oval {
-                    zindex: placement.zindex,
-                    boundary: placement.rect.px(ctx),
-                    fill: Some(Fill::Color(color)),
-                    border,
-                });
+                ctx.push_command(
+                    placement.zindex,
+                    RenderCommand::Oval {
+                        boundary: placement.rect.px(ctx),
+                        fill: Some(Fill::Color(color)),
+                        border,
+                    },
+                );
             }
 
             for gradient in &state.gradients {
-                ctx.push_command(RenderCommand::Oval {
-                    zindex: placement.zindex,
-                    boundary: placement.rect.px(ctx),
-                    fill: Some(Fill::Gradient(gradient.clone())),
-                    border,
-                });
+                ctx.push_command(
+                    placement.zindex,
+                    RenderCommand::Oval {
+                        boundary: placement.rect.px(ctx),
+                        fill: Some(Fill::Gradient(gradient.clone())),
+                        border,
+                    },
+                );
             }
         }
     }

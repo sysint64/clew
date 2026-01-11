@@ -158,9 +158,6 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> Renderer for TinySkiaRenderer<D, W
                     RenderCommand::PopClip => {
                         // TODO
                     }
-                    RenderCommand::BeginGroup { .. } | RenderCommand::EndGroup => {
-                        // No-op
-                    }
                     RenderCommand::Svg {
                         boundary,
                         asset_id,

@@ -119,10 +119,12 @@ pub fn svg(asset_id: &'static str) -> SvgBuilder {
 }
 
 pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &State) {
-    ctx.push_command(RenderCommand::Svg {
-        zindex: placement.zindex,
-        boundary: placement.rect.px(ctx),
-        asset_id: state.asset_id,
-        tint_color: state.color,
-    });
+    ctx.push_command(
+        placement.zindex,
+        RenderCommand::Svg {
+            boundary: placement.rect.px(ctx),
+            asset_id: state.asset_id,
+            tint_color: state.color,
+        },
+    );
 }

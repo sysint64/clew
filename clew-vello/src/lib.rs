@@ -573,9 +573,6 @@ impl Renderer for VelloRenderer {
                         log::warn!("SVG with ID = {} not found", asset_id);
                     }
                 }
-                RenderCommand::BeginGroup { .. } | RenderCommand::EndGroup => {
-                    // No-op
-                }
             }
         }
 

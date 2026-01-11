@@ -1,8 +1,13 @@
-use std::any::Any;
 use smallvec::SmallVec;
+use std::any::Any;
 
 use crate::{
-    AlignX, AlignY, Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, TextAlign, Vec2, WidgetId, WidgetRef, WidgetType, impl_id, impl_size_methods, layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement}, render::{PixelExtension, RenderCommand, RenderContext}, state::WidgetState, text::TextId
+    AlignX, AlignY, Clip, ColorRgba, Constraints, EdgeInsets, Size, SizeConstraint, TextAlign,
+    Vec2, WidgetId, WidgetRef, WidgetType, impl_id, impl_size_methods,
+    layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
+    render::{PixelExtension, RenderCommand, RenderContext},
+    state::WidgetState,
+    text::TextId,
 };
 
 use super::builder::BuildContext;
@@ -239,11 +244,13 @@ pub fn render(ctx: &mut RenderContext, placement: &WidgetPlacement, state: &Stat
             state.text_align_y.position(size.y, text_size.y),
         );
 
-    ctx.push_command(RenderCommand::Text {
-        zindex: placement.zindex,
-        x: text_position.x,
-        y: text_position.y,
-        text_id: state.text_id,
-        tint_color: Some(state.color),
-    });
+    ctx.push_command(
+        placement.zindex,
+        RenderCommand::Text {
+            x: text_position.x,
+            y: text_position.y,
+            text_id: state.text_id,
+            tint_color: Some(state.color),
+        },
+    );
 }

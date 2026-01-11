@@ -1,14 +1,10 @@
-use std::any::Any;
+use std::{any::Any, sync::Arc};
 
 use clew_derive::WidgetBuilder;
 use smallvec::{SmallVec, smallvec};
 
 use crate::{
-    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, Gradient, LinearGradient,
-    RadialGradient, WidgetId, WidgetRef, WidgetType,
-    layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
-    render::{Fill, PixelExtension, RenderCommand, RenderContext},
-    state::WidgetState,
+    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, Gradient, LinearGradient, RadialGradient, WidgetId, WidgetRef, WidgetType, impl_id, layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement}, render::{Fill, PixelExtension, RenderCommand, RenderContext}, state::WidgetState
 };
 
 use super::{FrameBuilder, builder::BuildContext};
@@ -27,21 +23,22 @@ pub struct DecoratedBoxBuilder {
 }
 
 pub struct DecorationBuilder {
-    id: WidgetId,
-    color: Option<ColorRgba>,
-    gradients: SmallVec<[Gradient; 4]>,
-    border_radius: Option<BorderRadius>,
-    border: Option<Border>,
-    shape: BoxShape,
+    pub(crate) id: WidgetId,
+    pub(crate) color: Option<ColorRgba>,
+    pub(crate) gradients: SmallVec<[Gradient; 4]>,
+    pub(crate) border_radius: Option<BorderRadius>,
+    pub(crate) border: Option<Border>,
+    pub(crate) defer: Option<Box<dyn Fn(&BuildContext, bool, bool, u32) -> DecorationBuilder>>,
+    pub(crate) shape: BoxShape,
 }
 
 #[derive(Clone, PartialEq)]
 pub struct State {
-    shape: BoxShape,
-    color: Option<ColorRgba>,
-    gradients: SmallVec<[Gradient; 4]>,
-    border_radius: Option<BorderRadius>,
-    border: Option<Border>,
+    pub(crate) shape: BoxShape,
+    pub(crate) color: Option<ColorRgba>,
+    pub(crate) gradients: SmallVec<[Gradient; 4]>,
+    pub(crate) border_radius: Option<BorderRadius>,
+    pub(crate) border: Option<Border>,
 }
 
 impl WidgetState for State {
@@ -62,6 +59,8 @@ impl WidgetState for State {
 }
 
 impl DecorationBuilder {
+    impl_id!();
+
     pub fn color(mut self, color: ColorRgba) -> Self {
         self.color = Some(color);
 
@@ -104,6 +103,14 @@ impl DecorationBuilder {
         self
     }
 
+    pub fn defer<F>(mut self, f: F) -> Self
+    where
+        F: Fn(&BuildContext, bool, bool, u32) -> DecorationBuilder + 'static,
+    {
+        self.defer = Some(Box::new(f));
+        self
+    }
+
     pub fn build(self, context: &mut BuildContext) -> WidgetRef {
         let id = self.id.with_seed(context.id_seed);
 
@@ -117,6 +124,12 @@ impl DecorationBuilder {
                 border: self.border,
             },
         );
+
+        if let Some(defer) = self.defer {
+            context
+                .decoration_defer
+                .push((id, context.child_nth, defer));
+        }
 
         WidgetRef::new(WidgetType::of::<DecoratedBox>(), id)
     }
@@ -234,6 +247,7 @@ pub fn decoration() -> DecorationBuilder {
         border_radius: None,
         border: None,
         shape: BoxShape::Rect,
+        defer: None,
     }
 }
 

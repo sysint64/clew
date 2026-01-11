@@ -1117,9 +1117,6 @@ pub fn layout(
                     }));
                 }
 
-                current_position.x += padding.left;
-                current_position.y += padding.top;
-
                 let inside_size = widget_size - Vec2::new(margin.horizontal(), margin.vertical());
                 let decorator_rect = Rect::from_pos_size(current_position + offset, inside_size);
 
@@ -1146,6 +1143,9 @@ pub fn layout(
                 } else {
                     layout_items.push(LayoutItem::BeginGroup { zindex: *zindex });
                 }
+
+                current_position.x += padding.left;
+                current_position.y += padding.top;
 
                 match kind {
                     ContainerKind::VStack {

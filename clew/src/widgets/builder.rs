@@ -17,7 +17,7 @@ use crate::{
     text::{FontResources, StringId, StringInterner, TextId, TextsResources},
 };
 
-use super::{FrameBuilder, frame::FrameBuilderFlags};
+use super::{FrameBuilder, decorated_box::DecorationBuilder, frame::FrameBuilderFlags};
 
 #[derive(Debug)]
 pub enum ApplicationEvent {
@@ -39,6 +39,9 @@ pub struct MutUserDataStack<'a> {
 }
 
 pub struct BuildContext<'a, 'b> {
+    pub child_nth: u32,
+    pub child_nth_stack: Vec<u32>,
+    pub last_child_nth: u32,
     pub ignore_pointer: bool,
     pub layout_commands: &'a mut Vec<LayoutCommand>,
     pub widgets_states: &'a mut WidgetsStates,
@@ -66,6 +69,12 @@ pub struct BuildContext<'a, 'b> {
     pub delta_time: f32,
     pub animations_stepped_this_frame: &'a mut HashSet<usize>,
     pub layout: Option<Layout>,
+    pub decoration_defer: Vec<(
+        WidgetId,
+        u32,
+        Box<dyn Fn(&BuildContext, bool, bool, u32) -> DecorationBuilder>,
+    )>,
+    pub decoration_defer_start_stack: Vec<usize>,
 }
 
 pub trait Resolve<V> {
@@ -209,6 +218,19 @@ impl BuildContext<'_, '_> {
 
     #[profiling::function]
     pub fn push_layout_command(&mut self, command: LayoutCommand) {
+        match command {
+            LayoutCommand::BeginContainer { .. } => {
+                self.child_nth += 1;
+                self.child_nth_stack.push(self.child_nth);
+                self.child_nth = 0;
+            }
+            LayoutCommand::EndContainer => {
+                self.child_nth = self.child_nth_stack.pop().unwrap_or(0);
+            }
+            LayoutCommand::Leaf { .. } => self.child_nth += 1,
+            _ => {}
+        }
+
         self.layout_commands.push(command);
     }
 
@@ -349,7 +371,7 @@ macro_rules! impl_size_methods {
 macro_rules! impl_id {
     () => {
         #[track_caller]
-        pub fn id(mut self, id: impl Hash) -> Self {
+        pub fn id(mut self, id: impl std::hash::Hash) -> Self {
             self.id = WidgetId::auto_with_seed(id);
 
             self

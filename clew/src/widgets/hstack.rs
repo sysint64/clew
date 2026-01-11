@@ -76,7 +76,40 @@ impl HStackBuilder {
             clip: self.frame.clip,
         });
 
+        let start = context.decoration_defer.len();
+        context.decoration_defer_start_stack.push(start);
+
         callback(context);
+
+        let start = context.decoration_defer_start_stack.pop().unwrap();
+        let end = context.decoration_defer.len();
+
+        for i in start..end {
+            let (id, nth, defer) = &context.decoration_defer[i];
+
+            let builder = defer(
+                context,
+                *nth == 0,
+                *nth == context.child_nth.saturating_sub(1),
+                *nth,
+            );
+            let state = context
+                .widgets_states
+                .decorated_box
+                .get_mut(*id)
+                .expect("Decoration state should be initialized for defered");
+
+            if builder.border_radius.is_some() {
+                state.border_radius = builder.border_radius;
+            }
+
+            if builder.color.is_some() {
+                state.color = builder.color;
+            }
+        }
+
+        context.decoration_defer.truncate(start);
+
         context.push_layout_command(LayoutCommand::EndContainer);
 
         if self.frame.offset_x != 0. || self.frame.offset_y != 0. {

@@ -89,6 +89,8 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
     window_state.animations_stepped_this_frame.clear();
 
     let mut build_context = BuildContext {
+        child_nth: 0,
+        last_child_nth: 0,
         ignore_pointer: false,
         layout_commands: &mut window_state.ui_state.layout_commands,
         widgets_states: &mut window_state.ui_state.widgets_states,
@@ -115,6 +117,9 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         foregrounds: &mut window_state.ui_state.foregrounds,
         non_interactable: &mut window_state.ui_state.non_interactable,
         layout: None,
+        child_nth_stack: Vec::new(),
+        decoration_defer: Vec::new(),
+        decoration_defer_start_stack: Vec::new(),
     };
 
     window_state.delta_time_timer = Instant::now();

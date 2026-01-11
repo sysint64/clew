@@ -128,7 +128,7 @@ impl<'a> TextBuilder<'a> {
             }
         }
 
-        let (mut backgrounds, foregrounds) = context.resolve_decorators(&mut self.frame);
+        let (backgrounds, foregrounds) = context.resolve_decorators(&mut self.frame);
 
         context.push_layout_command(LayoutCommand::Leaf {
             widget_ref,

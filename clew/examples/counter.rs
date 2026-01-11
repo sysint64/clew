@@ -54,10 +54,7 @@ impl Window<CounterApplication, ()> for MainWindow {
                     .spacing(12.)
                     .cross_axis_alignment(ui::CrossAxisAlignment::Center)
                     .build(ctx, |ctx| {
-                        ui::text(
-                            &bumpalo::format!(in &ctx.phase_allocator, "Counter: {}", self.counter),
-                        )
-                        .build(ctx);
+                        ui::text(&format!("Counter: {}", self.counter)).build(ctx);
 
                         ui::hstack().build(ctx, |ctx| {
                             if clew_widgets::button("+").build(ctx).clicked() {

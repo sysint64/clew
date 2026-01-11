@@ -1,6 +1,5 @@
 use std::{
     any::Any,
-    collections::{HashMap, HashSet},
     hash::{Hash, Hasher},
     sync::Arc,
 };
@@ -13,8 +12,8 @@ use crate::{
     interaction::InteractionState,
     io::UserInput,
     layout::LayoutCommand,
-    state::WidgetsStates,
-    text::{FontResources, StringId, StringInterner, TextId, TextsResources},
+    state::{UiState, WidgetsStates},
+    text::{FontResources, TextsResources},
 };
 
 use super::{FrameBuilder, decorated_box::DecorationBuilder, frame::FrameBuilderFlags};
@@ -49,36 +48,34 @@ pub struct MutUserDataStack<'a> {
 }
 
 pub struct BuildContext<'a, 'b> {
-    pub ignore_pointer: bool,
-    pub layout_commands: &'a mut Vec<LayoutCommand>,
-    pub widgets_states: &'a mut WidgetsStates,
-    pub event_queue: &'a mut Vec<Arc<dyn Any + Send>>,
-    pub next_event_queue: &'a mut Vec<Arc<dyn Any + Send>>,
-    pub broadcast_event_queue: &'a mut Vec<Arc<dyn Any + Send>>,
-    pub text: &'a mut TextsResources<'b>,
-    pub fonts: &'a mut FontResources,
-    pub view: &'a View,
-    pub string_interner: &'a mut StringInterner,
-    pub strings: &'a mut HashMap<StringId, TextId>,
-    pub async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
-    pub broadcast_async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
-    pub event_loop_proxy: Arc<dyn ApplicationEventLoopProxy>,
-    pub id_seed: Option<u64>,
-    // pub user_data: Vec<Box<dyn Any + Send>>,
-    pub user_data: Option<&'a UserDataStack<'a>>,
-    pub scoped_user_data: Option<&'a mut MutUserDataStack<'a>>,
-    pub backgrounds: &'a mut SmallVec<[WidgetRef; 8]>,
-    pub foregrounds: &'a mut SmallVec<[WidgetRef; 8]>,
-    pub non_interactable: &'a mut FxHashSet<WidgetId>,
-    pub phase_allocator: &'a bumpalo::Bump,
-    pub input: &'a UserInput,
-    pub interaction: &'a mut InteractionState,
-    pub delta_time: f32,
-    pub animations_stepped_this_frame: &'a mut HashSet<usize>,
-    pub child_index: u32,
-    pub child_index_stack: Vec<u32>,
-    pub decoration_defer: Vec<(WidgetId, u32, DecorationDeferFn)>,
-    pub decoration_defer_start_stack: Vec<usize>,
+    pub(crate) ignore_pointer: bool,
+    pub(crate) layout_commands: &'a mut Vec<LayoutCommand>,
+    pub(crate) widgets_states: &'a mut WidgetsStates,
+    pub(crate) event_queue: &'a mut Vec<Arc<dyn Any + Send>>,
+    pub(crate) next_event_queue: &'a mut Vec<Arc<dyn Any + Send>>,
+    pub(crate) broadcast_event_queue: &'a mut Vec<Arc<dyn Any + Send>>,
+    pub(crate) text: &'a mut TextsResources<'b>,
+    pub(crate) fonts: &'a mut FontResources,
+    pub(crate) view: &'a View,
+    pub(crate) async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
+    pub(crate) broadcast_async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
+    pub(crate) event_loop_proxy: Arc<dyn ApplicationEventLoopProxy>,
+    pub(crate) id_seed: Option<u64>,
+    // pub(crate) user_data: Vec<Box<dyn Any + Send>>,
+    pub(crate) user_data: Option<&'a UserDataStack<'a>>,
+    pub(crate) scoped_user_data: Option<&'a mut MutUserDataStack<'a>>,
+    pub(crate) backgrounds: &'a mut SmallVec<[WidgetRef; 8]>,
+    pub(crate) foregrounds: &'a mut SmallVec<[WidgetRef; 8]>,
+    pub(crate) non_interactable: &'a mut FxHashSet<WidgetId>,
+    pub(crate) phase_allocator: &'a bumpalo::Bump,
+    pub(crate) input: &'a UserInput,
+    pub(crate) interaction: &'a mut InteractionState,
+    pub(crate) delta_time: f32,
+    pub(crate) animations_stepped_this_frame: &'a mut FxHashSet<usize>,
+    pub(crate) child_index: u32,
+    pub(crate) child_index_stack: Vec<u32>,
+    pub(crate) decoration_defer: Vec<(WidgetId, u32, DecorationDeferFn)>,
+    pub(crate) decoration_defer_start_stack: Vec<usize>,
 }
 
 pub trait Resolve<V> {
@@ -101,7 +98,49 @@ where
     }
 }
 
-impl BuildContext<'_, '_> {
+impl<'a, 'b> BuildContext<'a, 'b> {
+    // #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        ui_state: &'a mut UiState,
+        texts: &'a mut TextsResources<'b>,
+        fonts: &'a mut FontResources,
+        broadcast_event_queue: &'a mut Vec<Arc<dyn Any + Send>>,
+        broadcast_async_tx: &'a mut tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
+        event_loop_proxy: Arc<dyn ApplicationEventLoopProxy>,
+        delta_time: f32,
+    ) -> BuildContext<'a, 'b> {
+        ui_state.animations_stepped_this_frame.clear();
+
+        BuildContext {
+            child_index: 0,
+            ignore_pointer: false,
+            layout_commands: &mut ui_state.layout_commands,
+            widgets_states: &mut ui_state.widgets_states,
+            event_queue: &mut ui_state.current_event_queue,
+            next_event_queue: &mut ui_state.next_event_queue,
+            text: texts,
+            fonts,
+            view: &ui_state.view,
+            async_tx: &mut ui_state.async_tx,
+            broadcast_event_queue,
+            broadcast_async_tx,
+            event_loop_proxy,
+            id_seed: None,
+            user_data: None,
+            scoped_user_data: None,
+            phase_allocator: &mut ui_state.phase_allocator,
+            backgrounds: &mut ui_state.backgrounds,
+            input: &ui_state.user_input,
+            interaction: &mut ui_state.interaction_state,
+            delta_time,
+            animations_stepped_this_frame: &mut ui_state.animations_stepped_this_frame,
+            foregrounds: &mut ui_state.foregrounds,
+            non_interactable: &mut ui_state.non_interactable,
+            child_index_stack: Vec::new(),
+            decoration_defer: Vec::new(),
+            decoration_defer_start_stack: Vec::new(),
+        }
+    }
     /// Advances an animation by the current frame's delta time.
     ///
     /// This method updates the animation's internal state and status
@@ -125,6 +164,18 @@ impl BuildContext<'_, '_> {
 
     pub fn child_index(&self) -> u32 {
         self.child_index
+    }
+
+    pub fn phase_allocator(&self) -> &bumpalo::Bump {
+        self.phase_allocator
+    }
+
+    pub fn input(&self) -> &UserInput {
+        self.input
+    }
+
+    pub fn view(&self) -> &View {
+        self.view
     }
 
     #[inline]

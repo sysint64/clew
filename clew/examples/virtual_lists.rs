@@ -62,13 +62,11 @@ impl Window<DemoApplication, ()> for MainWindow {
                             .items_count(10_000_000_000)
                             .item_size(32.)
                             .build(ctx, |ctx, index| {
-                                ui::text(
-                                    &bumpalo::format!(in &ctx.phase_allocator, "Item {}", index),
-                                )
-                                .padding(ui::EdgeInsets::symmetric(16., 0.))
-                                .height(32.)
-                                .fill_max_width()
-                                .build(ctx);
+                                ui::text(&format!("Item {index}"))
+                                    .padding(ui::EdgeInsets::symmetric(16., 0.))
+                                    .height(32.)
+                                    .fill_max_width()
+                                    .build(ctx);
                             });
 
                         if response.overflow_y {
@@ -94,14 +92,12 @@ impl Window<DemoApplication, ()> for MainWindow {
                             .items_count(10_000_000_000)
                             .item_size(150.)
                             .build(ctx, |ctx, index| {
-                                ui::text(
-                                    &bumpalo::format!(in &ctx.phase_allocator, "Item {}", index),
-                                )
-                                .text_vertical_align(ui::AlignY::Center)
-                                .padding(ui::EdgeInsets::symmetric(16., 0.))
-                                .width(150.)
-                                .fill_max_height()
-                                .build(ctx);
+                                ui::text(&format!("Item {index}"))
+                                    .text_vertical_align(ui::AlignY::Center)
+                                    .padding(ui::EdgeInsets::symmetric(16., 0.))
+                                    .width(150.)
+                                    .fill_max_height()
+                                    .build(ctx);
                             });
 
                         if response.overflow_x {

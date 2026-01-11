@@ -86,39 +86,16 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
     }
 
     broadcast_event_queue.clear();
-    window_state.animations_stepped_this_frame.clear();
 
-    let mut build_context = BuildContext {
-        child_index: 0,
-        ignore_pointer: false,
-        layout_commands: &mut window_state.ui_state.layout_commands,
-        widgets_states: &mut window_state.ui_state.widgets_states,
-        event_queue: &mut window_state.ui_state.current_event_queue,
-        next_event_queue: &mut window_state.ui_state.next_event_queue,
-        text: &mut window_state.texts,
+    let mut build_context = BuildContext::new(
+        &mut window_state.ui_state,
+        &mut window_state.texts,
         fonts,
-        view: &window_state.ui_state.view,
-        string_interner,
-        async_tx: &mut window_state.ui_state.async_tx,
         broadcast_event_queue,
         broadcast_async_tx,
         event_loop_proxy,
-        id_seed: None,
-        user_data: None,
-        scoped_user_data: None,
-        strings: &mut window_state.strings,
-        phase_allocator: &mut window_state.ui_state.phase_allocator,
-        backgrounds: &mut window_state.ui_state.backgrounds,
-        input: &window_state.ui_state.user_input,
-        interaction: &mut window_state.ui_state.interaction_state,
-        delta_time: window_state.delta_time_timer.elapsed().as_secs_f32(),
-        animations_stepped_this_frame: &mut window_state.animations_stepped_this_frame,
-        foregrounds: &mut window_state.ui_state.foregrounds,
-        non_interactable: &mut window_state.ui_state.non_interactable,
-        child_index_stack: Vec::new(),
-        decoration_defer: Vec::new(),
-        decoration_defer_start_stack: Vec::new(),
-    };
+        window_state.delta_time_timer.elapsed().as_secs_f32(),
+    );
 
     window_state.delta_time_timer = Instant::now();
     window_state.window.build(app, &mut build_context);

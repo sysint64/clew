@@ -9,7 +9,7 @@ use crate::{
     layout::{LayoutItem, WidgetPlacement, layout},
     state::UiState,
     text::{FontResources, StringId, StringInterner, TextId, TextsResources},
-    widgets::{self, builder::BuildContext},
+    widgets,
 };
 
 #[derive(Debug, Default)]
@@ -178,22 +178,6 @@ impl PixelExtension<ClipShape> for ClipShape {
                 border_radius: border_radius.px(ctx),
             },
             ClipShape::Oval => self,
-        }
-    }
-}
-
-#[profiling::function]
-pub fn cache_string<F>(ctx: &mut BuildContext, symbol: StringId, create_text_id: F) -> TextId
-where
-    F: FnOnce(&mut BuildContext) -> TextId,
-{
-    match ctx.strings.get(&symbol) {
-        Some(text_id) => *text_id,
-        None => {
-            let text_id = create_text_id(ctx);
-            ctx.strings.insert(symbol, text_id);
-
-            text_id
         }
     }
 }

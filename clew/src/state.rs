@@ -37,6 +37,7 @@ pub struct UiState {
     pub backgrounds: SmallVec<[WidgetRef; 8]>,
     pub foregrounds: SmallVec<[WidgetRef; 8]>,
     pub non_interactable: FxHashSet<WidgetId>,
+    pub animations_stepped_this_frame: FxHashSet<usize>,
     // TODO(sysint64): Maybe move it to build context
     pub layout_direction: LayoutDirection,
     pub async_tx: tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
@@ -196,6 +197,7 @@ impl UiState {
             user_input: UserInput::default(),
             layout_direction: LayoutDirection::LTR,
             non_interactable: FxHashSet::default(),
+            animations_stepped_this_frame: FxHashSet::default(),
             async_tx,
             async_rx,
         }

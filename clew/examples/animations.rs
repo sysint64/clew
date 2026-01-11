@@ -197,8 +197,8 @@ impl Window<AnimationsApplication, ()> for MainWindow {
     #[profiling::function]
     fn build(&mut self, _: &mut AnimationsApplication, ctx: &mut ui::BuildContext) {
         let mouse_pos = ui::Vec2::new(
-            ctx.input.mouse_x / ctx.view.scale_factor,
-            ctx.input.mouse_y / ctx.view.scale_factor,
+            ctx.input().mouse_x / ctx.view().scale_factor,
+            ctx.input().mouse_y / ctx.view().scale_factor,
         );
 
         self.mx.approach(mouse_pos.x);

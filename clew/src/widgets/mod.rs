@@ -16,11 +16,11 @@ pub mod vstack;
 pub mod widget;
 pub mod zstack;
 
-pub use frame::FrameBuilder;
 pub use builder::{BuildContext, Resolve};
 pub use component::{Component, component};
-pub use decorated_box::{decorated_box, decoration};
+pub use decorated_box::{DecorationBuilder, decorated_box, decoration};
 pub use for_each::for_each;
+pub use frame::FrameBuilder;
 pub use gap::gap;
 pub use gesture_detector::{DragState, GestureDetectorResponse, gesture_detector};
 pub use hstack::hstack;

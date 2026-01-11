@@ -83,11 +83,7 @@ impl FrameBuilder {
         context.ignore_pointer = self.ignore_pointer && context.ignore_pointer;
 
         if needs_container {
-            let mut backgrounds = std::mem::take(context.backgrounds);
-            backgrounds.append(&mut self.backgrounds);
-
-            let mut foregrounds = std::mem::take(context.foregrounds);
-            foregrounds.append(&mut self.foregrounds);
+            let (backgrounds, foregrounds) = context.resolve_decorators(self);
 
             context.push_layout_command(LayoutCommand::BeginContainer {
                 backgrounds,

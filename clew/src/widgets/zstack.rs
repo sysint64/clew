@@ -31,11 +31,7 @@ impl ZStackBuilder {
     where
         F: FnOnce(&mut BuildContext),
     {
-        let mut backgrounds = std::mem::take(context.backgrounds);
-        backgrounds.append(&mut self.frame.backgrounds);
-
-        let mut foregrounds = std::mem::take(context.foregrounds);
-        foregrounds.append(&mut self.frame.foregrounds);
+        let (backgrounds, foregrounds) = context.resolve_decorators(&mut self.frame);
 
         if self.frame.offset_x != 0. || self.frame.offset_y != 0. {
             context.push_layout_command(LayoutCommand::BeginOffset {

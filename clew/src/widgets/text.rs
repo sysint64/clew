@@ -128,11 +128,7 @@ impl<'a> TextBuilder<'a> {
             }
         }
 
-        let mut backgrounds = std::mem::take(context.backgrounds);
-        backgrounds.append(&mut self.frame.backgrounds);
-
-        let mut foregrounds = std::mem::take(context.foregrounds);
-        foregrounds.append(&mut self.frame.foregrounds);
+        let (mut backgrounds, foregrounds) = context.resolve_decorators(&mut self.frame);
 
         context.push_layout_command(LayoutCommand::Leaf {
             widget_ref,

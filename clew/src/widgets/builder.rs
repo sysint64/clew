@@ -323,6 +323,22 @@ impl BuildContext<'_, '_> {
         result
     }
 
+    #[inline]
+    pub(crate) fn resolve_decorators(
+        &mut self,
+        frame: &mut FrameBuilder,
+    ) -> (SmallVec<[WidgetRef; 8]>, SmallVec<[WidgetRef; 8]>) {
+        self.scope(frame.id, |ctx| {
+            let mut backgrounds = std::mem::take(ctx.backgrounds);
+            backgrounds.append(&mut frame.backgrounds);
+
+            let mut foregrounds = std::mem::take(ctx.foregrounds);
+            foregrounds.append(&mut frame.foregrounds);
+
+            (backgrounds, foregrounds)
+        })
+    }
+
     pub fn emit<E: Any + Send + 'static>(&mut self, event: E) {
         self.next_event_queue.push(Arc::new(event));
     }

@@ -88,12 +88,8 @@ impl ScrollAreaBuilder {
         let id = self.frame.id.with_seed(context.id_seed);
         let widget_ref = WidgetRef::new(WidgetType::of::<ScrollAreaWidget>(), id);
 
-        let mut backgrounds = std::mem::take(context.backgrounds);
-        backgrounds.append(&mut self.frame.backgrounds);
+        let (mut backgrounds, foregrounds) = context.resolve_decorators(&mut self.frame);
         backgrounds.push(widget_ref);
-
-        let mut foregrounds = std::mem::take(context.foregrounds);
-        foregrounds.append(&mut self.frame.foregrounds);
 
         let (offset_x, offset_y, response) = {
             let state = context

@@ -17,7 +17,7 @@ use crate::{
     text::{FontResources, StringId, StringInterner, TextId, TextsResources},
 };
 
-use super::{FrameBuilder, decorated_box::DecorationBuilder, frame::FrameBuilderFlags};
+use super::{FrameBuilder, decorated_box::DecorationDeferFn, frame::FrameBuilderFlags};
 
 #[derive(Debug)]
 pub enum ApplicationEvent {
@@ -39,9 +39,6 @@ pub struct MutUserDataStack<'a> {
 }
 
 pub struct BuildContext<'a, 'b> {
-    pub child_nth: u32,
-    pub child_nth_stack: Vec<u32>,
-    pub last_child_nth: u32,
     pub ignore_pointer: bool,
     pub layout_commands: &'a mut Vec<LayoutCommand>,
     pub widgets_states: &'a mut WidgetsStates,
@@ -68,12 +65,9 @@ pub struct BuildContext<'a, 'b> {
     pub interaction: &'a mut InteractionState,
     pub delta_time: f32,
     pub animations_stepped_this_frame: &'a mut HashSet<usize>,
-    pub layout: Option<Layout>,
-    pub decoration_defer: Vec<(
-        WidgetId,
-        u32,
-        Box<dyn Fn(&BuildContext, bool, bool, u32) -> DecorationBuilder>,
-    )>,
+    pub child_index: u32,
+    pub child_index_stack: Vec<u32>,
+    pub decoration_defer: Vec<(WidgetId, u32, DecorationDeferFn)>,
     pub decoration_defer_start_stack: Vec<usize>,
 }
 
@@ -119,6 +113,56 @@ impl BuildContext<'_, '_> {
         }
     }
 
+    pub fn child_index(&self) -> u32 {
+        self.child_index
+    }
+
+    #[inline]
+    pub fn handle_decoration_defer<F>(&mut self, callback: F)
+    where
+        F: FnOnce(&mut Self),
+    {
+        let start = self.decoration_defer.len();
+        self.decoration_defer_start_stack.push(start);
+
+        callback(self);
+
+        let start = self.decoration_defer_start_stack.pop().unwrap();
+        let end = self.decoration_defer.len();
+        let count = self.child_index.saturating_sub(1);
+
+        for i in start..end {
+            let (id, child_index, defer) = &self.decoration_defer[i];
+
+            let mut builder = defer(self, *child_index == 0, *child_index == count, *child_index);
+            let state = self
+                .widgets_states
+                .decorated_box
+                .get_mut(*id)
+                .expect("Decoration state should be initialized for defered");
+
+            if builder.border_radius.is_some() {
+                state.border_radius = builder.border_radius;
+            }
+
+            if builder.color.is_some() {
+                state.color = builder.color;
+            }
+
+            state.gradients.append(&mut builder.gradients);
+
+            if builder.border.is_some() {
+                state.border = builder.border;
+            }
+
+            if let Some(shape) = builder.shape {
+                state.shape = shape;
+            }
+        }
+
+        self.decoration_defer.truncate(start);
+    }
+
     pub fn provide<F, T: Any + Send>(&mut self, data: T, callback: F)
     where
         F: FnOnce(&mut Self),
@@ -155,11 +199,6 @@ impl BuildContext<'_, '_> {
 
         // Restore parent, dropping our node's reference
         self.scoped_user_data = node.parent;
-    }
-
-    #[inline]
-    pub fn take_layout(&mut self) -> Layout {
-        self.layout.take().unwrap_or_default()
     }
 
     pub fn of<T: 'static>(&self) -> Option<&T> {
@@ -220,14 +259,14 @@ impl BuildContext<'_, '_> {
     pub fn push_layout_command(&mut self, command: LayoutCommand) {
         match command {
             LayoutCommand::BeginContainer { .. } => {
-                self.child_nth += 1;
-                self.child_nth_stack.push(self.child_nth);
-                self.child_nth = 0;
+                self.child_index += 1;
+                self.child_index_stack.push(self.child_index);
+                self.child_index = 0;
             }
             LayoutCommand::EndContainer => {
-                self.child_nth = self.child_nth_stack.pop().unwrap_or(0);
+                self.child_index = self.child_index_stack.pop().unwrap_or(0);
             }
-            LayoutCommand::Leaf { .. } => self.child_nth += 1,
+            LayoutCommand::Leaf { .. } => self.child_index += 1,
             _ => {}
         }
 

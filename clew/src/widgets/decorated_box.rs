@@ -1,15 +1,21 @@
-use std::{any::Any, sync::Arc};
+use std::any::Any;
 
 use clew_derive::WidgetBuilder;
 use smallvec::{SmallVec, smallvec};
 
 use crate::{
-    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, Gradient, LinearGradient, RadialGradient, WidgetId, WidgetRef, WidgetType, impl_id, layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement}, render::{Fill, PixelExtension, RenderCommand, RenderContext}, state::WidgetState
+    Border, BorderRadius, BorderSide, BoxShape, ColorRgba, Gradient, LinearGradient,
+    RadialGradient, WidgetId, WidgetRef, WidgetType, impl_id,
+    layout::{DeriveWrapSize, LayoutCommand, WidgetPlacement},
+    render::{Fill, PixelExtension, RenderCommand, RenderContext},
+    state::WidgetState,
 };
 
 use super::{FrameBuilder, builder::BuildContext};
 
 pub struct DecoratedBox;
+
+pub(crate) type DecorationDeferFn = Box<dyn Fn(&BuildContext, bool, bool, u32) -> DecorationBuilder>;
 
 #[must_use = "widget is not rendered until .build(ctx) is called"]
 #[derive(WidgetBuilder)]
@@ -28,8 +34,8 @@ pub struct DecorationBuilder {
     pub(crate) gradients: SmallVec<[Gradient; 4]>,
     pub(crate) border_radius: Option<BorderRadius>,
     pub(crate) border: Option<Border>,
-    pub(crate) defer: Option<Box<dyn Fn(&BuildContext, bool, bool, u32) -> DecorationBuilder>>,
-    pub(crate) shape: BoxShape,
+    pub(crate) defer: Option<DecorationDeferFn>,
+    pub(crate) shape: Option<BoxShape>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -98,7 +104,7 @@ impl DecorationBuilder {
     }
 
     pub fn shape(mut self, shape: BoxShape) -> Self {
-        self.shape = shape;
+        self.shape = Some(shape);
 
         self
     }
@@ -118,7 +124,7 @@ impl DecorationBuilder {
             id,
             State {
                 color: self.color,
-                shape: self.shape,
+                shape: self.shape.unwrap_or(BoxShape::Rect),
                 gradients: self.gradients,
                 border_radius: self.border_radius,
                 border: self.border,
@@ -128,7 +134,7 @@ impl DecorationBuilder {
         if let Some(defer) = self.defer {
             context
                 .decoration_defer
-                .push((id, context.child_nth, defer));
+                .push((id, context.child_index, defer));
         }
 
         WidgetRef::new(WidgetType::of::<DecoratedBox>(), id)
@@ -246,7 +252,7 @@ pub fn decoration() -> DecorationBuilder {
         gradients: smallvec![],
         border_radius: None,
         border: None,
-        shape: BoxShape::Rect,
+        shape: None,
         defer: None,
     }
 }

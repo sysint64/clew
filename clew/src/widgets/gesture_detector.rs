@@ -2,7 +2,7 @@ use crate::{
     View, WidgetId, WidgetRef, WidgetType, impl_id, interaction::InteractionState, io::UserInput,
     state::WidgetState,
 };
-use std::{any::Any, hash::Hash};
+use std::any::Any;
 
 use super::builder::BuildContext;
 

@@ -58,7 +58,7 @@ impl ZStackBuilder {
             constraints: self.frame.constraints,
             clip: self.frame.clip,
         });
-        callback(context);
+        context.handle_decoration_defer(callback);
         context.push_layout_command(LayoutCommand::EndContainer);
 
         if self.frame.offset_x != 0. || self.frame.offset_y != 0. {

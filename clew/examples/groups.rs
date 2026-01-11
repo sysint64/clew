@@ -60,7 +60,7 @@ impl Window<DemoApplication, ()> for MainWindow {
 }
 
 fn group2(ctx: &mut ui::BuildContext, texts: &[&str]) {
-    let id = ctx.child_nth;
+    let id = ctx.child_index();
 
     ui::hstack()
         .padding(ui::EdgeInsets::all(16.))
@@ -68,13 +68,13 @@ fn group2(ctx: &mut ui::BuildContext, texts: &[&str]) {
             ui::decoration()
                 .id(id)
                 .color(ui::ColorRgba::from_hex(0xFF880088))
-                .defer(|ctx, is_first, is_last, index| {
+                .defer(|_, is_first, is_last, _| {
                     let mut decoration = ui::decoration();
                     if is_first {
-                        decoration = decoration.border_radius(ui::BorderRadius::top(3.));
+                        decoration = decoration.border_radius(ui::BorderRadius::top(8.));
                     }
                     if is_last {
-                        decoration = decoration.border_radius(ui::BorderRadius::bottom(3.));
+                        decoration = decoration.border_radius(ui::BorderRadius::bottom(8.));
                     }
                     decoration
                 })
@@ -95,15 +95,15 @@ fn grouped(ctx: &mut ui::BuildContext, text: &str) {
             .background(
                 ui::decoration()
                     .color(ui::ColorRgba::from_hex(0xFF888800))
-                    .defer(move |ctx, is_first, is_last, index| {
+                    .defer(move |_, is_first, is_last, _| {
                         let mut decoration = ui::decoration();
 
                         if is_first {
-                            decoration = decoration.border_radius(ui::BorderRadius::left(3.));
+                            decoration = decoration.border_radius(ui::BorderRadius::left(8.));
                         }
 
                         if is_last {
-                            decoration = decoration.border_radius(ui::BorderRadius::right(3.));
+                            decoration = decoration.border_radius(ui::BorderRadius::right(8.));
                         }
 
                         if response.is_hot() {

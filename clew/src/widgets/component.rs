@@ -1,5 +1,5 @@
 use crate::{WidgetId, impl_id, state::WidgetState};
-use std::{any::TypeId, hash::Hash};
+use std::any::TypeId;
 
 use super::{builder::BuildContext, scope::scope};
 

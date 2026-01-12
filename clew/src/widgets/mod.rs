@@ -1,6 +1,7 @@
 pub mod builder;
 pub mod component;
 pub mod decorated_box;
+pub mod editable_text;
 pub mod for_each;
 pub mod frame;
 pub mod gap;

@@ -4,7 +4,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 
 use crate::{
-    LayoutDirection, View, WidgetId, WidgetRef,
+    LayoutDirection, View, WidgetId, WidgetRef, editable_text,
     interaction::InteractionState,
     io::UserInput,
     layout::{LayoutCommand, LayoutItem, LayoutMeasure, LayoutState, WidgetPlacement},
@@ -53,6 +53,7 @@ pub struct WidgetsStates {
     pub decorated_box: TypedWidgetStates<decorated_box::State>,
     pub scroll_area: TypedWidgetStates<scroll_area::State>,
     pub text: TypedWidgetStates<text::State>,
+    pub editable_text: TypedWidgetStates<editable_text::State>,
     pub gesture_detector: TypedWidgetStates<gesture_detector::State>,
     pub svg: TypedWidgetStates<svg::State>,
     pub components: TypedWidgetStates<Box<dyn Any>>,

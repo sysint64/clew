@@ -11,6 +11,8 @@ mod layout;
 pub mod render;
 pub mod state;
 pub mod text;
+pub mod text_data;
+pub mod text_history;
 mod widget_id;
 pub mod widgets;
 

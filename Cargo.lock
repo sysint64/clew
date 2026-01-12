@@ -303,7 +303,6 @@ dependencies = [
  "clew-widgets",
  "cosmic-text",
  "env_logger",
- "glam",
  "log",
  "pollster",
  "profiling",

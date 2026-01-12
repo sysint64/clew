@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use crate::{
     LayoutDirection, View, WidgetId, WidgetRef, editable_text,
     interaction::InteractionState,
-    io::UserInput,
+    io::{Cursor, UserInput},
     layout::{LayoutCommand, LayoutItem, LayoutMeasure, LayoutState, WidgetPlacement},
     render::RenderState,
     widgets::{decorated_box, gesture_detector, scroll_area, svg, text},
@@ -28,7 +28,7 @@ pub struct UiState {
     pub(crate) layout_state: LayoutState,
     pub current_event_queue: Vec<Arc<dyn Any + Send>>,
     pub next_event_queue: Vec<Arc<dyn Any + Send>>,
-    pub widgets_states: WidgetsStates,
+    pub(crate) widgets_states: WidgetsStates,
     pub(crate) widget_placements: Vec<WidgetPlacement>,
     pub(crate) layout_items: Vec<LayoutItem>,
     pub interaction_state: InteractionState,
@@ -45,19 +45,19 @@ pub struct UiState {
 }
 
 #[derive(Default)]
-pub struct WidgetsStates {
+pub(crate) struct WidgetsStates {
     // pub data: FxHashMap<WidgetId, Box<dyn WidgetState>>,
     // pub last: FxHashMap<WidgetId, Box<dyn WidgetState>>,
-    pub layout_measures: TypedWidgetStates<LayoutMeasure>,
+    pub(crate) layout_measures: TypedWidgetStates<LayoutMeasure>,
 
-    pub decorated_box: TypedWidgetStates<decorated_box::State>,
-    pub scroll_area: TypedWidgetStates<scroll_area::State>,
-    pub text: TypedWidgetStates<text::State>,
-    pub editable_text: TypedWidgetStates<editable_text::State>,
-    pub gesture_detector: TypedWidgetStates<gesture_detector::State>,
-    pub svg: TypedWidgetStates<svg::State>,
-    pub components: TypedWidgetStates<Box<dyn Any>>,
-    pub custom: TypedWidgetStates<Option<Box<dyn WidgetState>>>,
+    pub(crate) decorated_box: TypedWidgetStates<decorated_box::State>,
+    pub(crate) scroll_area: TypedWidgetStates<scroll_area::State>,
+    pub(crate) text: TypedWidgetStates<text::State>,
+    pub(crate) editable_text: TypedWidgetStates<editable_text::State>,
+    pub(crate) gesture_detector: TypedWidgetStates<gesture_detector::State>,
+    pub(crate) svg: TypedWidgetStates<svg::State>,
+    pub(crate) components: TypedWidgetStates<Box<dyn Any>>,
+    pub(crate) custom: TypedWidgetStates<Option<Box<dyn WidgetState>>>,
 }
 
 pub struct TypedWidgetStates<T> {
@@ -165,6 +165,7 @@ impl UiState {
         self.widget_placements.clear();
         self.layout_items.clear();
         self.non_interactable.clear();
+        self.user_input.cursor = Cursor::Default;
 
         std::mem::swap(&mut self.current_event_queue, &mut self.next_event_queue);
         self.next_event_queue.clear();

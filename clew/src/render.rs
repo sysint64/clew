@@ -457,6 +457,20 @@ pub fn render(
                         );
                     }
 
+                    if placement.widget_ref.widget_type
+                        == WidgetType::of::<widgets::editable_text::EditableTextWidget>()
+                    {
+                        widgets::editable_text::render(
+                            &mut render_context,
+                            placement,
+                            state
+                                .widgets_states
+                                .editable_text
+                                .get(placement.widget_ref.id)
+                                .unwrap(),
+                        );
+                    }
+
                     if placement.widget_ref.widget_type == WidgetType::of::<DebugBoundary>() {
                         render_debug_boundary(&mut render_context, placement);
                     }

@@ -20,6 +20,7 @@ pub mod zstack;
 pub use builder::{BuildContext, Resolve};
 pub use component::{Component, component};
 pub use decorated_box::{DecorationBuilder, decorated_box, decoration};
+pub use editable_text::editable_text;
 pub use for_each::for_each;
 pub use frame::FrameBuilder;
 pub use gap::gap;

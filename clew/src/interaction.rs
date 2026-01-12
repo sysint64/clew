@@ -1,7 +1,11 @@
 use rustc_hash::FxHashSet;
 
 use crate::{
-    Vec2, View, WidgetId, io::UserInput, layout::LayoutItem, point_with_rect_hit_test, text::{FontResources, TextsResources}
+    Vec2, View, WidgetId,
+    io::UserInput,
+    layout::LayoutItem,
+    point_with_rect_hit_test,
+    text::{FontResources, TextsResources},
 };
 
 #[derive(Default, Clone, PartialEq)]
@@ -12,6 +16,15 @@ pub struct InteractionState {
     pub(crate) focused: Option<WidgetId>,
     pub(crate) was_focused: Option<WidgetId>,
     pub(crate) block_hover: bool,
+}
+
+#[derive(Default, Clone, PartialEq)]
+pub struct WidgetInteractionState {
+    pub is_hover: bool,
+    pub is_hot: bool,
+    pub is_active: bool,
+    pub is_focused: bool,
+    pub was_focused: bool,
 }
 
 impl InteractionState {
@@ -31,7 +44,7 @@ impl InteractionState {
         self.focused == Some(*id)
     }
 
-    pub(crate) fn _was_focused(&self, id: &WidgetId) -> bool {
+    pub(crate) fn was_focused(&self, id: &WidgetId) -> bool {
         self.was_focused == Some(*id)
     }
 
@@ -74,7 +87,7 @@ pub fn handle_interaction(
 
     for layout_item in layout_items.iter() {
         if let LayoutItem::Placement(placement) = layout_item
-            && point_with_rect_hit_test(mouse_point, placement.rect)
+            && point_with_rect_hit_test(mouse_point, placement.boundary)
         {
             interaction_state.hover.insert(placement.widget_ref.id);
         }
@@ -86,7 +99,7 @@ pub fn handle_interaction(
             && (!interaction_state.block_hover
                 || interaction_state.active.is_none()
                 || interaction_state.active == Some(placement.widget_ref.id))
-            && point_with_rect_hit_test(mouse_point, placement.rect)
+            && point_with_rect_hit_test(mouse_point, placement.boundary)
         {
             interaction_state.hot = Some(placement.widget_ref.id);
             break;

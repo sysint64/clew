@@ -38,6 +38,13 @@ impl TextData {
         }
     }
 
+    pub fn from(text: &str) -> Self {
+        let mut data = Self::new();
+        data.set_text(text);
+
+        data
+    }
+
     pub(crate) fn text_id(&self, id: WidgetId) -> Option<TextId> {
         self.text_id.get(&id).cloned()
     }

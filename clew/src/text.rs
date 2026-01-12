@@ -197,7 +197,7 @@ impl<'buffer> Text<'buffer> {
             &mut font_resources.font_system,
             cosmic_text::Metrics::new(
                 font_size * view.scale_factor,
-                line_height * view.scale_factor,
+                line_height,
             ),
         );
 
@@ -221,7 +221,7 @@ impl<'buffer> Text<'buffer> {
             &mut font_resources.font_system,
             cosmic_text::Metrics::new(
                 font_size * view.scale_factor,
-                line_height * view.scale_factor,
+                line_height,
             ),
         );
 
@@ -248,7 +248,7 @@ impl<'buffer> Text<'buffer> {
                 &mut font_resources.font_system,
                 cosmic_text::Metrics::new(
                     font_size * view.scale_factor,
-                    line_height * view.scale_factor,
+                    line_height,
                 ),
             );
         });
@@ -263,7 +263,7 @@ impl<'buffer> Text<'buffer> {
                 &mut font_resources.font_system,
                 cosmic_text::Metrics::new(
                     font_size * view.scale_factor,
-                    line_height * view.scale_factor,
+                    line_height,
                 ),
             );
         });

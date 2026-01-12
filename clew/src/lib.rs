@@ -18,7 +18,9 @@ pub mod widgets;
 
 pub use animation::*;
 pub use foundation::*;
+pub use interaction::WidgetInteractionState;
 pub use render::{Renderer, render};
+pub use text_data::*;
 pub use widget_id::*;
 pub use widgets::*;
 

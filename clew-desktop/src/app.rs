@@ -6,6 +6,7 @@ use clew::PhysicalSize;
 use clew::assets::Assets;
 use clew::io::Cursor;
 use clew::render::Renderer;
+use clew::shortcuts::ShortcutManager;
 use clew::text::{FontResources, StringInterner};
 use clew::widgets::builder::{ApplicationEvent, ApplicationEventLoopProxy, BuildContext};
 
@@ -17,9 +18,14 @@ use winit::platform::macos::EventLoopBuilderExtMacOS;
 pub trait ApplicationDelegate<Event> {
     fn init_assets(&mut self, _assets: &mut Assets) {}
 
-    fn on_start(&mut self, window_manager: &mut WindowManager<Self, Event>)
-    where
+    fn on_start(
+        &mut self,
+        window_manager: &mut WindowManager<Self, Event>,
+        shortcut_manager: &mut ShortcutManager,
+    ) where
         Self: std::marker::Sized;
+
+    fn on_shortcut(&mut self, shortcut_manager: &ShortcutManager) {}
 
     fn on_event(&mut self, _window_manager: &mut WindowManager<Self, Event>, _event: &Event)
     where
@@ -43,6 +49,7 @@ pub struct Application<'a, T: ApplicationDelegate<Event>, Event = ()> {
     event_loop_proxy: Arc<WinitEventLoopProxy>,
     force_redraw: bool,
     needs_redraw: bool,
+    shortcut_manager: ShortcutManager,
 }
 
 pub struct WinitEventLoopProxy {
@@ -118,7 +125,8 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
         self.window_manager
             .with_event_loop(event_loop, |window_manager| {
-                self.app.on_start(window_manager);
+                self.app
+                    .on_start(window_manager, &mut self.shortcut_manager);
             });
     }
 
@@ -367,6 +375,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> Application<'_, T, Event> {
             needs_redraw: false,
             event_loop_proxy: Arc::new(WinitEventLoopProxy { proxy: event_proxy }),
             assets,
+            shortcut_manager: ShortcutManager::default(),
         };
 
         event_loop.run_app(&mut application)?;

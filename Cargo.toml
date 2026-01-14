@@ -25,6 +25,8 @@ bumpalo = { version = "3.19", features = ["collections", "boxed"] }
 smallvec = "1.15.1"
 profiling = "1.0"
 tracy-client = "0.18.3"
+strum = "0.27"
+strum_macros = "0.27"
 
 [patch.crates-io]
 cosmic-text = { git = "https://github.com/tech-paws/cosmic-text.git", branch = "tech_paws" }

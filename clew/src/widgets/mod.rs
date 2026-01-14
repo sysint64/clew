@@ -9,6 +9,7 @@ pub mod gesture_detector;
 pub mod hstack;
 pub mod scope;
 pub mod scroll_area;
+pub mod shortcuts;
 pub mod stateful;
 pub mod svg;
 pub mod text;
@@ -31,6 +32,7 @@ pub use scroll_area::{
     ScrollAreaResponse, scroll_area, set_scroll_offset_x, set_scroll_offset_y,
     set_scroll_progress_x, set_scroll_progress_y,
 };
+pub use shortcuts::shortcuts;
 pub use stateful::stateful;
 pub use svg::svg;
 pub use text::text;

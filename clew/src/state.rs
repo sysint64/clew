@@ -4,12 +4,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 
 use crate::{
-    LayoutDirection, View, WidgetId, WidgetRef, editable_text,
-    interaction::InteractionState,
-    io::{Cursor, UserInput},
-    layout::{LayoutCommand, LayoutItem, LayoutMeasure, LayoutState, WidgetPlacement},
-    render::RenderState,
-    widgets::{decorated_box, gesture_detector, scroll_area, svg, text},
+    LayoutDirection, View, WidgetId, WidgetRef, editable_text, interaction::InteractionState, io::{Cursor, UserInput}, layout::{LayoutCommand, LayoutItem, LayoutMeasure, LayoutState, WidgetPlacement}, render::RenderState, shortcuts::ShortcutManager, widgets::{decorated_box, gesture_detector, scroll_area, svg, text}
 };
 
 pub trait WidgetState: Any + Send + 'static {
@@ -42,6 +37,7 @@ pub struct UiState {
     pub layout_direction: LayoutDirection,
     pub async_tx: tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     pub async_rx: tokio::sync::mpsc::UnboundedReceiver<Box<dyn Any + Send>>,
+    pub(crate) shortcut_manager: ShortcutManager,
 }
 
 #[derive(Default)]
@@ -176,6 +172,10 @@ impl UiState {
         }
     }
 
+    pub fn shortcut_manager(&mut self) -> &mut ShortcutManager {
+        &mut self.shortcut_manager
+    }
+
     pub fn new(view: View) -> Self {
         let (async_tx, async_rx) = tokio::sync::mpsc::unbounded_channel();
 
@@ -202,6 +202,7 @@ impl UiState {
             animations_stepped_this_frame: FxHashSet::default(),
             async_tx,
             async_rx,
+            shortcut_manager: ShortcutManager::default(),
         }
     }
 }

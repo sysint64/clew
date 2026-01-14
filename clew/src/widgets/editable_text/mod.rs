@@ -7,6 +7,7 @@ use std::time::Instant;
 
 use clew_derive::{WidgetBuilder, WidgetState};
 use cosmic_text::Edit;
+use strum_macros::IntoStaticStr;
 
 use crate::{
     AlignY, ColorRgba, TextAlign, Vec2, WidgetId, WidgetInteractionState, WidgetRef, WidgetType,
@@ -90,6 +91,46 @@ impl State {
             vertical_align: AlignY::Top,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
+#[strum(prefix = "clew::editable_text::")]
+pub enum CommonShortcut {
+    Undo,
+    Redo,
+    Copy,
+    Cut,
+    Paste,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
+#[strum(prefix = "clew::editable_text::")]
+pub enum TextEditingShortcut {
+    Delete,
+    Backspace,
+    MoveStart,
+    MoveEnd,
+    MoveNext,
+    MovePrev,
+    MoveUp,
+    MoveDown,
+    NextLine,
+    PageUp,
+    PageDown,
+    BufferStart,
+    BufferEnd,
+    SelectAll,
+}
+
+#[derive(Debug, Clone, Copy, IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
+#[strum(prefix = "clew::editable_text::modifier::")]
+pub enum TextInputModifier {
+    Select,
+    Word,
+    Paragraph,
 }
 
 impl<'a> EditableTextBuilder<'a> {

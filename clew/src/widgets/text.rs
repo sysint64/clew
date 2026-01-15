@@ -19,6 +19,7 @@ pub struct TextBuilder<'a> {
     text: &'a str,
     color: ColorRgba,
     text_align: TextAlign,
+    font_size: f32,
     vertical_align: AlignY,
 }
 
@@ -51,6 +52,12 @@ impl WidgetState for State {
 impl<'a> TextBuilder<'a> {
     pub fn color(mut self, color: ColorRgba) -> Self {
         self.color = color;
+
+        self
+    }
+
+    pub fn font_size(mut self, font_size: f32) -> Self {
+        self.font_size = font_size;
 
         self
     }
@@ -169,6 +176,7 @@ pub fn text(text: &str) -> TextBuilder<'_> {
         text,
         color: ColorRgba::from_hex(0xFFFFFFFF),
         vertical_align: AlignY::Top,
+        font_size: 12.,
         text_align: TextAlign::Left,
     }
 }

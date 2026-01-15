@@ -2,14 +2,16 @@ use std::any::{Any, TypeId};
 use std::sync::Arc;
 use std::time::Instant;
 
-use clew::PhysicalSize;
 use clew::assets::Assets;
-use clew::io::Cursor;
+use clew::io::{Cursor, TextInputAction};
+use clew::keyboard::{KeyCode, KeyModifiers};
 use clew::render::Renderer;
-use clew::shortcuts::ShortcutManager;
+use clew::shortcuts::ShortcutsManager;
 use clew::text::{FontResources, StringInterner};
 use clew::widgets::builder::{ApplicationEvent, ApplicationEventLoopProxy, BuildContext};
+use clew::{PhysicalSize, Rect, ShortcutsRegistry};
 
+use crate::keyboard::{from_winit_key_code, from_winit_modifiers};
 use crate::window_manager::WindowManager;
 use crate::window_manager::WindowState;
 #[cfg(target_os = "macos")]
@@ -21,11 +23,11 @@ pub trait ApplicationDelegate<Event> {
     fn on_start(
         &mut self,
         window_manager: &mut WindowManager<Self, Event>,
-        shortcut_manager: &mut ShortcutManager,
+        shortcuts_registry: &mut ShortcutsRegistry,
     ) where
         Self: std::marker::Sized;
 
-    fn on_shortcut(&mut self, shortcut_manager: &ShortcutManager) {}
+    fn on_shortcut(&mut self, _shortcuts_manager: &ShortcutsManager) {}
 
     fn on_event(&mut self, _window_manager: &mut WindowManager<Self, Event>, _event: &Event)
     where
@@ -43,13 +45,21 @@ pub struct Application<'a, T: ApplicationDelegate<Event>, Event = ()> {
     assets: Assets<'a>,
     string_interner: StringInterner,
     last_cursor: Cursor,
+    last_ime_rect: Rect,
+    ime_activated: bool,
+    ime_reset_needed: bool,
+    modifiers: Option<KeyModifiers>,
+    key_code: Option<KeyCode>,
+    key_code_repeat: Option<KeyCode>,
+    key_event_handled: bool,
     broadcast_event_queue: Vec<Arc<dyn Any + Send>>,
     broadcast_async_tx: tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     broadcast_async_rx: tokio::sync::mpsc::UnboundedReceiver<Box<dyn Any + Send>>,
     event_loop_proxy: Arc<WinitEventLoopProxy>,
     force_redraw: bool,
     needs_redraw: bool,
-    shortcut_manager: ShortcutManager,
+    shortcuts_manager: ShortcutsManager,
+    shortcuts_registry: ShortcutsRegistry,
 }
 
 pub struct WinitEventLoopProxy {
@@ -105,6 +115,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
     );
 
     window_state.delta_time_timer = Instant::now();
+
     window_state.window.build(app, &mut build_context);
 
     clew::render(
@@ -126,8 +137,15 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
         self.window_manager
             .with_event_loop(event_loop, |window_manager| {
                 self.app
-                    .on_start(window_manager, &mut self.shortcut_manager);
+                    .on_start(window_manager, &mut self.shortcuts_registry);
             });
+
+        for window in self.window_manager.windows.values_mut() {
+            window
+                .ui_state
+                .shortcuts_registry()
+                .merge_with(&self.shortcuts_registry);
+        }
     }
 
     fn user_event(&mut self, _: &winit::event_loop::ActiveEventLoop, event: ApplicationEvent) {
@@ -142,7 +160,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
         // Request redraw for all windows that need it
-        for window in self.window_manager.windows.values() {
+        for (window_id, window) in self.window_manager.windows.iter_mut() {
             // if self.needs_redraw {
             window.winit_window.request_redraw();
             // }
@@ -230,6 +248,12 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
                 self.window_manager.request_redraw(window_id);
             }
             winit::event::WindowEvent::RedrawRequested => {
+                self.key_code_repeat = None;
+                self.key_event_handled = true;
+                self.key_code = None;
+
+                // println!("{:?}", window.ui_state.user_input.key_pressed);
+
                 let need_to_redraw = render(
                     &mut self.app,
                     &mut self.fonts,
@@ -241,6 +265,9 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
                     self.event_loop_proxy.clone(),
                     self.force_redraw,
                 );
+
+                window.ui_state.user_input.key_pressed.clear();
+                window.ui_state.user_input.key_pressed_repeat.clear();
 
                 if need_to_redraw {
                     window.renderer.process_commands(
@@ -337,6 +364,81 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
                     window.ui_state.user_input.cursor = Cursor::Default;
                 }
             }
+            winit::event::WindowEvent::ModifiersChanged(new_modifiers) => {
+                self.modifiers = from_winit_modifiers(new_modifiers.state());
+            }
+            winit::event::WindowEvent::KeyboardInput {
+                event:
+                    winit::event::KeyEvent {
+                        physical_key: winit::keyboard::PhysicalKey::Code(code),
+                        logical_key,
+                        state,
+                        repeat,
+                        ..
+                    },
+                ..
+            } => {
+                window.ui_state.user_input.is_key_pressed =
+                    state == winit::event::ElementState::Pressed;
+                window.ui_state.user_input.is_key_released =
+                    state == winit::event::ElementState::Released;
+
+                if state == winit::event::ElementState::Pressed {
+                    if !repeat {
+                        self.key_code = from_winit_key_code(code);
+                    } else {
+                        self.key_code_repeat = from_winit_key_code(code);
+                    }
+                }
+
+                match logical_key {
+                    winit::keyboard::Key::Character(ref text) => {
+                        if state.is_pressed() {
+                            window.ui_state.user_input.text_input.push_str(text);
+                            window
+                                .ui_state
+                                .user_input
+                                .text_input_actions
+                                .push(TextInputAction::Insert);
+                        }
+                    }
+                    winit::keyboard::Key::Named(winit::keyboard::NamedKey::Space) => {
+                        if state.is_pressed() {
+                            // if ui_state.parameters.should_use_wide_space {
+                            // ui_state.input.text_input.push('\u{3000}');
+                            // } else {
+                            // ui_state.input.text_input.push(' ');
+                            // }
+
+                            window
+                                .ui_state
+                                .user_input
+                                .text_input_actions
+                                .push(TextInputAction::Insert);
+                        }
+                    }
+                    _ => {}
+                }
+
+                if let (winit::keyboard::KeyCode::Escape, true) = (code, state.is_pressed()) {
+                    event_loop.exit()
+                }
+
+                let _ = state;
+
+                // self.handle_key_events(window_id);
+                window
+                    .ui_state
+                    .user_input
+                    .key_pressed
+                    .push((self.modifiers, self.key_code));
+
+                window
+                    .ui_state
+                    .user_input
+                    .key_pressed_repeat
+                    .push((self.modifiers, self.key_code_repeat));
+            }
             _ => (),
         }
     }
@@ -375,7 +477,15 @@ impl<T: ApplicationDelegate<Event>, Event: 'static> Application<'_, T, Event> {
             needs_redraw: false,
             event_loop_proxy: Arc::new(WinitEventLoopProxy { proxy: event_proxy }),
             assets,
-            shortcut_manager: ShortcutManager::default(),
+            shortcuts_manager: ShortcutsManager::default(),
+            shortcuts_registry: ShortcutsRegistry::default(),
+            last_ime_rect: Rect::default(),
+            ime_activated: false,
+            ime_reset_needed: false,
+            modifiers: None,
+            key_code: None,
+            key_code_repeat: None,
+            key_event_handled: false,
         };
 
         event_loop.run_app(&mut application)?;

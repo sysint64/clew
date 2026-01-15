@@ -118,6 +118,7 @@ pub fn derive_shortcut_id(input: TokenStream) -> TokenStream {
 fn derive_id_impl(input: TokenStream, wrapper_type: &str) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
+    let name_str = LitStr::new(&name.to_string(), name.span());
     let wrapper_ident = syn::Ident::new(wrapper_type, name.span());
 
     match &input.data {
@@ -130,7 +131,11 @@ fn derive_id_impl(input: TokenStream, wrapper_type: &str) -> TokenStream {
                     let variant_name = &variant.ident;
                     let variant_str = LitStr::new(&variant_name.to_string(), variant_name.span());
                     let full_id = quote! {
-                        concat!(module_path!(), "::", #variant_str)
+                        concat!(
+                            module_path!(), "::",
+                            #name_str, "::",
+                            #variant_str
+                        )
                     };
 
                     quote! {
@@ -153,7 +158,6 @@ fn derive_id_impl(input: TokenStream, wrapper_type: &str) -> TokenStream {
         }
         Data::Struct(data_struct) => match &data_struct.fields {
             Fields::Unit => {
-                let name_str = LitStr::new(&name.to_string(), name.span());
                 let full_id = quote! {
                     concat!(module_path!(), "::", #name_str)
                 };

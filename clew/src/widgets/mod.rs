@@ -32,7 +32,7 @@ pub use scroll_area::{
     ScrollAreaResponse, scroll_area, set_scroll_offset_x, set_scroll_offset_y,
     set_scroll_progress_x, set_scroll_progress_y,
 };
-pub use shortcuts::shortcuts;
+pub use shortcuts::shortcut_scope;
 pub use stateful::stateful;
 pub use svg::svg;
 pub use text::text;

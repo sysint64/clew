@@ -1,5 +1,7 @@
 use std::time::{Duration, Instant};
 
+use smallvec::SmallVec;
+
 use crate::keyboard::{KeyCode, KeyModifiers};
 
 #[derive(Default, Debug, Clone)]
@@ -22,8 +24,11 @@ pub struct UserInput {
     pub mouse_left_click_count: u32,
 
     // Keyboard state
-    pub key_pressed: Vec<(Option<KeyModifiers>, Option<KeyCode>)>,
-    pub key_pressed_repeat: Vec<(Option<KeyModifiers>, Option<KeyCode>)>,
+    pub key_pressed: SmallVec<[(Option<KeyModifiers>, Option<KeyCode>); 4]>,
+    pub key_pressed_repeat: SmallVec<[(Option<KeyModifiers>, Option<KeyCode>); 4]>,
+
+    pub is_key_pressed: bool,
+    pub is_key_released: bool,
 
     // // Text input and IME
     pub text_input_actions: Vec<TextInputAction>,

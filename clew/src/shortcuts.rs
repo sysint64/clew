@@ -1,8 +1,12 @@
 use std::time::{Duration, Instant};
 
 use rustc_hash::{FxHashMap, FxHashSet};
+use smallvec::{SmallVec, smallvec};
 
-use crate::keyboard::{KeyCode, KeyModifiers};
+use crate::{
+    io::UserInput,
+    keyboard::{KeyCode, KeyModifiers},
+};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct KeyBinding {
@@ -10,7 +14,7 @@ pub struct KeyBinding {
     key: KeyCode,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 struct ShortcutConfig {
     sequence: Vec<KeyBinding>,
     repeat: bool,
@@ -63,6 +67,8 @@ impl KeyBinding {
     }
 }
 
+pub const SHORTCUTS_ROOT_SCOPE_ID: ShortcutScopeId = ShortcutScopeId("root");
+
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 pub struct ShortcutScopeId(pub &'static str);
 
@@ -73,17 +79,17 @@ pub struct ShortcutModifierId(pub &'static str);
 pub struct ShortcutId(pub &'static str);
 
 #[derive(Default)]
-pub struct ShortcutRegistry {
+pub struct ShortcutsRegistry {
     scopes: FxHashMap<ShortcutScopeId, ShortcutScope>,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ShortcutScope {
     shortcuts: FxHashMap<ShortcutId, ShortcutConfig>,
     modifiers: FxHashMap<ShortcutModifierId, KeyModifiers>,
 }
 
-impl ShortcutRegistry {
+impl ShortcutsRegistry {
     pub fn scope<T: Into<ShortcutScopeId>>(&mut self, key: T) -> &mut ShortcutScope {
         let scope = ShortcutScope::default();
         let key = key.into();
@@ -95,6 +101,12 @@ impl ShortcutRegistry {
         self.scopes.insert(key, scope);
 
         self.scopes.get_mut(&key).unwrap()
+    }
+
+    pub fn merge_with(&mut self, shortcuts_registry: &ShortcutsRegistry) {
+        for (id, scope) in &shortcuts_registry.scopes {
+            self.scopes.insert(*id, scope.clone());
+        }
     }
 }
 
@@ -178,51 +190,105 @@ impl ShortcutScope {
     }
 }
 
-pub struct ShortcutManager {
+pub struct ShortcutsManager {
     last_sequence: Vec<KeyBinding>,
     last_found_candidate: Option<Instant>,
     chord_timeout: Duration,
 
-    pub(crate) scopes: Vec<ShortcutScopeId>,
+    pub(crate) current_scopes: SmallVec<[ShortcutScopeId; 4]>,
+    pub(crate) active_path: SmallVec<[ShortcutScopeId; 4]>,
+    pub(crate) all_scopes: SmallVec<[SmallVec<[ShortcutScopeId; 4]>; 4]>,
+    pub(crate) current_active_shortcuts: FxHashMap<SmallVec<[ShortcutScopeId; 4]>, ShortcutId>,
+    pub(crate) next_active_shortcuts: FxHashMap<SmallVec<[ShortcutScopeId; 4]>, ShortcutId>,
+    pub(crate) depth_before_pop: usize,
     pub(crate) shortcut_id: Option<ShortcutId>,
     pub(crate) modifiers: FxHashSet<ShortcutModifierId>,
 }
 
-impl Default for ShortcutManager {
+impl Default for ShortcutsManager {
     fn default() -> Self {
         Self {
             chord_timeout: Duration::from_secs(2),
             last_found_candidate: Default::default(),
-            scopes: Default::default(),
+            current_scopes: smallvec![SHORTCUTS_ROOT_SCOPE_ID],
+            active_path: SmallVec::new(),
+            all_scopes: SmallVec::new(),
+            depth_before_pop: 1,
             shortcut_id: Default::default(),
             modifiers: Default::default(),
             last_sequence: Default::default(),
+            current_active_shortcuts: Default::default(),
+            next_active_shortcuts: Default::default(),
         }
     }
 }
 
-impl ShortcutManager {
+impl ShortcutsManager {
     pub fn is_shortcut<T: Into<ShortcutId>>(&self, id: T) -> bool {
-        self.shortcut_id == Some(id.into())
+        if let Some(active_shortcut_id) = self.current_active_shortcuts.get(&self.current_scopes) {
+            *active_shortcut_id == id.into()
+        } else {
+            false
+        }
     }
 
     pub fn has_modifier<T: Into<ShortcutModifierId>>(&self, id: T) -> bool {
         self.modifiers.contains(&id.into())
     }
 
-    pub fn reset(&mut self) {
-        self.scopes.clear();
+    #[inline]
+    pub(crate) fn reset(&mut self) {
         self.shortcut_id = None;
+        self.next_active_shortcuts.clear();
         self.modifiers.clear();
     }
 
+    #[inline]
     pub(crate) fn push_scope<T: Into<ShortcutScopeId>>(&mut self, scope: T) {
-        self.scopes.push(scope.into());
+        self.current_scopes.push(scope.into());
+        self.depth_before_pop = self.current_scopes.len();
     }
 
-    pub fn on_key_binding_activate(
+    #[inline]
+    pub(crate) fn pop_scope(&mut self, user_input: &UserInput, registry: &ShortcutsRegistry) {
+        if self.current_scopes.len() == self.depth_before_pop {
+            self.all_scopes.push(self.current_scopes.clone());
+            self.resolve_shortcut_for_current_path(user_input, registry);
+
+            if let Some(shortcut_id) = self.shortcut_id {
+                self.next_active_shortcuts
+                    .insert(self.active_path.clone(), shortcut_id);
+            }
+        }
+
+        self.current_scopes.pop();
+    }
+
+    pub(crate) fn resolve_shortcut_for_current_path(
         &mut self,
-        registry: &ShortcutRegistry,
+        user_input: &UserInput,
+        registry: &ShortcutsRegistry,
+    ) {
+        self.shortcut_id = None;
+
+        for (modifiers, key) in user_input.key_pressed.iter() {
+            let modifiers = modifiers.unwrap_or_default();
+
+            self.on_key_binding_activate(registry, modifiers, *key, false);
+        }
+
+        if self.shortcut_id.is_none() {
+            for (modifiers, key) in user_input.key_pressed_repeat.iter() {
+                let modifiers = modifiers.unwrap_or_default();
+
+                self.on_key_binding_activate(registry, modifiers, *key, true);
+            }
+        }
+    }
+
+    pub(crate) fn on_key_binding_activate(
+        &mut self,
+        registry: &ShortcutsRegistry,
         modifiers: KeyModifiers,
         key: Option<KeyCode>,
         repeat: bool,
@@ -241,16 +307,17 @@ impl ShortcutManager {
             self.last_sequence.push(KeyBinding { modifiers, key });
         }
 
-        let (candidates, shortcut_id) = Self::resolve(
+        let (candidates, shortcut_id, active_path) = Self::resolve(
             registry,
             modifiers,
-            &self.scopes,
+            &self.current_scopes,
             &mut self.modifiers,
             &self.last_sequence,
             repeat,
         );
 
         self.shortcut_id = shortcut_id;
+        self.active_path = active_path;
 
         if shortcut_id.is_none() && candidates == 0 {
             self.last_sequence.clear();
@@ -263,63 +330,67 @@ impl ShortcutManager {
     }
 
     pub(crate) fn resolve(
-        registry: &ShortcutRegistry,
+        registry: &ShortcutsRegistry,
         modifiers: KeyModifiers,
-        scopes: &[ShortcutScopeId],
+        scopes: &SmallVec<[ShortcutScopeId; 4]>,
         shortucts_modifiers: &mut FxHashSet<ShortcutModifierId>,
         chords: &[KeyBinding],
         repeat: bool,
-    ) -> (usize, Option<ShortcutId>) {
+    ) -> (usize, Option<ShortcutId>, SmallVec<[ShortcutScopeId; 4]>) {
         let mut shortcut_id = None;
         let mut candidates = 0;
         let mut resolved_modifiers = KeyModifiers::empty();
 
         // Resolve modifier
         for scope in scopes.iter().rev() {
-            let scope = registry
-                .scopes
-                .get(scope)
-                .unwrap_or_else(|| panic!("Scope with id = {scope:?} doesn't exists"));
+            let scope = registry.scopes.get(scope);
 
-            for (id, scope_modifiers) in scope.modifiers.iter() {
-                if *scope_modifiers & modifiers == *scope_modifiers {
-                    shortucts_modifiers.insert(*id);
-                    resolved_modifiers |= *scope_modifiers;
+            if let Some(scope) = scope {
+                for (id, scope_modifiers) in scope.modifiers.iter() {
+                    if *scope_modifiers & modifiers == *scope_modifiers {
+                        shortucts_modifiers.insert(*id);
+                        resolved_modifiers |= *scope_modifiers;
+                    }
                 }
             }
         }
 
+        let mut active_path = scopes.clone();
+
         // Resolve keybinding
-        for scope in scopes.iter().rev() {
-            let scope = registry
-                .scopes
-                .get(scope)
-                .unwrap_or_else(|| panic!("Scope with id = {scope:?} doesn't exists"));
+        for scope_id in scopes.iter().rev() {
+            let scope = registry.scopes.get(scope_id);
 
-            for (id, key_bindings) in scope.shortcuts.iter() {
-                if repeat && repeat != key_bindings.repeat {
-                    continue;
+            if let Some(scope) = scope {
+                for (id, key_bindings) in scope.shortcuts.iter() {
+                    if repeat && repeat != key_bindings.repeat {
+                        continue;
+                    }
+
+                    if key_bindings.sequence == chords {
+                        shortcut_id = Some(*id);
+                        break;
+                    }
+
+                    if key_bindings.sequence.starts_with(chords) {
+                        candidates += 1;
+                        break;
+                    }
+
+                    let chords = remove_modifiers(chords, resolved_modifiers);
+
+                    if key_bindings.sequence == chords {
+                        shortcut_id = Some(*id);
+                        break;
+                    }
+
+                    if key_bindings.sequence.starts_with(&chords) {
+                        candidates += 1;
+                    }
                 }
 
-                if key_bindings.sequence == chords {
-                    shortcut_id = Some(*id);
-                    break;
-                }
-
-                if key_bindings.sequence.starts_with(chords) {
-                    candidates += 1;
-                    break;
-                }
-
-                let chords = remove_modifiers(chords, resolved_modifiers);
-
-                if key_bindings.sequence == chords {
-                    shortcut_id = Some(*id);
-                    break;
-                }
-
-                if key_bindings.sequence.starts_with(&chords) {
-                    candidates += 1;
+                if shortcut_id.is_none() {
+                    active_path.pop();
                 }
             }
 
@@ -328,7 +399,7 @@ impl ShortcutManager {
             }
         }
 
-        (candidates, shortcut_id)
+        (candidates, shortcut_id, active_path)
     }
 }
 

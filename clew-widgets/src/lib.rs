@@ -1,4 +1,5 @@
 use clew::stateful::{StatefulWidget, StatefulWidgetBuilder};
+use clew::widgets::shortcuts::shortcut_scope;
 use clew::{
     AlignX, AlignY, Border, BorderRadius, BorderSide, ColorRgba, Constraints, EdgeInsets,
     LinearGradient, widgets::*,
@@ -23,10 +24,10 @@ impl ButtonResponse {
 }
 
 #[derive(ShortcutScopeId)]
-struct ShortcutScopeButton;
+pub struct ShortcutScopeButton;
 
 #[derive(ShortcutId)]
-enum ButtonShortcuts {
+pub enum ButtonShortcut {
     Press,
 }
 
@@ -70,48 +71,32 @@ impl<'a> ButtonBuilder<'a> {
                         ColorRgba::from_hex(0xFF414141)
                     };
 
-                    text(self.text)
-                        .background(
-                            decoration()
-                                .border_radius(BorderRadius::all(3.))
-                                .add_linear_gradient(gradient)
-                                .border(Border::all(BorderSide::new(1., border_color)))
-                                .build(ctx),
-                        )
-                        .text_align(TextAlign::Center)
-                        .text_vertical_align(AlignY::Center)
-                        .size(layout.size)
-                        .constraints(layout.constraints)
-                        .padding(EdgeInsets::symmetric(12., 8.))
-                        .build(ctx);
+                    shortcut_scope(ShortcutScopeButton)
+                        .active(response.is_focused())
+                        .build(ctx, |ctx| {
+                            if ctx.is_shortcut_down(ButtonShortcut::Press) {
+                                // gesture_detector_set_active(response.id, true);
+                            }
 
-                    // shortcuts()
-                    //     .scope(ShortcutWidgetsScopes::Button)
-                    //     .active(response.is_focused())
-                    //     .build(ctx, |ctx| {
-                    //         if ctx.is_shortcut_down(ButtonShortcut::Press) {
-                    //             gesture_detector_set_active(response.id, true);
-                    //         }
+                            if ctx.is_shortcut(ButtonShortcut::Press) {
+                                // gesture_detector_click(response.id);
+                            }
 
-                    //         if ctx.is_shortcut(ButtonShortcut::Press) {
-                    //             gesture_detector_click(response.id);
-                    //         }
-
-                    //         text(self.text)
-                    //             .background(
-                    //                 decoration()
-                    //                     .border_radius(BorderRadius::all(3.))
-                    //                     .add_linear_gradient(gradient)
-                    //                     .border(Border::all(BorderSide::new(1., border_color)))
-                    //                     .build(ctx),
-                    //             )
-                    //             .text_align(TextAlign::Center)
-                    //             .text_vertical_align(AlignY::Center)
-                    //             .size(layout.size)
-                    //             .constraints(layout.constraints)
-                    //             .padding(EdgeInsets::symmetric(12., 8.))
-                    //             .build(ctx);
-                    //     });
+                            text(self.text)
+                                .background(
+                                    decoration()
+                                        .border_radius(BorderRadius::all(3.))
+                                        .add_linear_gradient(gradient)
+                                        .border(Border::all(BorderSide::new(1., border_color)))
+                                        .build(ctx),
+                                )
+                                .text_align(TextAlign::Center)
+                                .text_vertical_align(AlignY::Center)
+                                .size(layout.size)
+                                .constraints(layout.constraints)
+                                .padding(EdgeInsets::symmetric(12., 8.))
+                                .build(ctx);
+                        });
                 })
         });
 

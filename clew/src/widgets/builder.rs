@@ -8,7 +8,8 @@ use rustc_hash::{FxHashSet, FxHasher};
 use smallvec::SmallVec;
 
 use crate::{
-    Animation, Constraints, Size, Value, View, ViewId, WidgetId, WidgetRef,
+    Animation, Constraints, ShortcutId, ShortcutsManager, ShortcutsRegistry, Size, Value, View,
+    ViewId, WidgetId, WidgetRef,
     interaction::InteractionState,
     io::UserInput,
     layout::LayoutCommand,
@@ -76,6 +77,8 @@ pub struct BuildContext<'a, 'b> {
     pub(crate) child_index_stack: Vec<u32>,
     pub(crate) decoration_defer: Vec<(WidgetId, u32, DecorationDeferFn)>,
     pub(crate) decoration_defer_start_stack: Vec<usize>,
+    pub(crate) shortcuts_manager: &'a mut ShortcutsManager,
+    pub(crate) shortcuts_registry: &'a mut ShortcutsRegistry,
 }
 
 pub trait Resolve<V> {
@@ -139,6 +142,8 @@ impl<'a, 'b> BuildContext<'a, 'b> {
             child_index_stack: Vec::new(),
             decoration_defer: Vec::new(),
             decoration_defer_start_stack: Vec::new(),
+            shortcuts_manager: &mut ui_state.shortcuts_manager,
+            shortcuts_registry: &mut ui_state.shortcuts_registry,
         }
     }
     /// Advances an animation by the current frame's delta time.
@@ -278,6 +283,14 @@ impl<'a, 'b> BuildContext<'a, 'b> {
             current = node.parent;
         }
         None
+    }
+
+    pub fn is_shortcut_down<T: Into<ShortcutId>>(&self, shortcut_id: T) -> bool {
+        self.shortcuts_manager.is_shortcut(shortcut_id)
+    }
+
+    pub fn is_shortcut<T: Into<ShortcutId>>(&self, shortcut_id: T) -> bool {
+        self.shortcuts_manager.is_shortcut(shortcut_id)
     }
 
     // pub fn of_mut<T: 'static>(&mut self) -> Option<&mut T> {

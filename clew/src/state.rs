@@ -4,7 +4,13 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 
 use crate::{
-    LayoutDirection, View, WidgetId, WidgetRef, editable_text, interaction::InteractionState, io::{Cursor, UserInput}, layout::{LayoutCommand, LayoutItem, LayoutMeasure, LayoutState, WidgetPlacement}, render::RenderState, shortcuts::ShortcutManager, widgets::{decorated_box, gesture_detector, scroll_area, svg, text}
+    LayoutDirection, ShortcutsRegistry, View, WidgetId, WidgetRef, editable_text,
+    interaction::InteractionState,
+    io::{Cursor, UserInput},
+    layout::{LayoutCommand, LayoutItem, LayoutMeasure, LayoutState, WidgetPlacement},
+    render::RenderState,
+    shortcuts::ShortcutsManager,
+    widgets::{decorated_box, gesture_detector, scroll_area, svg, text},
 };
 
 pub trait WidgetState: Any + Send + 'static {
@@ -37,7 +43,8 @@ pub struct UiState {
     pub layout_direction: LayoutDirection,
     pub async_tx: tokio::sync::mpsc::UnboundedSender<Box<dyn Any + Send>>,
     pub async_rx: tokio::sync::mpsc::UnboundedReceiver<Box<dyn Any + Send>>,
-    pub(crate) shortcut_manager: ShortcutManager,
+    pub(crate) shortcuts_manager: ShortcutsManager,
+    pub(crate) shortcuts_registry: ShortcutsRegistry,
 }
 
 #[derive(Default)]
@@ -163,6 +170,12 @@ impl UiState {
         self.non_interactable.clear();
         self.user_input.cursor = Cursor::Default;
 
+        self.shortcuts_manager.current_active_shortcuts =
+            std::mem::take(&mut self.shortcuts_manager.next_active_shortcuts);
+
+        self.shortcuts_manager.all_scopes.clear();
+        self.shortcuts_manager.reset();
+
         std::mem::swap(&mut self.current_event_queue, &mut self.next_event_queue);
         self.next_event_queue.clear();
 
@@ -172,8 +185,12 @@ impl UiState {
         }
     }
 
-    pub fn shortcut_manager(&mut self) -> &mut ShortcutManager {
-        &mut self.shortcut_manager
+    pub fn shortcuts_manager(&mut self) -> &mut ShortcutsManager {
+        &mut self.shortcuts_manager
+    }
+
+    pub fn shortcuts_registry(&mut self) -> &mut ShortcutsRegistry {
+        &mut self.shortcuts_registry
     }
 
     pub fn new(view: View) -> Self {
@@ -202,7 +219,8 @@ impl UiState {
             animations_stepped_this_frame: FxHashSet::default(),
             async_tx,
             async_rx,
-            shortcut_manager: ShortcutManager::default(),
+            shortcuts_manager: ShortcutsManager::default(),
+            shortcuts_registry: ShortcutsRegistry::default(),
         }
     }
 }

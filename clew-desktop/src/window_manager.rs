@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc, time::Instant};
 use clew::{
     ColorRgb, EdgeInsets, PhysicalSize, View, ViewId,
     render::Renderer,
-    shortcuts::ShortcutManager,
+    shortcuts::ShortcutsManager,
     state::UiState,
     text::{StringId, TextId, TextsResources},
 };
@@ -75,7 +75,7 @@ impl<'a, App, Event> WindowManager<'a, App, Event> {
     /// Create a new window with the given descriptor
     pub fn spawn_window<T: Window<App, Event> + 'static>(
         &mut self,
-        window: T,
+        mut window: T,
         descriptor: WindowDescriptor,
     ) {
         if let Some(event_loop) = self.event_loop {
@@ -95,13 +95,15 @@ impl<'a, App, Event> WindowManager<'a, App, Event> {
                     let scale_factor = winit_window.scale_factor();
                     let inner_size = winit_window.inner_size();
                     let renderer = (self.renderer_factory)(winit_window.clone());
-                    let ui_state = UiState::new(View {
+                    let mut ui_state = UiState::new(View {
                         id: ViewId(self.next_view_id),
                         size: PhysicalSize::new(inner_size.width, inner_size.height),
                         scale_factor: scale_factor as f32,
                         safe_area: EdgeInsets::ZERO,
                     });
                     self.next_view_id += 1;
+
+                    window.on_init(ui_state.shortcuts_registry());
 
                     self.windows.insert(
                         id,

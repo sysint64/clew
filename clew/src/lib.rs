@@ -8,6 +8,7 @@ mod interaction;
 pub mod io;
 pub mod keyboard;
 mod layout;
+pub mod lifecycle;
 pub mod render;
 pub mod shortcuts;
 pub mod state;

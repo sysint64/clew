@@ -8,13 +8,7 @@ use rustc_hash::{FxHashSet, FxHasher};
 use smallvec::SmallVec;
 
 use crate::{
-    Animation, Constraints, ShortcutId, ShortcutsManager, ShortcutsRegistry, Size, Value, View,
-    ViewId, WidgetId, WidgetRef,
-    interaction::InteractionState,
-    io::UserInput,
-    layout::LayoutCommand,
-    state::{UiState, WidgetsStates},
-    text::{FontResources, TextsResources},
+    Animation, Constraints, ShortcutId, ShortcutModifierId, ShortcutsManager, ShortcutsRegistry, Size, Value, View, ViewId, WidgetId, WidgetRef, interaction::InteractionState, io::UserInput, layout::LayoutCommand, state::{UiState, WidgetsStates}, text::{FontResources, TextsResources}
 };
 
 use super::{FrameBuilder, decorated_box::DecorationBuilder, frame::FrameBuilderFlags};
@@ -291,6 +285,10 @@ impl<'a, 'b> BuildContext<'a, 'b> {
 
     pub fn is_shortcut<T: Into<ShortcutId>>(&self, shortcut_id: T) -> bool {
         self.shortcuts_manager.is_shortcut(shortcut_id)
+    }
+
+    pub fn has_modifier<T: Into<ShortcutModifierId>>(&self, modifier_id: T) -> bool {
+        self.shortcuts_manager.has_modifier(modifier_id)
     }
 
     // pub fn of_mut<T: 'static>(&mut self) -> Option<&mut T> {

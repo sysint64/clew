@@ -5,9 +5,8 @@ pub(crate) use render::render;
 
 use std::time::Instant;
 
-use clew_derive::{WidgetBuilder, WidgetState};
+use clew_derive::{ShortcutId, ShortcutModifierId, ShortcutScopeId, WidgetBuilder, WidgetState};
 use cosmic_text::Edit;
-use strum_macros::IntoStaticStr;
 
 use crate::{
     AlignY, ColorRgba, TextAlign, Vec2, WidgetId, WidgetInteractionState, WidgetRef, WidgetType,
@@ -93,9 +92,12 @@ impl State {
     }
 }
 
-#[derive(Debug, Clone, Copy, IntoStaticStr)]
-#[strum(serialize_all = "snake_case")]
-#[strum(prefix = "clew::editable_text::")]
+#[derive(Debug, Clone, Copy, ShortcutScopeId)]
+pub enum ShortcutScopes {
+    TextEditing,
+}
+
+#[derive(Debug, Clone, Copy, ShortcutId)]
 pub enum CommonShortcut {
     Undo,
     Redo,
@@ -104,9 +106,7 @@ pub enum CommonShortcut {
     Paste,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, IntoStaticStr)]
-#[strum(serialize_all = "snake_case")]
-#[strum(prefix = "clew::editable_text::")]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, ShortcutId)]
 pub enum TextEditingShortcut {
     Delete,
     Backspace,
@@ -124,9 +124,7 @@ pub enum TextEditingShortcut {
     SelectAll,
 }
 
-#[derive(Debug, Clone, Copy, IntoStaticStr)]
-#[strum(serialize_all = "snake_case")]
-#[strum(prefix = "clew::editable_text::modifier::")]
+#[derive(Debug, Clone, Copy, ShortcutModifierId)]
 pub enum TextInputModifier {
     Select,
     Word,

@@ -5,6 +5,7 @@ use std::time::Instant;
 use clew::assets::Assets;
 use clew::io::{Cursor, TextInputAction};
 use clew::keyboard::{KeyCode, KeyModifiers};
+use clew::lifecycle::{finalize_cycle, init_cycle};
 use clew::render::Renderer;
 use clew::shortcuts::ShortcutsManager;
 use clew::text::{FontResources, StringInterner};
@@ -73,7 +74,7 @@ impl ApplicationEventLoopProxy for WinitEventLoopProxy {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
+fn build<'a, T: ApplicationDelegate<Event>, Event: 'static>(
     app: &mut T,
     fonts: &mut FontResources,
     assets: &Assets,
@@ -84,7 +85,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
     event_loop_proxy: Arc<WinitEventLoopProxy>,
     force_redraw: bool,
 ) -> bool {
-    window_state.ui_state.before_render();
+    init_cycle(&mut window_state.ui_state);
 
     for event_box in window_state.ui_state.current_event_queue.iter() {
         // Skip event processing for () type
@@ -118,7 +119,7 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
 
     window_state.window.build(app, &mut build_context);
 
-    clew::render(
+    let redraw = clew::render(
         &mut window_state.ui_state,
         &mut window_state.texts,
         fonts,
@@ -126,7 +127,11 @@ fn render<'a, T: ApplicationDelegate<Event>, Event: 'static>(
         string_interner,
         &mut window_state.strings,
         force_redraw,
-    )
+    );
+
+    finalize_cycle(&mut window_state.ui_state);
+
+    redraw
 }
 
 impl<T: ApplicationDelegate<Event>, Event: 'static>
@@ -254,7 +259,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
 
                 // println!("{:?}", window.ui_state.user_input.key_pressed);
 
-                let need_to_redraw = render(
+                let need_to_redraw = build(
                     &mut self.app,
                     &mut self.fonts,
                     &self.assets,

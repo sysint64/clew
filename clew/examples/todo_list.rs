@@ -29,43 +29,50 @@ impl ApplicationDelegate<()> for TodoApplication {
             .add(
                 TestShortcuts::Bind2,
                 ui::KeyBinding::new(ui::keyboard::KeyCode::KeyG),
+            )
+            .add_sequence(
+                TestShortcuts::Chord1,
+                &[
+                    ui::KeyBinding::new(ui::keyboard::KeyCode::KeyK),
+                    ui::KeyBinding::new(ui::keyboard::KeyCode::KeyC),
+                ],
             );
 
         shortcuts_registry.scope(TestScopes::S2).add(
             TestShortcuts::Bind1,
-            ui::KeyBinding::new(ui::keyboard::KeyCode::KeyA), // Same key - should shadow S1
+            ui::KeyBinding::new(ui::keyboard::KeyCode::KeyA),
         );
         shortcuts_registry.scope(TestScopes::S3).add(
             TestShortcuts::Bind1,
-            ui::KeyBinding::new(ui::keyboard::KeyCode::KeyA), // Same key - should shadow S1
+            ui::KeyBinding::new(ui::keyboard::KeyCode::KeyA),
         );
 
         // Test 2: Unique shortcut on non-leaf parent (S4)
         shortcuts_registry.scope(TestScopes::S4).add(
             TestShortcuts::Bind1,
-            ui::KeyBinding::new(ui::keyboard::KeyCode::KeyB), // Unique to S4
+            ui::KeyBinding::new(ui::keyboard::KeyCode::KeyB),
         );
         // S5 is non-leaf, no shortcut registered
         shortcuts_registry
             .scope(TestScopes::S6)
             .add(
                 TestShortcuts::Bind1,
-                ui::KeyBinding::new(ui::keyboard::KeyCode::KeyC), // Unique to S6
+                ui::KeyBinding::new(ui::keyboard::KeyCode::KeyC),
             )
             .add(
                 TestShortcuts::Bind2,
-                ui::KeyBinding::new(ui::keyboard::KeyCode::KeyE), // Should shadow S5's KeyE
+                ui::KeyBinding::new(ui::keyboard::KeyCode::KeyE),
             );
 
         shortcuts_registry.scope(TestScopes::S7).add(
             TestShortcuts::Bind1,
-            ui::KeyBinding::new(ui::keyboard::KeyCode::KeyD), // Unique to S7
+            ui::KeyBinding::new(ui::keyboard::KeyCode::KeyD),
         );
 
         // Test 3: Multi-level fallthrough
         shortcuts_registry.scope(TestScopes::S5).add(
             TestShortcuts::Bind1,
-            ui::KeyBinding::new(ui::keyboard::KeyCode::KeyE), // S5 (non-leaf) gets its own
+            ui::KeyBinding::new(ui::keyboard::KeyCode::KeyE),
         );
 
         // Test 4: Root fallback
@@ -77,8 +84,81 @@ impl ApplicationDelegate<()> for TodoApplication {
         // Test 5: Global fallback on root
         shortcuts_registry.scope(SHORTCUTS_ROOT_SCOPE_ID).add(
             TestShortcuts::Bind1,
-            ui::KeyBinding::new(ui::keyboard::KeyCode::KeyZ), // Should work everywhere
+            ui::KeyBinding::new(ui::keyboard::KeyCode::KeyZ),
         );
+
+        //
+
+        shortcuts_registry
+            .scope(ui::ShortcutScopes::TextEditing)
+            .add_repeat(
+                ui::TextEditingShortcut::Delete,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::Delete),
+            )
+            .add_repeat(
+                ui::TextEditingShortcut::Backspace,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::Backspace),
+            )
+            .add_repeat(
+                ui::TextEditingShortcut::MoveNext,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::ArrowRight),
+            )
+            .add_repeat(
+                ui::TextEditingShortcut::MovePrev,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::ArrowLeft),
+            )
+            .add_repeat(
+                ui::TextEditingShortcut::MoveUp,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::ArrowUp),
+            )
+            .add_repeat(
+                ui::TextEditingShortcut::MoveDown,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::ArrowDown),
+            )
+            .add_repeat(
+                ui::TextEditingShortcut::NextLine,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::Enter),
+            )
+            .add_repeat(
+                ui::TextEditingShortcut::MoveStart,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::Home),
+            )
+            .add(
+                ui::TextEditingShortcut::MoveEnd,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::End),
+            )
+            .add_repeat(
+                ui::TextEditingShortcut::BufferStart,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::Home).with_super(),
+            )
+            .add(
+                ui::TextEditingShortcut::BufferEnd,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::End).with_super(),
+            )
+            .add_repeat(
+                ui::TextEditingShortcut::PageUp,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::PageUp),
+            )
+            .add_repeat(
+                ui::TextEditingShortcut::PageDown,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::PageDown),
+            )
+            .add(
+                ui::TextEditingShortcut::SelectAll,
+                ui::KeyBinding::new(ui::keyboard::KeyCode::KeyA).with_super(),
+            )
+            .add_modifier(
+                ui::TextInputModifier::Select,
+                ui::keyboard::KeyModifiers::shift(),
+            )
+            .add_modifier(
+                ui::TextInputModifier::Word,
+                ui::keyboard::KeyModifiers::super_key(),
+            )
+            .add_modifier(
+                ui::TextInputModifier::Paragraph,
+                ui::keyboard::KeyModifiers::super_key(),
+            );
 
         window_manager.spawn_window(
             MainWindow {
@@ -114,6 +194,7 @@ pub struct MainWindow {
 pub enum TestShortcuts {
     Bind1,
     Bind2,
+    Chord1,
 }
 
 #[derive(ShortcutScopeId)]
@@ -138,6 +219,9 @@ impl Window<TodoApplication, ()> for MainWindow {
                 }
                 if ctx.is_shortcut(TestShortcuts::Bind2) {
                     println!("S1 / BIND2 (KeyG)");
+                }
+                if ctx.is_shortcut(TestShortcuts::Chord1) {
+                    println!("Chord K+C triggered");
                 }
 
                 ui::shortcut_scope(TestScopes::S2).build(ctx, |ctx| {
@@ -211,6 +295,97 @@ impl Window<TodoApplication, ()> for MainWindow {
                 println!("ROOT / BIND1 (KeyZ) - global fallback");
             }
         });
+
+        ui::zstack()
+            .align_x(ui::AlignX::Center)
+            .align_y(ui::AlignY::Center)
+            .fill_max_size()
+            .build(ctx, |ctx| {
+                ui::vstack().spacing(10.).build(ctx, |ctx| {
+                    ui::text("Text Editing Shortcuts Test").build(ctx);
+
+                    ui::shortcut_scope(ui::ShortcutScopes::TextEditing).build(ctx, |ctx| {
+                        // Navigation shortcuts
+                        if ctx.is_shortcut(ui::TextEditingShortcut::MoveNext) {
+                            println!("MoveNext (ArrowRight)");
+                        }
+                        if ctx.is_shortcut(ui::TextEditingShortcut::MovePrev) {
+                            println!("MovePrev (ArrowLeft)");
+                        }
+                        if ctx.is_shortcut(ui::TextEditingShortcut::MoveUp) {
+                            println!("MoveUp (ArrowUp)");
+                        }
+                        if ctx.is_shortcut(ui::TextEditingShortcut::MoveDown) {
+                            println!("MoveDown (ArrowDown)");
+                        }
+
+                        // Line navigation
+                        if ctx.is_shortcut(ui::TextEditingShortcut::MoveStart) {
+                            println!("MoveStart (Home)");
+                        }
+                        if ctx.is_shortcut(ui::TextEditingShortcut::MoveEnd) {
+                            println!("MoveEnd (End)");
+                        }
+
+                        // Buffer navigation
+                        if ctx.is_shortcut(ui::TextEditingShortcut::BufferStart) {
+                            println!("BufferStart (Super+Home)");
+                        }
+                        if ctx.is_shortcut(ui::TextEditingShortcut::BufferEnd) {
+                            println!("BufferEnd (Super+End)");
+                        }
+
+                        // Page navigation
+                        if ctx.is_shortcut(ui::TextEditingShortcut::PageUp) {
+                            println!("PageUp");
+                        }
+                        if ctx.is_shortcut(ui::TextEditingShortcut::PageDown) {
+                            println!("PageDown");
+                        }
+
+                        // Editing shortcuts
+                        if ctx.is_shortcut(ui::TextEditingShortcut::Delete) {
+                            println!("Delete");
+                        }
+                        if ctx.is_shortcut(ui::TextEditingShortcut::Backspace) {
+                            println!("Backspace");
+                        }
+                        if ctx.is_shortcut(ui::TextEditingShortcut::NextLine) {
+                            println!("NextLine (Enter)");
+                        }
+
+                        // Selection shortcut
+                        if ctx.is_shortcut(ui::TextEditingShortcut::SelectAll) {
+                            println!("SelectAll (Super+A)");
+                        }
+
+                        // Modifiers
+                        if ctx.has_modifier(ui::TextInputModifier::Select) {
+                            println!("Modifier: Select (Shift held)");
+                        }
+                        if ctx.has_modifier(ui::TextInputModifier::Word) {
+                            println!("Modifier: Word (Super held)");
+                        }
+                        if ctx.has_modifier(ui::TextInputModifier::Paragraph) {
+                            println!("Modifier: Paragraph (Super held)");
+                        }
+
+                        // Visual feedback for testing
+                        ui::vstack().spacing(5.).build(ctx, |ctx| {
+                            ui::text("Try these shortcuts:").build(ctx);
+                            ui::text("- Arrow keys (repeatable)").build(ctx);
+                            ui::text("- Home/End").build(ctx);
+                            ui::text("- Super+Home/End").build(ctx);
+                            ui::text("- PageUp/PageDown (repeatable)").build(ctx);
+                            ui::text("- Delete/Backspace (repeatable)").build(ctx);
+                            ui::text("- Enter (repeatable)").build(ctx);
+                            ui::text("- Super+A (Select All)").build(ctx);
+                            ui::text("- Hold Shift (Select modifier)").build(ctx);
+                            ui::text("- Hold Super (Word/Paragraph modifier)").build(ctx);
+                        });
+                    });
+                });
+            });
 
         // ui::zstack()
         //     .fill_max_size()

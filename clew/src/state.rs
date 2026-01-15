@@ -162,29 +162,6 @@ impl<T> TypedWidgetStates<T> {
 }
 
 impl UiState {
-    pub fn before_render(&mut self) {
-        self.layout_commands.clear();
-        self.render_state.commands.clear();
-        self.widget_placements.clear();
-        self.layout_items.clear();
-        self.non_interactable.clear();
-        self.user_input.cursor = Cursor::Default;
-
-        self.shortcuts_manager.current_active_shortcuts =
-            std::mem::take(&mut self.shortcuts_manager.next_active_shortcuts);
-
-        self.shortcuts_manager.all_scopes.clear();
-        self.shortcuts_manager.reset();
-
-        std::mem::swap(&mut self.current_event_queue, &mut self.next_event_queue);
-        self.next_event_queue.clear();
-
-        // Collect async events
-        while let Ok(event) = self.async_rx.try_recv() {
-            self.current_event_queue.push(event.into());
-        }
-    }
-
     pub fn shortcuts_manager(&mut self) -> &mut ShortcutsManager {
         &mut self.shortcuts_manager
     }

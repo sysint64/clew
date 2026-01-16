@@ -282,17 +282,43 @@ impl ShortcutsManager {
     ) -> Option<ShortcutId> {
         let mut shortcut_id = None;
 
-        for (modifiers, key) in user_input.key_pressed.iter() {
+        for (modifiers, _) in user_input.key_pressed.iter() {
             let modifiers = modifiers.unwrap_or_default();
 
-            shortcut_id = self.on_key_binding_activate(registry, modifiers, *key, false);
+            let (candidates, resolved_shortcut_id, active_path) = Self::resolve(
+                registry,
+                modifiers,
+                &self.current_path,
+                &mut self.next_active_modifiers,
+                &self.last_sequence,
+                false,
+            );
+
+            shortcut_id = resolved_shortcut_id;
+
+            self.active_path = active_path;
+            self.candidates += candidates;
         }
 
         if shortcut_id.is_none() {
             for (modifiers, key) in user_input.key_pressed_repeat.iter() {
                 let modifiers = modifiers.unwrap_or_default();
 
-                shortcut_id = self.on_key_binding_activate(registry, modifiers, *key, true);
+                if let Some(key) = key {
+                    let (candidates, resolved_shortcut_id, active_path) = Self::resolve(
+                        registry,
+                        modifiers,
+                        &self.current_path,
+                        &mut self.next_active_modifiers,
+                        &[KeyBinding {
+                            modifiers,
+                            key: *key,
+                        }],
+                        true,
+                    );
+
+                    shortcut_id = resolved_shortcut_id;
+                }
             }
         }
 
@@ -331,41 +357,17 @@ impl ShortcutsManager {
         }
     }
 
-    pub(crate) fn finalize_cycle(&mut self, user_input: &UserInput) {
-        for (modifiers, _) in user_input.key_pressed.iter() {
-            let has_not_active_shortcust = self.next_active_shortcuts.is_empty();
+    pub(crate) fn finalize_cycle(&mut self) {
+        let has_not_active_shortcut = self.next_active_shortcuts.is_empty();
 
-            if has_not_active_shortcust && self.candidates == 0 {
-                self.last_sequence.clear();
-                self.last_found_candidate = None;
-            } else if has_not_active_shortcust && self.candidates > 0 {
-                self.last_found_candidate = Some(Instant::now());
-            } else {
-                self.last_sequence.clear();
-            }
+        if has_not_active_shortcut && self.candidates == 0 {
+            self.last_sequence.clear();
+            self.last_found_candidate = None;
+        } else if has_not_active_shortcut && self.candidates > 0 {
+            self.last_found_candidate = Some(Instant::now());
+        } else {
+            self.last_sequence.clear();
         }
-    }
-
-    pub(crate) fn on_key_binding_activate(
-        &mut self,
-        registry: &ShortcutsRegistry,
-        modifiers: KeyModifiers,
-        key: Option<KeyCode>,
-        repeat: bool,
-    ) -> Option<ShortcutId> {
-        let (candidates, shortcut_id, active_path) = Self::resolve(
-            registry,
-            modifiers,
-            &self.current_path,
-            &mut self.next_active_modifiers,
-            &self.last_sequence,
-            repeat,
-        );
-
-        self.active_path = active_path;
-        self.candidates += candidates;
-
-        shortcut_id
     }
 
     pub(crate) fn resolve(
@@ -438,7 +440,6 @@ impl ShortcutsManager {
 
                             if key_bindings.sequence == chords_stripped {
                                 shortcut_id = Some(*id);
-                                found_in_scope = true;
                                 break;
                             }
 

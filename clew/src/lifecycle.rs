@@ -20,5 +20,5 @@ pub fn init_cycle(state: &mut UiState) {
 }
 
 pub fn finalize_cycle(state: &mut UiState) {
-    state.shortcuts_manager.finalize_cycle(&state.user_input);
+    state.shortcuts_manager.finalize_cycle();
 }

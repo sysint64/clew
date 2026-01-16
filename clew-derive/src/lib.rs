@@ -97,7 +97,7 @@ pub fn widget_builder_derive(input: TokenStream) -> TokenStream {
 pub fn derive_shortcut_scope_id(input: TokenStream) -> TokenStream {
     let stream = derive_id_impl(input, "ShortcutScopeId");
 
-    eprintln!("EXPANDED:\n{}", stream.to_string());
+    // eprintln!("EXPANDED:\n{}", stream.to_string());
 
     stream
 }

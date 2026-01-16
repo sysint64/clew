@@ -11,9 +11,9 @@ use clew_desktop::{
 use clew_vello::VelloRenderer;
 use pollster::FutureExt;
 
-struct TodoApplication;
+struct ShortcutsApplication;
 
-impl ApplicationDelegate<()> for TodoApplication {
+impl ApplicationDelegate<()> for ShortcutsApplication {
     fn on_start(
         &mut self,
         window_manager: &mut WindowManager<Self, ()>,
@@ -256,8 +256,8 @@ pub enum TestScopes {
     S8,
 }
 
-impl Window<TodoApplication, ()> for MainWindow {
-    fn build(&mut self, _: &mut TodoApplication, ctx: &mut ui::BuildContext) {
+impl Window<ShortcutsApplication, ()> for MainWindow {
+    fn build(&mut self, _: &mut ShortcutsApplication, ctx: &mut ui::BuildContext) {
         ui::hstack()
             .spacing(20.)
             .padding(ui::EdgeInsets::all(20.))
@@ -313,6 +313,17 @@ impl Window<TodoApplication, ()> for MainWindow {
                                     }
                                     if ctx.is_shortcut(TestShortcuts::S1Bind2) {
                                         self.push_shortcut("S2 / BIND2 (KeyG) - from S1");
+                                    }
+                                });
+
+                            ui::shortcut_scope(TestScopes::S2)
+                                .active(false)
+                                .build(ctx, |ctx| {
+                                    if ctx.is_shortcut(TestShortcuts::S2Bind1) {
+                                        self.push_shortcut("Inactive S2 / BIND1 (KeyA) - should not be triggered");
+                                    }
+                                    if ctx.is_shortcut(TestShortcuts::S1Bind2) {
+                                        self.push_shortcut("Inactive S2 / BIND2 (KeyG) - from S1");
                                     }
                                 });
 
@@ -649,7 +660,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     log::info!("Starting Shortcut System Test");
-    Application::run_application(TodoApplication)?;
+    Application::run_application(ShortcutsApplication)?;
 
     Ok(())
 }

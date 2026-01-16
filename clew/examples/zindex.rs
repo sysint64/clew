@@ -11,8 +11,11 @@ use pollster::FutureExt;
 struct DemoApplication;
 
 impl ApplicationDelegate<()> for DemoApplication {
-    fn on_start(&mut self, window_manager: &mut WindowManager<Self, ()>)
-    where
+    fn on_start(
+        &mut self,
+        window_manager: &mut WindowManager<Self, ()>,
+        _: &mut ui::ShortcutsRegistry,
+    ) where
         Self: std::marker::Sized,
     {
         window_manager.spawn_window(

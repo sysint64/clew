@@ -1128,7 +1128,7 @@ pub fn layout(
                         layout_items.push(LayoutItem::Placement(WidgetPlacement {
                             widget_ref: *widget_ref,
                             zindex: *zindex,
-                            boundary: Rect::ZERO,
+                            boundary: decorator_rect,
                             rect: decorator_rect,
                         }));
                     }
@@ -1316,7 +1316,7 @@ pub fn layout(
                     layout_items.push(LayoutItem::Placement(WidgetPlacement {
                         widget_ref: *widget_ref,
                         zindex: container.zindex,
-                        boundary: Rect::ZERO,
+                        boundary: container.decorator_rect,
                         rect: container.decorator_rect,
                     }));
                 }

@@ -411,35 +411,89 @@ impl Window<TodoApplication, ()> for MainWindow {
         //         });
         //     });
 
+        // ui::gesture_detector()
+        //     .clickable(true)
+        //     .focusable(true)
+        //     .build(ctx, |ctx| {
+        //         let response = ctx.of::<ui::GestureDetectorResponse>().unwrap();
+
+        //         ui::text();
+        //         ui::editable_text(&mut self.task_name)
+        //             .gesture_response(response.clone())
+        //             .text_vertical_align(ui::AlignY::Center)
+        //             .padding(ui::EdgeInsets::symmetric(8., 0.))
+        //             .background(
+        //                 ui::decoration()
+        //                     .border_radius(ui::BorderRadius::all(3.))
+        //                     .color(ui::ColorRgba::from_hex(0xFF000000))
+        //                     .border(ui::Border::all(ui::BorderSide::new(
+        //                         1.,
+        //                         if response.is_focused() {
+        //                             ui::ColorRgba::from_hex(0xFF357CCE)
+        //                         } else {
+        //                             ui::ColorRgba::from_hex(0xFF414141)
+        //                         },
+        //                     )))
+        //                     .build(ctx),
+        //             )
+        //             .height(20.)
+            });
+
         // ui::shortcut_scope(clew_widgets::ShortcutScopeButton).build(ctx, |ctx| {
         //     ui::zstack()
         //         .fill_max_size()
         //         .align_x(ui::AlignX::Center)
         //         .align_y(ui::AlignY::Center)
         //         .build(ctx, |ctx| {
-        //             ui::editable_text(&mut self.task_name)
-        //                 .text_vertical_align(ui::AlignY::Center)
-        //                 .padding(ui::EdgeInsets::symmetric(8., 0.))
-        //                 .height(20.)
-        //                 .build_with_frame(ctx, |ctx, interaction_state, frame| {
-        //                     frame.background(
-        //                         ui::decoration()
-        //                             .border_radius(ui::BorderRadius::all(3.))
-        //                             .color(ui::ColorRgba::from_hex(0xFF000000))
-        //                             .border(ui::Border::all(ui::BorderSide::new(
-        //                                 1.,
-        //                                 if interaction_state.is_focused {
-        //                                     ui::ColorRgba::from_hex(0xFF357CCE)
-        //                                 } else {
-        //                                     ui::ColorRgba::from_hex(0xFF414141)
-        //                                 },
-        //                             )))
-        //                             .build(ctx),
-        //                     )
-        //                 });
+        // ui::editable_text(&mut self.task_name)
+        //     .text_vertical_align(ui::AlignY::Center)
+        //     .padding(ui::EdgeInsets::symmetric(8., 0.))
+        //     .height(20.)
+        //     .build_with_frame(ctx, |ctx, interaction_state, frame| {
+        //         frame.background(
+        //             ui::decoration()
+        //                 .border_radius(ui::BorderRadius::all(3.))
+        //                 .color(ui::ColorRgba::from_hex(0xFF000000))
+        //                 .border(ui::Border::all(ui::BorderSide::new(
+        //                     1.,
+        //                     if interaction_state.is_focused {
+        //                         ui::ColorRgba::from_hex(0xFF357CCE)
+        //                     } else {
+        //                         ui::ColorRgba::from_hex(0xFF414141)
+        //                     },
+        //                 )))
+        //                 .build(ctx),
+        //         )
+        //     });
         //         });
         // });
     }
+}
+
+fn test(ctx: &mut BuildContext) {
+    // ui::editable_text(&mut self.task_name)
+    //     .text_vertical_align(ui::AlignY::Center)
+    //     .padding(ui::EdgeInsets::symmetric(8., 0.))
+    //     .height(20.)
+    // .build(ctx, |ctx, frame| {
+    //     ui::hstack().build(ctx, |ctx| {
+    //         let response = ctx.of::<GestureDetectorResponse>().unwrap();
+
+    //         ui::text(self.prefix).build(ctx);
+
+    //         ui::editable_text()
+    //             .background(
+    //                 decoration()
+    //                     .border(if response.is_focused {
+    //                         BLUE_BORDER
+    //                     } else {
+    //                         GRAY_BORDER
+    //                     })
+    //                     .build(ctx),
+    //             )
+    //             .build(ctx);
+    //     });
+    // });
 }
 
 #[tokio::main]

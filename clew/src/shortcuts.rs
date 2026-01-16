@@ -243,6 +243,12 @@ impl ShortcutsManager {
         }
     }
 
+    pub(crate) fn active_shortcut_id(&self) -> Option<ShortcutId> {
+        self.current_active_shortcuts
+            .get(&self.current_path)
+            .copied()
+    }
+
     pub fn has_modifier<T: Into<ShortcutModifierId>>(&self, id: T) -> bool {
         if let Some(active_modifiers) = self.current_active_modifiers.get(&self.current_path) {
             active_modifiers.contains(&id.into())
@@ -305,7 +311,7 @@ impl ShortcutsManager {
                 let modifiers = modifiers.unwrap_or_default();
 
                 if let Some(key) = key {
-                    let (candidates, resolved_shortcut_id, active_path) = Self::resolve(
+                    let (_, resolved_shortcut_id, active_path) = Self::resolve(
                         registry,
                         modifiers,
                         &self.current_path,
@@ -318,6 +324,8 @@ impl ShortcutsManager {
                     );
 
                     shortcut_id = resolved_shortcut_id;
+
+                    self.active_path = active_path;
                 }
             }
         }
@@ -463,6 +471,10 @@ impl ShortcutsManager {
         shortucts_modifiers.insert(active_path.clone(), active_modifiers);
 
         (candidates, shortcut_id, active_path)
+    }
+
+    pub(crate) fn reset(&mut self) {
+        self.current_active_shortcuts.clear();
     }
 }
 

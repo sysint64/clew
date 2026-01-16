@@ -36,8 +36,9 @@ pub struct UserInput {
     pub ime_preedit: String,
     pub ime_last_preedit: String,
     pub ime_cursor_range: Option<(usize, usize)>,
+
     pub(crate) mouse_left_click_tracker: ClickTracker,
-    pub(crate) _last_click_time: Option<Instant>,
+    pub(crate) last_click_time: Option<Instant>,
 }
 
 #[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]

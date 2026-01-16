@@ -35,6 +35,14 @@ pub(crate) enum EditableTextDelta {
     Apply(TextEditDelta),
 }
 
+#[derive(Clone, Debug)]
+pub enum OsEvent {
+    FocusWindow,
+    CommitIme,
+    ActivateIme,
+    DeactivateIme,
+}
+
 #[derive(WidgetState, Clone, PartialEq)]
 pub(crate) struct State {
     pub(crate) text_id: Option<TextId>,
@@ -53,8 +61,8 @@ pub(crate) struct State {
     pub(crate) multi_line: bool,
     pub(crate) auto_rtl: bool,
     pub(crate) visible_view_updated: bool,
-    pub(crate) last_mouse_x: f64,
-    pub(crate) last_mouse_y: f64,
+    pub(crate) last_mouse_x: f32,
+    pub(crate) last_mouse_y: f32,
     pub(crate) mouse_path_x: f32,
     pub(crate) mouse_path_y: f32,
     pub(crate) last_drag: Option<Instant>,
@@ -237,15 +245,15 @@ impl<'a> EditableTextBuilder<'a> {
             self.text.mark_as_not_dirty(&id);
         }
 
-        interaction::handle_interaction(
-            id,
-            context.input,
-            context.view,
-            context.interaction,
-            state,
-            context.text,
-            context.fonts,
-        );
+        // interaction::handle_interaction(
+        //     id,
+        //     context.input,
+        //     context.view,
+        //     context.interaction,
+        //     state,
+        //     context.text,
+        //     context.fonts,
+        // );
 
         context
             .widgets_states

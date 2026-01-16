@@ -4,13 +4,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 
 use crate::{
-    LayoutDirection, ShortcutsRegistry, View, WidgetId, WidgetRef, editable_text,
-    interaction::InteractionState,
-    io::UserInput,
-    layout::{LayoutCommand, LayoutItem, LayoutMeasure, LayoutState, WidgetPlacement},
-    render::RenderState,
-    shortcuts::ShortcutsManager,
-    widgets::{decorated_box, gesture_detector, scroll_area, svg, text},
+    LayoutDirection, Rect, ShortcutsRegistry, View, WidgetId, WidgetRef, editable_text, interaction::InteractionState, io::UserInput, layout::{LayoutCommand, LayoutItem, LayoutMeasure, LayoutState, WidgetPlacement}, render::RenderState, shortcuts::ShortcutsManager, widgets::{decorated_box, gesture_detector, scroll_area, svg, text}
 };
 
 pub trait WidgetState: Any + Send + 'static {
@@ -61,6 +55,14 @@ pub(crate) struct WidgetsStates {
     pub(crate) svg: TypedWidgetStates<svg::State>,
     pub(crate) components: TypedWidgetStates<Box<dyn Any>>,
     pub(crate) custom: TypedWidgetStates<Option<Box<dyn WidgetState>>>,
+}
+
+#[derive(Default)]
+pub struct ViewConfig {
+    pub ime_cursor_rect: Rect,
+    pub should_use_wide_space: bool,
+    pub layout_direction: LayoutDirection,
+    pub should_update_cursor_each_frame: bool,
 }
 
 pub struct TypedWidgetStates<T> {

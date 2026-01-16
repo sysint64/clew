@@ -320,7 +320,9 @@ impl Window<ShortcutsApplication, ()> for MainWindow {
                                 .active(false)
                                 .build(ctx, |ctx| {
                                     if ctx.is_shortcut(TestShortcuts::S2Bind1) {
-                                        self.push_shortcut("Inactive S2 / BIND1 (KeyA) - should not be triggered");
+                                        self.push_shortcut(
+                                            "Inactive S2 / BIND1 (KeyA) - should not be triggered",
+                                        );
                                     }
                                     if ctx.is_shortcut(TestShortcuts::S1Bind2) {
                                         self.push_shortcut("Inactive S2 / BIND2 (KeyG) - from S1");

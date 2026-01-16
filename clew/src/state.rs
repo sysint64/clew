@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use crate::{
     LayoutDirection, ShortcutsRegistry, View, WidgetId, WidgetRef, editable_text,
     interaction::InteractionState,
-    io::{Cursor, UserInput},
+    io::UserInput,
     layout::{LayoutCommand, LayoutItem, LayoutMeasure, LayoutState, WidgetPlacement},
     render::RenderState,
     shortcuts::ShortcutsManager,

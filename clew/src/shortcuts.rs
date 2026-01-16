@@ -37,20 +37,6 @@ fn remove_modifiers(sequence: &[KeyBinding], modifiers: KeyModifiers) -> Vec<Key
     }
 }
 
-fn maybe_remove_modifiers(sequence: &[KeyBinding], modifiers: KeyModifiers) -> Vec<KeyBinding> {
-    if modifiers.is_empty() {
-        sequence.to_vec()
-    } else {
-        sequence
-            .iter()
-            .map(|binding| KeyBinding {
-                modifiers: binding.modifiers & !modifiers,
-                key: binding.key,
-            })
-            .collect()
-    }
-}
-
 impl KeyBinding {
     pub fn new(key: KeyCode) -> Self {
         Self {
@@ -135,7 +121,7 @@ impl ShortcutScope {
             Entry::Occupied(mut occupied_entry) => {
                 *occupied_entry.get_mut() = config;
             }
-            Entry::Vacant(vacant_entry) => {
+            Entry::Vacant(_) => {
                 self.shortcuts.insert(key, config);
             }
         }
@@ -159,7 +145,7 @@ impl ShortcutScope {
             Entry::Occupied(mut occupied_entry) => {
                 *occupied_entry.get_mut() = config;
             }
-            Entry::Vacant(vacant_entry) => {
+            Entry::Vacant(_) => {
                 self.shortcuts.insert(key, config);
             }
         }
@@ -183,7 +169,7 @@ impl ShortcutScope {
             Entry::Occupied(mut occupied_entry) => {
                 *occupied_entry.get_mut() = config;
             }
-            Entry::Vacant(vacant_entry) => {
+            Entry::Vacant(_) => {
                 self.shortcuts.insert(key, config);
             }
         }
@@ -202,7 +188,7 @@ impl ShortcutScope {
             Entry::Occupied(mut occupied_entry) => {
                 *occupied_entry.get_mut() = modifier;
             }
-            Entry::Vacant(vacant_entry) => {
+            Entry::Vacant(_) => {
                 self.modifiers.insert(key, modifier);
             }
         }
@@ -346,9 +332,7 @@ impl ShortcutsManager {
     }
 
     pub(crate) fn finalize_cycle(&mut self, user_input: &UserInput) {
-        for (modifiers, key) in user_input.key_pressed.iter() {
-            let modifiers = modifiers.unwrap_or_default();
-
+        for (modifiers, _) in user_input.key_pressed.iter() {
             let has_not_active_shortcust = self.next_active_shortcuts.is_empty();
 
             if has_not_active_shortcust && self.candidates == 0 {

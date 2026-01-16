@@ -14,7 +14,7 @@ impl ShortcutsBuilder {
         self
     }
 
-    pub fn build<F>(mut self, ctx: &mut BuildContext, callback: F)
+    pub fn build<F>(self, ctx: &mut BuildContext, callback: F)
     where
         F: FnOnce(&mut BuildContext),
     {

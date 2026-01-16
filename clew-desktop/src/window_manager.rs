@@ -3,7 +3,6 @@ use std::{collections::HashMap, sync::Arc, time::Instant};
 use clew::{
     ColorRgb, EdgeInsets, PhysicalSize, View, ViewId,
     render::Renderer,
-    shortcuts::ShortcutsManager,
     state::UiState,
     text::{StringId, TextId, TextsResources},
 };

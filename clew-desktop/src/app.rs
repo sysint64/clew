@@ -165,7 +165,7 @@ impl<T: ApplicationDelegate<Event>, Event: 'static>
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
         // Request redraw for all windows that need it
-        for (window_id, window) in self.window_manager.windows.iter_mut() {
+        for (_, window) in self.window_manager.windows.iter_mut() {
             // if self.needs_redraw {
             window.winit_window.request_redraw();
             // }

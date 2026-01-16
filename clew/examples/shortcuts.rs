@@ -25,15 +25,15 @@ impl ApplicationDelegate<()> for TodoApplication {
         shortcuts_registry
             .scope(TestScopes::S1)
             .add(
-                TestShortcuts::Bind1,
+                TestShortcuts::S1Bind1,
                 ui::KeyBinding::new(ui::keyboard::KeyCode::KeyA),
             )
             .add(
-                TestShortcuts::Bind2,
+                TestShortcuts::S1Bind2,
                 ui::KeyBinding::new(ui::keyboard::KeyCode::KeyG),
             )
             .add_sequence(
-                TestShortcuts::Chord1,
+                TestShortcuts::S1Chord1,
                 &[
                     ui::KeyBinding::new(ui::keyboard::KeyCode::KeyK),
                     ui::KeyBinding::new(ui::keyboard::KeyCode::KeyC),
@@ -41,51 +41,51 @@ impl ApplicationDelegate<()> for TodoApplication {
             );
 
         shortcuts_registry.scope(TestScopes::S2).add(
-            TestShortcuts::Bind1,
+            TestShortcuts::S2Bind1,
             ui::KeyBinding::new(ui::keyboard::KeyCode::KeyA),
         );
         shortcuts_registry.scope(TestScopes::S3).add(
-            TestShortcuts::Bind1,
+            TestShortcuts::S3Bind1,
             ui::KeyBinding::new(ui::keyboard::KeyCode::KeyA),
         );
 
         // Test 2: Unique shortcut on non-leaf parent (S4)
         shortcuts_registry.scope(TestScopes::S4).add(
-            TestShortcuts::Bind1,
+            TestShortcuts::S4Bind1,
             ui::KeyBinding::new(ui::keyboard::KeyCode::KeyB),
         );
         // S5 is non-leaf, no shortcut registered
         shortcuts_registry
             .scope(TestScopes::S6)
             .add(
-                TestShortcuts::Bind1,
+                TestShortcuts::S6Bind1,
                 ui::KeyBinding::new(ui::keyboard::KeyCode::KeyC),
             )
             .add(
-                TestShortcuts::Bind2,
+                TestShortcuts::S6Bind2,
                 ui::KeyBinding::new(ui::keyboard::KeyCode::KeyE),
             );
 
         shortcuts_registry.scope(TestScopes::S7).add(
-            TestShortcuts::Bind1,
+            TestShortcuts::S7Bind1,
             ui::KeyBinding::new(ui::keyboard::KeyCode::KeyD),
         );
 
         // Test 3: Multi-level fallthrough
         shortcuts_registry.scope(TestScopes::S5).add(
-            TestShortcuts::Bind1,
+            TestShortcuts::S5Bind1,
             ui::KeyBinding::new(ui::keyboard::KeyCode::KeyE),
         );
 
         // Test 4: Root fallback
         shortcuts_registry.scope(TestScopes::S8).add(
-            TestShortcuts::Bind1,
+            TestShortcuts::S8Bind1,
             ui::KeyBinding::new(ui::keyboard::KeyCode::KeyF),
         );
 
         // Test 5: Global fallback on root
         shortcuts_registry.scope(SHORTCUTS_ROOT_SCOPE_ID).add(
-            TestShortcuts::Bind1,
+            TestShortcuts::RootBind1,
             ui::KeyBinding::new(ui::keyboard::KeyCode::KeyZ),
         );
 
@@ -230,9 +230,18 @@ impl Identifiable for ExecutedShortcut {
 
 #[derive(ShortcutId)]
 pub enum TestShortcuts {
-    Bind1,
-    Bind2,
-    Chord1,
+    S1Bind1,
+    S1Bind2,
+    S1Chord1,
+    S2Bind1,
+    S3Bind1,
+    S4Bind1,
+    S5Bind1,
+    S6Bind1,
+    S6Bind2,
+    S7Bind1,
+    S8Bind1,
+    RootBind1,
 }
 
 #[derive(ShortcutScopeId)]
@@ -286,33 +295,37 @@ impl Window<TodoApplication, ()> for MainWindow {
                             .build(ctx);
 
                         ui::shortcut_scope(TestScopes::S1).build(ctx, |ctx| {
-                            if ctx.is_shortcut(TestShortcuts::Bind1) {
-                                self.push_shortcut("S1 / BIND1 (KeyA)");
+                            if ctx.is_shortcut(TestShortcuts::S1Bind1) {
+                                self.push_shortcut("S1 / BIND3 (KeyA)");
                             }
-                            if ctx.is_shortcut(TestShortcuts::Bind2) {
+                            if ctx.is_shortcut(TestShortcuts::S1Bind2) {
                                 self.push_shortcut("S1 / BIND2 (KeyG)");
                             }
-                            if ctx.is_shortcut(TestShortcuts::Chord1) {
+                            if ctx.is_shortcut(TestShortcuts::S1Chord1) {
                                 self.push_shortcut("S1 / Chord K+C triggered");
                             }
 
-                            ui::shortcut_scope(TestScopes::S2).build(ctx, |ctx| {
-                                if ctx.is_shortcut(TestShortcuts::Bind1) {
-                                    self.push_shortcut("S2 / BIND1 (KeyA) - shadowed S1");
-                                }
-                                if ctx.is_shortcut(TestShortcuts::Bind2) {
-                                    self.push_shortcut("S2 / BIND2 (KeyG) - from S1");
-                                }
-                            });
+                            ui::shortcut_scope(TestScopes::S2)
+                                .active(true)
+                                .build(ctx, |ctx| {
+                                    if ctx.is_shortcut(TestShortcuts::S2Bind1) {
+                                        self.push_shortcut("S2 / BIND1 (KeyA) - shadowed S1");
+                                    }
+                                    if ctx.is_shortcut(TestShortcuts::S1Bind2) {
+                                        self.push_shortcut("S2 / BIND2 (KeyG) - from S1");
+                                    }
+                                });
 
-                            ui::shortcut_scope(TestScopes::S3).build(ctx, |ctx| {
-                                if ctx.is_shortcut(TestShortcuts::Bind1) {
-                                    self.push_shortcut("S3 / BIND1 (KeyA) - shadowed S1");
-                                }
-                                if ctx.is_shortcut(TestShortcuts::Bind2) {
-                                    self.push_shortcut("S3 / BIND2 (KeyG) - from S1");
-                                }
-                            });
+                            ui::shortcut_scope(TestScopes::S3)
+                                .active(true)
+                                .build(ctx, |ctx| {
+                                    if ctx.is_shortcut(TestShortcuts::S3Bind1) {
+                                        self.push_shortcut("S3 / BIND1 (KeyA) - shadowed S1");
+                                    }
+                                    if ctx.is_shortcut(TestShortcuts::S1Bind2) {
+                                        self.push_shortcut("S3 / BIND2 (KeyG) - from S1");
+                                    }
+                                });
                         });
                     });
 
@@ -346,22 +359,22 @@ impl Window<TodoApplication, ()> for MainWindow {
                             .build(ctx);
 
                         ui::shortcut_scope(TestScopes::S4).build(ctx, |ctx| {
-                            if ctx.is_shortcut(TestShortcuts::Bind1) {
+                            if ctx.is_shortcut(TestShortcuts::S4Bind1) {
                                 self.push_shortcut("S4 / BIND1 (KeyB)");
                             }
 
                             ui::shortcut_scope(TestScopes::S5).build(ctx, |ctx| {
-                                if ctx.is_shortcut(TestShortcuts::Bind1) {
+                                if ctx.is_shortcut(TestShortcuts::S5Bind1) {
                                     self.push_shortcut("S5 / BIND1 (KeyE)");
                                 }
 
                                 ui::shortcut_scope(TestScopes::S6).build(ctx, |ctx| {
-                                    if ctx.is_shortcut(TestShortcuts::Bind1) {
+                                    if ctx.is_shortcut(TestShortcuts::S6Bind1) {
                                         self.push_shortcut(
                                             "S6 / BIND1 (KeyC) - shadowed S5's KeyE",
                                         );
                                     }
-                                    if ctx.is_shortcut(TestShortcuts::Bind2) {
+                                    if ctx.is_shortcut(TestShortcuts::S6Bind2) {
                                         self.push_shortcut(
                                             "S6 / BIND2 (KeyE) - shadowed S5's BIND1",
                                         );
@@ -370,7 +383,7 @@ impl Window<TodoApplication, ()> for MainWindow {
                             });
 
                             ui::shortcut_scope(TestScopes::S7).build(ctx, |ctx| {
-                                if ctx.is_shortcut(TestShortcuts::Bind1) {
+                                if ctx.is_shortcut(TestShortcuts::S7Bind1) {
                                     self.push_shortcut("S7 / BIND1 (KeyD)");
                                 }
                             });
@@ -397,12 +410,12 @@ impl Window<TodoApplication, ()> for MainWindow {
                             .build(ctx);
 
                         ui::shortcut_scope(TestScopes::S8).build(ctx, |ctx| {
-                            if ctx.is_shortcut(TestShortcuts::Bind1) {
+                            if ctx.is_shortcut(TestShortcuts::S8Bind1) {
                                 self.push_shortcut("S8 / BIND1 (KeyF)");
                             }
                         });
 
-                        if ctx.is_shortcut(TestShortcuts::Bind1) {
+                        if ctx.is_shortcut(TestShortcuts::RootBind1) {
                             self.push_shortcut("ROOT / BIND1 (KeyZ) - global fallback");
                         }
                     });

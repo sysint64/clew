@@ -280,6 +280,9 @@ impl ShortcutsManager {
             if let Some(shortcut_id) = shortcut_id {
                 self.next_active_shortcuts
                     .insert(self.active_path.clone(), shortcut_id);
+
+                self.next_active_shortcuts
+                    .insert(self.current_path.clone(), shortcut_id);
             }
         }
 
@@ -385,7 +388,6 @@ impl ShortcutsManager {
         registry: &ShortcutsRegistry,
         modifiers: KeyModifiers,
         scopes: &SmallVec<[ShortcutScopeId; 4]>,
-        // shortucts_modifiers: &mut FxHashSet<ShortcutModifierId>,
         shortucts_modifiers: &mut FxHashMap<
             SmallVec<[ShortcutScopeId; 4]>,
             FxHashSet<ShortcutModifierId>,

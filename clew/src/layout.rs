@@ -429,8 +429,6 @@ impl LayoutState {
         wrap_size: Vec2,
         insets: EdgeInsets,
     ) -> Vec2 {
-        let wrap_size = apply_constraints(wrap_size, constraints);
-
         let mut size = Vec2::new(
             self.add_width(size.width, wrap_size.x, insets.horizontal()),
             self.add_height(size.height, wrap_size.y, insets.vertical()),
@@ -810,7 +808,7 @@ pub fn layout(
                         Vec2::new(constraints.min_width, constraints.min_height)
                     }
                     DeriveWrapSize::Text(text_id) => {
-                        let text_size = text.get_mut(*text_id).layout();
+                        let text_size = text.get_mut(*text_id).calculate_size();
 
                         text_size / view.scale_factor
                     }
@@ -1330,6 +1328,7 @@ pub fn layout(
                 margin,
                 derive_wrap_size,
                 clip,
+                size,
                 ..
             } => {
                 let align_x = match layout_state.pass2_parent_container.axis {
@@ -1453,10 +1452,12 @@ pub fn layout(
                 }
 
                 if let DeriveWrapSize::Text(text_id) = derive_wrap_size {
-                    layout_state.texts.push(TextLayout {
-                        width: rect.width * view.scale_factor,
-                        text_id: *text_id,
-                    });
+                    if size.width.constrained() {
+                        layout_state.texts.push(TextLayout {
+                            width: rect.width * view.scale_factor,
+                            text_id: *text_id,
+                        });
+                    }
                 };
 
                 if RENDER_CHILD_DEBUG_BOUNDARIES {
